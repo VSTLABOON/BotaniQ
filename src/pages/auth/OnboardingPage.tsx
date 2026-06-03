@@ -573,10 +573,10 @@ export default function OnboardingPage() {
                         className="onb-input onb-select"
                         style={{ paddingLeft: '2.5rem' }}
                       >
-                        <option value="gratis">BotaniQ Inicio (Prueba Gratis de 14 días - Sin tarjeta)</option>
-                        <option value="basico">BotaniQ Esencia (Básico - $400/mes)</option>
-                        <option value="pro">BotaniQ Alquimia (Pro - $900/mes - Recomendado)</option>
-                        <option value="premium">BotaniQ Edén (Premium - $1,300/mes)</option>
+                        <option value="gratis">BotaniQ Inicio (Prueba Gratis 14 días)</option>
+                        <option value="basico">BotaniQ Esencia (Básico — $400/mes)</option>
+                        <option value="pro">BotaniQ Alquimia (Pro — $900/mes — Recomendado)</option>
+                        <option value="premium">BotaniQ Edén (Premium — $1,300/mes)</option>
                       </select>
                     </div>
                   </div>
@@ -660,7 +660,7 @@ export default function OnboardingPage() {
                       type="button"
                       disabled={!isStep2Valid || loading}
                       onClick={() => handleFinish(true)}
-                      className="w-full mt-3 text-xs text-white/50 hover:text-white underline transition-all bg-transparent border-none py-2 cursor-pointer flex items-center justify-center gap-1"
+                      className="onb-btn-skip"
                     >
                       Omitir por ahora y comenzar prueba de 14 días
                     </button>
@@ -871,6 +871,38 @@ export default function OnboardingPage() {
           background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);
         }
         .onb-btn--ghost:hover { color: white; background: rgba(255,255,255,0.08); }
+
+        .onb-btn-skip {
+          width: 100%;
+          margin-top: 0.75rem;
+          padding: 0.75rem;
+          background: rgba(255, 255, 255, 0.02);
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          border-radius: 12px;
+          color: rgba(255, 255, 255, 0.6);
+          font-size: 0.8125rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .onb-btn-skip:hover:not(:disabled) {
+          background: rgba(255, 255, 255, 0.05);
+          color: white;
+          border-color: rgba(255, 255, 255, 0.1);
+        }
+        .onb-btn-skip:disabled {
+          opacity: 0.35;
+          cursor: not-allowed;
+        }
+
+        @media (max-width: 768px) {
+          .onb-input {
+            font-size: 16px !important;
+          }
+        }
 
         .animate-spin { animation: spin 0.8s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
