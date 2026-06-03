@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // 3. Consultar la tabla de perfiles usando el user.id
       const { data: profile, error } = await supabase
         .from('perfiles')
-        .select('*')
+        .select('id, tienda_id, rol, nombre_completo, telefono, direccion')
         .eq('id', session.user.id)
         .single();
 

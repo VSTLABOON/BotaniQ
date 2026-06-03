@@ -8,18 +8,18 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   TrendingUp, TrendingDown,
-  ShoppingBag, Truck, Clock, MapPin, Heart, Package, Loader2, Bell
+  ShoppingBag, Truck, Clock, MapPin, Heart, Package, Loader2, Bell, AlertCircle
 } from 'lucide-react';
 import {
   ResponsiveContainer, Area, AreaChart,
   XAxis, YAxis, CartesianGrid, Tooltip,
 } from 'recharts';
-import { supabase } from '../../lib/supabaseClient';
 import { useTenant } from '../../context/TenantContext';
 import { useAuth } from '../../context/AuthContext';
 import { UI_COLORS } from '../../lib/constants.ts';
 import { logger } from '../../lib/logger';
 import { subscribeToPushNotifications } from '../../lib/pushNotifications';
+import { fetchDashboardMetrics } from '../../services/dashboardService';
 
 import { CARD as BASE_CARD } from './components/config/SharedUI';
 
@@ -86,6 +86,8 @@ export default function AdminDashboardPage() {
   const { tenant } = useTenant();
   const { profile } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [retryTrigger, setRetryTrigger] = useState(0);
   const [kpis, setKpis] = useState<KPI[]>([]);
   const [weeklySales, setWeeklySales] = useState<DaySales[]>([]);
   const [deliveries, setDeliveries] = useState<DeliveryItem[]>([]);
@@ -104,6 +106,7 @@ export default function AdminDashboardPage() {
 
     async function fetchDashboardData() {
       setLoading(true);
+      setError(null);
       try {
         const now = new Date();
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
@@ -117,54 +120,21 @@ export default function AdminDashboardPage() {
         const todayStart = new Date();
         todayStart.setHours(0, 0, 0, 0);
 
-        // Ejecutar las 5 consultas independientes en paralelo para eliminar la latencia waterfall
-        const [
-          currentOrdersResult,
-          prevOrdersResult,
-          weekOrdersResult,
-          todayOrdersResult,
-          topItemsResult
-        ] = await Promise.all([
-          supabase
-            .from('pedidos')
-            .select('id, total, estado, created_at')
-            .eq('tienda_id', tenant.id)
-            .gte('created_at', startOfMonth),
-          supabase
-            .from('pedidos')
-            .select('id, total')
-            .eq('tienda_id', tenant.id)
-            .gte('created_at', startOfPrevMonth)
-            .lte('created_at', endOfPrevMonth),
-          supabase
-            .from('pedidos')
-            .select('total, created_at')
-            .eq('tienda_id', tenant.id)
-            .gte('created_at', sevenDaysAgo.toISOString())
-            .not('estado', 'eq', 'cancelado'),
-          supabase
-            .from('pedidos')
-            .select('id, total, estado, created_at, email_cliente, datos_envio, pedido_items(*)')
-            .eq('tienda_id', tenant.id)
-            .gte('created_at', todayStart.toISOString())
-            .order('created_at', { ascending: true })
-            .limit(6),
-          supabase
-            .from('pedido_items')
-            .select('*, pedidos!inner(tienda_id, created_at)')
-            .eq('pedidos.tienda_id', tenant.id)
-            .gte('pedidos.created_at', startOfMonth)
-        ]);
+        const metrics = await fetchDashboardMetrics(tenant.id, {
+          startOfMonth,
+          startOfPrevMonth,
+          endOfPrevMonth,
+          sevenDaysAgo: sevenDaysAgo.toISOString(),
+          todayStart: todayStart.toISOString()
+        });
 
         if (!active) return;
 
-        const currentOrders = currentOrdersResult.data;
-        const prevOrders = prevOrdersResult.data;
-        const weekOrders = weekOrdersResult.data;
-        const todayOrders = todayOrdersResult.data;
-        const todayError = todayOrdersResult.error;
-        const topItems = topItemsResult.data;
-        const topError = topItemsResult.error;
+        const currentOrders = metrics.currentOrders;
+        const prevOrders = metrics.prevOrders;
+        const weekOrders = metrics.weekOrders;
+        const todayOrders = metrics.todayOrders;
+        const topItems = metrics.topItems;
 
         // ── Procesar 1. KPIs: Pedidos del mes actual y anterior ──────
         const currentTotal = (currentOrders || []).reduce((sum, o) => sum + (o.total || 0), 0);
@@ -240,7 +210,7 @@ export default function AdminDashboardPage() {
         );
 
         // ── Procesar 3. Entregas de hoy ───────────────────────────
-        if (!todayError && todayOrders) {
+        if (todayOrders) {
           setDeliveries(
             todayOrders.map(o => {
               const envio = (o.datos_envio as any) || {};
@@ -260,7 +230,7 @@ export default function AdminDashboardPage() {
         }
 
         // ── Procesar 4. Top productos (más vendidos del mes) ──────
-        if (!topError && topItems) {
+        if (topItems) {
           // Agrupar por nombre de producto
           const productMap: Record<string, { units: number; price: number }> = {};
           topItems.forEach((item: any) => {
@@ -285,6 +255,7 @@ export default function AdminDashboardPage() {
       } catch (err) {
         if (!active) return;
         logger.error('[Dashboard] Error loading data:', err as Error);
+        setError('No se pudieron cargar las métricas. Intenta de nuevo más tarde.');
       } finally {
         if (active) {
           setLoading(false);
@@ -297,7 +268,36 @@ export default function AdminDashboardPage() {
     return () => {
       active = false;
     };
-  }, [tenant?.id, profile?.rol]);
+  }, [tenant?.id, profile?.rol, retryTrigger]);
+
+  const handleRetry = () => {
+    setError(null);
+    setLoading(true);
+    setRetryTrigger(prev => prev + 1);
+  };
+
+  // ── Error state ────────────────────────────────────────────────
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto flex flex-col items-center justify-center py-32 gap-4 text-center font-sans">
+        <div className="w-16 h-16 rounded-full bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30 flex items-center justify-center text-red-500">
+          <AlertCircle className="w-8 h-8" />
+        </div>
+        <div>
+          <h3 className="text-lg font-bold text-[var(--color-text-primary)]">Error al cargar el panel</h3>
+          <p className="text-sm text-[var(--color-text-tertiary)] mt-1 max-w-md mx-auto">
+            {error}
+          </p>
+        </div>
+        <button
+          onClick={handleRetry}
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors shadow-sm active:scale-95 cursor-pointer"
+        >
+          Reintentar
+        </button>
+      </div>
+    );
+  }
 
   // ── Loading state ──────────────────────────────────────────────
   if (loading) {
@@ -384,7 +384,7 @@ export default function AdminDashboardPage() {
                 <p className="text-xs text-[var(--color-text-tertiary)] mt-1 mb-4 text-center max-w-[250px]">
                   Configura tu catálogo para empezar a recibir pedidos.
                 </p>
-                <Link to="/admin/catalogo" className="text-xs font-semibold bg-emerald-500/10 text-emerald-500 px-4 py-2 rounded-lg hover:bg-emerald-500/20 transition-colors">
+                <Link to="/admin/catalogo" className="text-xs font-semibold bg-emerald-505/10 text-emerald-500 px-4 py-2 rounded-lg hover:bg-emerald-500/20 transition-colors">
                   Ir al catálogo
                 </Link>
               </div>
@@ -492,7 +492,7 @@ export default function AdminDashboardPage() {
             <Package className="w-10 h-10 text-[var(--color-text-tertiary)] mb-3" strokeWidth={1.5} />
             <p className="text-sm font-medium text-[var(--color-text-secondary)]">Sin datos de ventas este mes</p>
             <p className="text-xs text-[var(--color-text-tertiary)] mt-1 mb-4">Los productos top aparecerán aquí cuando recibas pedidos.</p>
-            <Link to="/admin/catalogo" className="text-xs font-semibold bg-emerald-50 text-emerald-700 px-4 py-2 rounded-lg hover:bg-emerald-100 transition-colors">
+            <Link to="/admin/catalogo" className="text-xs font-semibold bg-emerald-50 text-emerald-700 px-4 py-2 rounded-lg hover:bg-emerald-105 transition-colors">
               Agregar productos
             </Link>
           </div>

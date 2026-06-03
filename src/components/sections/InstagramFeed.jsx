@@ -51,7 +51,7 @@ export default function InstagramFeed({ tiendaId, slug, limit = 8 }) {
         // ── Consultar cache ─────────────────────────────────
         const { data, error: cacheErr } = await supabase
           .from('instagram_cache')
-          .select('*')
+          .select('ig_post_id, permalink, media_type, thumbnail_url, media_url, caption, timestamp')
           .eq('tienda_id', resolvedId)
           .order('timestamp', { ascending: false })
           .limit(limit);

@@ -11,19 +11,24 @@
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { supabase } from '../../lib/supabaseClient';
 import { useTenant } from '../../context/TenantContext';
 import { logger } from '../../lib/logger';
 import {
-  Package, Search, Filter, ChevronRight, X,
+  Package, Search, ChevronRight, X,
   MapPin, Heart, Clock, User, Phone,
   Calendar, CreditCard, MessageSquare, ShoppingBag,
-  Plus, CheckCircle, FileText, Loader2, Save
+  Plus, CheckCircle, Loader2, Save
 } from 'lucide-react';
 import { toast } from '../../store/toastStore';
 
 import { CARD } from './components/config/SharedUI';
 import { ManualOrderModal } from './components/ManualOrderModal';
+import {
+  fetchAdminOrders,
+  updateOrderStatus,
+  liquidateOrder,
+  createManualOrder
+} from '../../services/orderService';
 
 // ── Tipos locales ────────────────────────────────────────────────
 
@@ -92,17 +97,6 @@ function formatTime(iso: string): string {
 // ██ PANEL LATERAL — DETALLE DE PEDIDO
 // ═══════════════════════════════════════════════════════════════════
 
-/**
- * Panel deslizable que muestra el desglose completo de un pedido:
- *   - Datos del cliente y estado
- *   - datos_envio (dirección, destinatario, dedicatoria)
- *   - pedido_items (arreglos comprados con miniatura y precio)
- *
- * Flujo de datos (producción):
- *   En producción, al abrir este panel se haría un SELECT adicional
- *   a `pedido_items` JOIN `productos` para obtener las imágenes y
- *   nombres actualizados. Por ahora los datos vienen del mock.
- */
 function OrderDetailPanel({
   order, onClose, onStatusChange, onLiquidate,
 }: {
@@ -351,7 +345,6 @@ export default function AdminPedidos() {
     async function fetchOrders() {
       if (!tenant?.id) return;
       
-      // Mostrar spinner principal si no hay datos, o spinner de paginación si ya hay datos cargados
       if (orders.length === 0) {
         setLoading(true);
       } else {
@@ -359,29 +352,12 @@ export default function AdminPedidos() {
       }
 
       try {
-        // Pedimos los pedidos junto a sus items correspondientes aplicando limitación
-        const { data, error } = await supabase
-          .from('pedidos')
-          .select(`
-            *,
-            pedido_items (
-              *,
-              productos (
-                imagenes
-              )
-            )
-          `)
-          .eq('tienda_id', tenant.id)
-          .order('created_at', { ascending: false })
-          .limit(loadedLimit);
+        const data = await fetchAdminOrders(tenant.id, loadedLimit);
 
         if (!active) return;
 
-        if (error) throw error;
-
         if (data) {
           const mappedOrders: Order[] = data.map((row) => {
-            // Parseo seguro de datos_envio
             const rawEnvio = row.datos_envio || {};
             const datos_envio: ShippingInfo = {
               recipientName: rawEnvio.recipientName || row.cliente_nombre || 'Sin nombre',
@@ -396,7 +372,6 @@ export default function AdminPedidos() {
             };
 
             const items: OrderItem[] = (row.pedido_items || []).map((item: any) => {
-              // Extraer imagen del producto joinado si existe, sino placeholder
               const productImages = item.productos?.imagenes || [];
               const imageUrl = productImages.length > 0 ? productImages[0] : 'https://placehold.co/150x150/f3f4f6/9ca3af?text=Sin+Imagen';
               
@@ -464,15 +439,10 @@ export default function AdminPedidos() {
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, estado: newStatus } : o));
     setSelectedOrder(prev => prev?.id === orderId ? { ...prev, estado: newStatus } : prev);
 
-    // Guardar en BD
-    const { error } = await supabase
-      .from('pedidos')
-      .update({ estado: newStatus })
-      .eq('id', orderId);
-      
-    if (error) {
+    try {
+      await updateOrderStatus(orderId, newStatus);
+    } catch (error) {
       logger.error('Error updating order status:', error as Error);
-      // Podríamos revertir el cambio optimista aquí en caso de error
     }
   }, []);
 
@@ -501,21 +471,13 @@ export default function AdminPedidos() {
       datos_envio: updatedEnvio
     } : prev);
 
-    // Guardar en BD
-    const { error } = await supabase
-      .from('pedidos')
-      .update({
-        estado: 'pagado',
-        datos_envio: updatedEnvio
-      })
-      .eq('id', orderId);
-
-    if (error) {
+    try {
+      await liquidateOrder(orderId, updatedEnvio);
+      toast.success('Pago liquidado correctamente');
+    } catch (error) {
       logger.error('Error liquidating order:', error as Error);
       toast.error('Error al liquidar el pago');
       setRefreshTrigger(prev => prev + 1);
-    } else {
-      toast.success('Pago liquidado correctamente');
     }
   }, [orders]);
 
@@ -554,35 +516,14 @@ export default function AdminPedidos() {
 
       const dbEstado = orderData.tipoPago === 'pagado' ? 'pagado' : 'pendiente';
 
-      const { data: orderRow, error: orderError } = await supabase
-        .from('pedidos')
-        .insert({
-          tienda_id: tenant.id,
-          total: orderData.montoTotal,
-          estado: dbEstado,
-          metodo_pago: orderData.metodoPago,
-          datos_envio,
-          email_cliente: orderData.emailCliente || null,
-        })
-        .select('id')
-        .single();
-
-      if (orderError) throw orderError;
-      if (!orderRow?.id) throw new Error('No se pudo obtener el ID del pedido creado');
-
-      const { error: itemError } = await supabase
-        .from('pedido_items')
-        .insert({
-          pedido_id: orderRow.id,
-          nombre_producto: orderData.detalleVenta,
-          cantidad: 1,
-          precio_unitario: orderData.montoTotal,
-        });
-
-      if (itemError) {
-        await supabase.from('pedidos').delete().eq('id', orderRow.id);
-        throw itemError;
-      }
+      await createManualOrder(tenant.id, {
+        total: orderData.montoTotal,
+        estado: dbEstado,
+        metodoPago: orderData.metodoPago,
+        datos_envio,
+        emailCliente: orderData.emailCliente || null,
+        detalleVenta: orderData.detalleVenta
+      });
 
       toast.success('Nota Express registrada exitosamente');
       setRefreshTrigger(prev => prev + 1);

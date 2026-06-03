@@ -1,7 +1,7 @@
 // ─── ORDER SERVICE ──────────────────────────────────────────────
-// Capa de servicios para el flujo de Guest Checkout.
+// Capa de servicios para el flujo de Guest Checkout y la administración de pedidos.
 //
-// IMPORTANTE: Esta función NO realiza inserciones múltiples.
+// IMPORTANTE: Esta función `createGuestOrder` NO realiza inserciones múltiples.
 // Toda la lógica transaccional (crear pedido + insertar items)
 // está encapsulada en la función PL/pgSQL `create_guest_order`
 // del lado del servidor. El frontend solo envía UNA llamada RPC.
@@ -17,18 +17,6 @@ import { logger } from '../lib/logger';
 /**
  * Crea un pedido anónimo (guest checkout) invocando una ÚNICA
  * función RPC en Supabase.
- *
- * @param checkout - Estado completo del checkout (items + totales)
- * @param shipping - Datos de envío y dedicatoria
- * @param tenantId - UUID de la tienda (tienda_id)
- * @returns Objeto con el orderId generado por la base de datos
- * @throws Error si la función RPC falla
- *
- * @example
- * ```ts
- * const result = await createGuestOrder(checkout, shippingData, tenant.id);
- * logger.info('Pedido creado:', result.orderId);
- * ```
  */
 export async function createGuestOrder(
   checkout: CheckoutState,
@@ -47,10 +35,7 @@ export async function createGuestOrder(
 
   // ── ÚNICA llamada a la base de datos ──────────────────────────
   // La función PL/pgSQL `create_guest_order` recibe todos los datos
-  // y ejecuta las inserciones dentro de una transacción atómica:
-  //   1. INSERT INTO pedidos (tienda_id, total, datos_envio, estado)
-  //   2. INSERT INTO pedido_items (pedido_id, producto_id, variante_id, cantidad, precio_unitario)
-  //   3. RETURN pedido.id
+  // y ejecuta las inserciones dentro de una transacción atómica
   const { data, error } = await supabase.rpc('create_guest_order', {
     p_tienda_id: tenantId,
     p_total: checkout.total,
@@ -65,4 +50,112 @@ export async function createGuestOrder(
   }
 
   return { success: true, orderId: data };
+}
+
+/**
+ * Obtiene pedidos de una tienda junto con sus items y el primer elemento del producto (para la imagen).
+ */
+export async function fetchAdminOrders(tiendaId: string, limit: number): Promise<any[]> {
+  const { data, error } = await supabase
+    .from('pedidos')
+    .select(`
+      id,
+      tienda_id,
+      total,
+      estado,
+      metodo_pago,
+      datos_envio,
+      email_cliente,
+      cliente_nombre,
+      created_at,
+      pedido_items (
+        id,
+        nombre_producto,
+        variante_id,
+        cantidad,
+        precio_unitario,
+        productos (
+          imagenes
+        )
+      )
+    `)
+    .eq('tienda_id', tiendaId)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+  return data || [];
+}
+
+/**
+ * Actualiza el estado de un pedido en la base de datos.
+ */
+export async function updateOrderStatus(orderId: string, newStatus: string): Promise<void> {
+  const { error } = await supabase
+    .from('pedidos')
+    .update({ estado: newStatus })
+    .eq('id', orderId);
+
+  if (error) throw error;
+}
+
+/**
+ * Registra la liquidación (pago completo) actualizando el estado y la metadata de envío.
+ */
+export async function liquidateOrder(orderId: string, updatedEnvio: any): Promise<void> {
+  const { error } = await supabase
+    .from('pedidos')
+    .update({
+      estado: 'pagado',
+      datos_envio: updatedEnvio
+    })
+    .eq('id', orderId);
+
+  if (error) throw error;
+}
+
+/**
+ * Registra un pedido manual (Nota Express) insertando el pedido y su item.
+ */
+export async function createManualOrder(
+  tiendaId: string,
+  payload: {
+    total: number;
+    estado: string;
+    metodoPago: string;
+    datos_envio: any;
+    emailCliente: string | null;
+    detalleVenta: string;
+  }
+): Promise<void> {
+  const { data: orderRow, error: orderError } = await supabase
+    .from('pedidos')
+    .insert({
+      tienda_id: tiendaId,
+      total: payload.total,
+      estado: payload.estado,
+      metodo_pago: payload.metodoPago,
+      datos_envio: payload.datos_envio,
+      email_cliente: payload.emailCliente || null,
+    })
+    .select('id')
+    .single();
+
+  if (orderError) throw orderError;
+  if (!orderRow?.id) throw new Error('No se pudo obtener el ID del pedido creado');
+
+  const { error: itemError } = await supabase
+    .from('pedido_items')
+    .insert({
+      pedido_id: orderRow.id,
+      nombre_producto: payload.detalleVenta,
+      cantidad: 1,
+      precio_unitario: payload.total,
+    });
+
+  if (itemError) {
+    // Si falla la inserción de items, intentamos remover el pedido huérfano
+    await supabase.from('pedidos').delete().eq('id', orderRow.id);
+    throw itemError;
+  }
 }

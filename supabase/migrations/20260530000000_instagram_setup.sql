@@ -1,11 +1,4 @@
--- ═══════════════════════════════════════════════════════════════════
--- INSTAGRAM FEED CACHE — Multi-tenant
--- Ejecutar en: Supabase Dashboard > SQL Editor > New Query
--- ═══════════════════════════════════════════════════════════════════
-
 -- ── 1. TABLA: instagram_cache ───────────────────────────────────
--- Almacena los posts cacheados de Instagram por tienda.
--- El campo tienda_id aísla el feed de cada tenant.
 CREATE TABLE IF NOT EXISTS instagram_cache (
   id            UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   tienda_id     UUID NOT NULL REFERENCES tiendas(id) ON DELETE CASCADE,
@@ -23,12 +16,10 @@ CREATE TABLE IF NOT EXISTS instagram_cache (
 );
 
 -- Índices para consultas frecuentes
-CREATE INDEX idx_ig_cache_tienda ON instagram_cache(tienda_id);
-CREATE INDEX idx_ig_cache_timestamp ON instagram_cache(tienda_id, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_ig_cache_tienda ON instagram_cache(tienda_id);
+CREATE INDEX IF NOT EXISTS idx_ig_cache_timestamp ON instagram_cache(tienda_id, timestamp DESC);
 
 -- ── 2. TABLA: instagram_tokens ──────────────────────────────────
--- Almacena los Long-Lived Tokens de Instagram por tienda.
--- Solo los administradores autenticados pueden leer/escribir esta tabla.
 CREATE TABLE IF NOT EXISTS instagram_tokens (
   id              UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   tienda_id       UUID NOT NULL UNIQUE REFERENCES tiendas(id) ON DELETE CASCADE,
@@ -38,21 +29,24 @@ CREATE TABLE IF NOT EXISTS instagram_tokens (
   updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Índices para tokens
+CREATE INDEX IF NOT EXISTS idx_ig_tokens_tienda ON instagram_tokens(tienda_id);
+
 -- ── 3. RLS ──────────────────────────────────────────────────────
 ALTER TABLE instagram_cache  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE instagram_tokens ENABLE ROW LEVEL SECURITY;
 
--- Cache: Lectura pública (el feed es visible para visitantes anónimos)
+-- Cache: Lectura pública restringida a tiendas con nivel de suscripción activo
 CREATE POLICY "anon_read_ig_cache"
-  ON instagram_cache
-  FOR SELECT
-  TO anon, authenticated
-  USING (true);
+  ON instagram_cache FOR SELECT TO anon, authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.tiendas t
+      WHERE t.id = tienda_id AND t.subscription_level > 0
+    )
+  );
 
--- Tokens: SOLO lectura para el service_role (Edge Functions).
--- Los tokens NUNCA se exponen al frontend.
--- No creamos política de SELECT para anon/authenticated — esto bloquea
--- el acceso desde el cliente. Solo service_role_key los puede leer.
+-- Tokens: SOLO lectura/escritura para el service_role (Edge Functions)
 CREATE POLICY "service_role_manage_ig_tokens"
   ON instagram_tokens
   FOR ALL

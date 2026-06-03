@@ -33,6 +33,7 @@ const ProductoCard = memo(function ProductoCard({ producto, priority = false }) 
           src={producto.imgUrl} 
           alt={producto.name} 
           loading={priority ? "eager" : "lazy"}
+          fetchpriority={priority ? "high" : "auto"}
           decoding="async"
           className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.07]"
         />

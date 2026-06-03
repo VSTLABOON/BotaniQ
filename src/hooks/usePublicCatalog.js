@@ -76,7 +76,7 @@ export function usePublicCatalog(slug, options = {}) {
       // ── Paso 1: Resolver slug → tienda ────────────────────
       let queryTienda = supabase
         .from('tiendas')
-        .select('*')
+        .select('id, slug, nombre, logo_url, color_primario, color_secundario, color_acento, ciudad, estado, area_metropolitana, mapa_url, direccion, whatsapp, wa_base, horarios, redes_sociales, nav_links, campana, anio_fundacion, texto_nosotros, firma, envio_costo, colonias, subscription_level, custom_domain, currency, created_at, meta_title, config_ui')
         .eq('slug', slug);
 
       if (abortSignal) {
@@ -99,7 +99,7 @@ export function usePublicCatalog(slug, options = {}) {
       // pero aplicamos el filtro aquí también como defensa en profundidad.
       let queryProd = supabase
         .from('productos')
-        .select('*')
+        .select('id, slug, nombre, descripcion_corta, precio, precio_num, disponible, badge, badge_class, imagen_url, descripcion, wa_mensaje, categoria, created_at')
         .eq('tienda_id', tiendaData.id)
         .eq('disponible', true)
         .order('created_at', { ascending: false });

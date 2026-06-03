@@ -86,7 +86,7 @@ export default function SuperadminSuscripciones() {
       // Fetch suscripciones
       const { data: subsData, error: subsErr } = await supabase
         .from('suscripciones')
-        .select('*');
+        .select('id, tenant_id, plan, estado, fecha_inicio, fecha_renovacion, monto_mensual');
         
       if (subsErr) {
         logger.warn('Error fetching suscripciones (puede que la tabla aún no tenga RLS o no haya datos)', subsErr as any);

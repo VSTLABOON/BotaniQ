@@ -14,16 +14,20 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import {
-  Plus, Pencil, Trash2, X, Save, Package,
-  Image, Loader2, ChevronDown, AlertCircle, Crown,
-  Upload, ImagePlus,
+  Plus, Pencil, Trash2, X, Package,
+  Image, Loader2, ChevronDown, Crown,
 } from 'lucide-react';
 import type { Product, ProductVariant } from '../../types';
-import { supabase } from '../../lib/supabaseClient';
 import { useTenant } from '../../context/TenantContext';
 import { logger } from '../../lib/logger';
 import { toast } from '../../store/toastStore';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import {
+  fetchAdminProducts,
+  updateProductAvailability,
+  saveAdminProduct,
+  deleteAdminProduct
+} from '../../services/productService';
 
 // ── Clase base para tarjetas admin ───────────────────────────────
 import { CARD } from './components/config/SharedUI';
@@ -38,10 +42,6 @@ const uid = () => {
     const v = c === 'x' ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
-};
-
-const generateSlug = (name: string) => {
-  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 };
 
 // ── Variante vacía para "añadir fila" ────────────────────────────
@@ -121,10 +121,6 @@ function SkeletonRow() {
 // ═══════════════════════════════════════════════════════════════════
 
 export default function AdminProductos() {
-  // SAAS_FLAG: NIVEL 2 - Esta página completa requiere Nivel 2.
-  // Si el tenant no tiene suscripción Nivel 2, la ruta en main.jsx
-  // debe redirigir al dashboard antes de llegar aquí.
-
   const { tenant } = useTenant();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -145,42 +141,13 @@ export default function AdminProductos() {
   useEffect(() => {
     let active = true;
 
-    async function fetchProducts() {
+    async function fetchProductsData() {
       if (!tenant?.id) return;
       try {
         setLoading(true);
-        const { data: dbProducts, error: prodErr } = await supabase
-          .from('productos')
-          .select(`
-            *,
-            producto_variantes (*)
-          `)
-          .eq('tienda_id', tenant.id)
-          .order('created_at', { ascending: false });
+        const mappedProducts = await fetchAdminProducts(tenant.id);
 
         if (!active) return;
-
-        if (prodErr) throw prodErr;
-
-        const mappedProducts: Product[] = (dbProducts || []).map(p => ({
-          id: p.id,
-          tienda_id: p.tienda_id,
-          name: p.nombre,
-          description: p.descripcion || '',
-          basePrice: Number(p.precio) || 0,
-          images: p.imagen_url ? [p.imagen_url] : [],
-          isAvailable: p.disponible ?? true,
-          variants: (p.producto_variantes || []).map((v: any) => ({
-            id: v.id,
-            productId: v.producto_id,
-            name: v.nombre,
-            priceModifier: Number(v.modificador_precio) || 0,
-            stock: v.stock ?? 0,
-            sku: v.sku || '',
-            image: v.imagen_url || undefined
-          }))
-        }));
-
         setProducts(mappedProducts);
       } catch (err) {
         if (!active) return;
@@ -192,7 +159,7 @@ export default function AdminProductos() {
         }
       }
     }
-    fetchProducts();
+    fetchProductsData();
 
     return () => {
       active = false;
@@ -212,12 +179,7 @@ export default function AdminProductos() {
     ));
 
     try {
-      const { error } = await supabase
-        .from('productos')
-        .update({ disponible: newVal })
-        .eq('id', productId);
-      
-      if (error) throw error;
+      await updateProductAvailability(productId, newVal);
     } catch (err) {
       logger.error('Error toggling availability:', err as Error);
       // Revertir
@@ -234,79 +196,25 @@ export default function AdminProductos() {
   const handleProductSave = useCallback(async (updated: Product) => {
     if (!tenant?.id) return;
     try {
-      const productRow = {
-        id: updated.id,
-        tienda_id: tenant.id,
-        nombre: updated.name,
-        slug: generateSlug(updated.name),
-        descripcion: updated.description,
-        precio: updated.basePrice,
-        imagen_url: updated.images[0] || null,
-        disponible: updated.isAvailable,
-      };
+      const currentProduct = products.find(p => p.id === updated.id);
+      const oldVariants = currentProduct ? currentProduct.variants : [];
+      
+      // Determinar eliminadas
+      const updatedIds = updated.variants.map(v => v.id);
+      const toDeleteIds = oldVariants.filter(v => !updatedIds.includes(v.id)).map(v => v.id);
 
-      const { error: prodError } = await supabase
-        .from('productos')
-        .upsert(productRow);
+      await saveAdminProduct(tenant.id, updated, toDeleteIds);
 
-      if (prodError) throw prodError;
-
-      try {
-        // Paso 2: Manejo de variantes
-        const currentProduct = products.find(p => p.id === updated.id);
-        const oldVariants = currentProduct ? currentProduct.variants : [];
-        
-        // Determinar eliminadas
-        const updatedIds = updated.variants.map(v => v.id);
-        const toDeleteIds = oldVariants.filter(v => !updatedIds.includes(v.id)).map(v => v.id);
-
-        if (toDeleteIds.length > 0) {
-          const { error: delErr } = await supabase
-            .from('producto_variantes')
-            .delete()
-            .in('id', toDeleteIds);
-          if (delErr) throw delErr;
+      // Todo salió bien, actualizamos local
+      setProducts(prev => {
+        const exists = prev.some(p => p.id === updated.id);
+        if (exists) {
+          return prev.map(p => p.id === updated.id ? updated : p);
         }
-
-        // Upsert de variantes actuales
-        if (updated.variants.length > 0) {
-          const variantsRows = updated.variants.map(v => ({
-            id: v.id,
-            producto_id: updated.id,
-            nombre: v.name,
-            modificador_precio: v.priceModifier,
-            stock: v.stock,
-            sku: v.sku,
-            imagen_url: v.image || null
-          }));
-
-          const { error: varError } = await supabase
-            .from('producto_variantes')
-            .upsert(variantsRows);
-          if (varError) throw varError;
-        }
-
-        // Todo salió bien, actualizamos local
-        setProducts(prev => {
-          const exists = prev.some(p => p.id === updated.id);
-          if (exists) {
-            return prev.map(p => p.id === updated.id ? updated : p);
-          }
-          return [updated, ...prev];
-        });
-
-      } catch (variantErr) {
-        logger.error('Error en variantes:', variantErr as Error);
-        toast.error('El producto se guardó, pero hubo un error con las variantes.');
-        // Refrescar para consistencia local
-        setProducts(prev => {
-          const exists = prev.some(p => p.id === updated.id);
-          if (exists) {
-            return prev.map(p => p.id === updated.id ? updated : p);
-          }
-          return [updated, ...prev];
-        });
-      }
+        return [updated, ...prev];
+      });
+      toast.success('Producto guardado correctamente');
+      setEditingProduct(null);
     } catch (err) {
       logger.error('Error al guardar producto:', err as Error);
       toast.error('Hubo un error al guardar el producto.');
@@ -318,23 +226,7 @@ export default function AdminProductos() {
     if (!confirmDialog.productId) return;
     const productId = confirmDialog.productId;
     try {
-      // Paso 1: Eliminar variantes primero
-      const { error: varErr } = await supabase
-        .from('producto_variantes')
-        .delete()
-        .eq('producto_id', productId);
-        
-      if (varErr) throw varErr;
-
-      // Paso 2: Eliminar producto
-      const { error: prodErr } = await supabase
-        .from('productos')
-        .delete()
-        .eq('id', productId);
-        
-      if (prodErr) throw prodErr;
-
-      // Paso 3: Actualizar UI
+      await deleteAdminProduct(productId);
       setProducts(prev => prev.filter(p => p.id !== productId));
       toast.success('Producto eliminado correctamente');
     } catch (err) {
@@ -370,7 +262,7 @@ export default function AdminProductos() {
               };
               setEditingProduct(newProduct);
             }}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-[var(--color-text-primary)] text-[var(--color-background-primary)] hover:bg-[var(--color-text-primary)] transition-all active:scale-[0.97] shadow-sm"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-[var(--color-text-primary)] text-[var(--color-background-primary)] hover:bg-[var(--color-text-primary)] transition-all active:scale-[0.97] shadow-sm cursor-pointer"
           >
             <Plus className="w-4 h-4" strokeWidth={2.5} />
             Nuevo producto
@@ -384,10 +276,6 @@ export default function AdminProductos() {
           <Package className="w-3.5 h-3.5" />
           {products.length} productos
         </span>
-        {/* SAAS_FLAG: NIVEL 1 - Mostrar barra de progreso hacia el límite
-        <span className="text-xs text-[var(--color-text-tertiary)]">
-          {products.length}/20 en plan básico
-        </span> */}
       </div>
 
       {/* ═══ TABLA DE PRODUCTOS ═══ */}
@@ -566,7 +454,7 @@ export default function AdminProductos() {
                 };
                 setEditingProduct(newProduct);
               }}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition-all active:scale-[0.97] shadow-lg shadow-emerald-500/20"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition-all active:scale-[0.97] shadow-lg shadow-emerald-500/20 cursor-pointer"
             >
               <Plus className="w-4 h-4" strokeWidth={2.5} />
               Agregar mi primer arreglo

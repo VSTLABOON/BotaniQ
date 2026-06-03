@@ -74,9 +74,13 @@ export default function Footer() {
         </div>
       </div>
 
-      <div className="border-t border-white/[.04] py-4 px-6 flex items-center justify-between flex-wrap gap-2 text-[0.7rem] tracking-[0.08em] text-[var(--color-background-primary)]/[.2]">
+      <div className="border-t border-white/[.04] py-4 px-6 flex items-center justify-between flex-wrap gap-4 text-[0.7rem] tracking-[0.08em] text-[var(--color-background-primary)]/[.2]">
         <span>© {currentYear} {tenant.nombre} · {tenant.ciudad}, {tenant.estado}</span>
-        <a href="#" className="text-[var(--color-background-primary)]/[.2] hover:text-[var(--color-background-primary)]/[.45] transition-colors duration-200">Aviso de Privacidad</a>
+        <div className="flex flex-wrap gap-4">
+          <a href="/privacidad.html" target="_blank" rel="noopener noreferrer" className="text-[var(--color-background-primary)]/[.2] hover:text-[var(--color-background-primary)]/[.45] transition-colors duration-200">Aviso de Privacidad</a>
+          <a href="/terminos.html" target="_blank" rel="noopener noreferrer" className="text-[var(--color-background-primary)]/[.2] hover:text-[var(--color-background-primary)]/[.45] transition-colors duration-200">Términos y Condiciones</a>
+          <a href="/devoluciones.html" target="_blank" rel="noopener noreferrer" className="text-[var(--color-background-primary)]/[.2] hover:text-[var(--color-background-primary)]/[.45] transition-colors duration-200">Cancelaciones y Reembolsos</a>
+        </div>
       </div>
     </footer>
   );

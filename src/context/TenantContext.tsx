@@ -352,7 +352,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
 
       try {
         // Construir query dinámica según el modo de resolución
-        let query = supabase.from('tiendas').select('*');
+        let query = supabase.from('tiendas').select('id, slug, nombre, logo_url, color_primario, color_secundario, color_acento, ciudad, estado, area_metropolitana, mapa_url, direccion, whatsapp, wa_base, horarios, redes_sociales, nav_links, campana, anio_fundacion, texto_nosotros, firma, envio_costo, colonias, subscription_level, custom_domain, currency, created_at, meta_title, config_ui');
 
         if (hasProfileOverride) {
           logger.info(`🔧 [TenantContext] Entorno override detectado. Forzando tienda_id: "${profile.tienda_id}"`);

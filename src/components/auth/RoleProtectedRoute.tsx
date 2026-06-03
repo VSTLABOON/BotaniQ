@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTenant } from '../../context/TenantContext';
 import type { UserRole } from '../../types';
@@ -14,6 +14,7 @@ interface RoleProtectedRouteProps {
 export default function RoleProtectedRoute({ allowedRoles, children }: RoleProtectedRouteProps) {
   const { session, profile, isLoading } = useAuth();
   const { tenant, loading: tenantLoading } = useTenant();
+  const location = useLocation();
   const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
   const [isRedirecting, setIsRedirecting] = useState(false);
 
@@ -99,6 +100,11 @@ export default function RoleProtectedRoute({ allowedRoles, children }: RoleProte
   // Si no hay sesión activa, redirigir al login
   if (!session) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Evitar loop de redirección infinita si no hay perfil y ya estamos en /onboarding
+  if (!profile && location.pathname !== '/onboarding') {
+    return <Navigate to="/onboarding" replace />;
   }
 
   if (!profile || !hasAccess) {
