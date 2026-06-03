@@ -40,8 +40,12 @@ export async function isOriginAllowed(                                        //
   ) return true;                                                              // [BLINDADO]
 
   // 2. Plataforma base y subdominios                                         // [BLINDADO]
-  const platform = Deno.env.get("PLATFORM_DOMAIN") || "botaniq.com";          // [BLINDADO]
-  if (host === platform || host.endsWith(`.${platform}`)) return true;        // [BLINDADO]
+  const platform = Deno.env.get("PLATFORM_DOMAIN") || "botaniq.com.mx";          // [BLINDADO]
+  if (
+    host === platform || host.endsWith(`.${platform}`) ||
+    host === 'botaniq.com.mx' || host.endsWith('.botaniq.com.mx') ||
+    host === 'botaniq.com' || host.endsWith('.botaniq.com')
+  ) return true;        // [BLINDADO]
 
   // 3. Staging (Vercel / Railway)                                            // [BLINDADO]
   if (host.endsWith('.vercel.app') || host.endsWith('.railway.app')) {         // [BLINDADO]

@@ -78,8 +78,12 @@ function isReturnUrlAllowed(                                          // [BLINDA
 
     if (host === 'localhost' || host === '127.0.0.1' || /^(\d{1,3}\.){3}\d{1,3}$/.test(host)) return true; // [BLINDADO]
 
-    const platform = Deno.env.get("PLATFORM_DOMAIN") || "botaniq.com"; // [BLINDADO]
-    if (host === platform || host.endsWith(`.${platform}`)) return true; // [BLINDADO]
+    const platform = Deno.env.get("PLATFORM_DOMAIN") || "botaniq.com.mx"; // [BLINDADO]
+    if (
+      host === platform || host.endsWith(`.${platform}`) ||
+      host === 'botaniq.com.mx' || host.endsWith('.botaniq.com.mx') ||
+      host === 'botaniq.com' || host.endsWith('.botaniq.com')
+    ) return true; // [BLINDADO]
 
     if (host.endsWith('.vercel.app') || host.endsWith('.railway.app')) return true; // [BLINDADO]
 

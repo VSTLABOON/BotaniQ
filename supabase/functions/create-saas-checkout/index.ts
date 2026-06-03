@@ -27,8 +27,12 @@ function isReturnUrlAllowed(url: string, requestOrigin: string | null): boolean 
     if (host === 'localhost' || host === '127.0.0.1' || /^(\d{1,3}\.){3}\d{1,3}$/.test(host)) return true;
 
     // Dominio base o subdominio
-    const platform = Deno.env.get("PLATFORM_DOMAIN") || "botaniq.com";
-    if (host === platform || host.endsWith(`.${platform}`)) return true;
+    const platform = Deno.env.get("PLATFORM_DOMAIN") || "botaniq.com.mx";
+    if (
+      host === platform || host.endsWith(`.${platform}`) ||
+      host === 'botaniq.com.mx' || host.endsWith('.botaniq.com.mx') ||
+      host === 'botaniq.com' || host.endsWith('.botaniq.com')
+    ) return true;
 
     // Staging
     if (host.endsWith('.vercel.app') || host.endsWith('.railway.app')) return true;

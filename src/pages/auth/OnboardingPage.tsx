@@ -33,6 +33,7 @@ function slugify(text: string): string {
 }
 
 const PLAN_LABELS: Record<string, { name: string; color: string; accent: string }> = {
+  gratis:  { name: 'BotaniQ Inicio (Prueba Gratis)', color: 'from-emerald-500/30 to-teal-500/10', accent: 'text-emerald-300 font-bold' },
   basico:  { name: 'BotaniQ Esencia',  color: 'from-gray-500/30 to-gray-400/10',   accent: 'text-rose-300' },
   pro:     { name: 'BotaniQ Alquimia',  color: 'from-violet-500/30 to-fuchsia-500/10', accent: 'text-[#D94F6E] font-bold' },
   premium: { name: 'BotaniQ Edén', color: 'from-amber-500/30 to-orange-500/10',  accent: 'text-purple-400 font-bold' },
@@ -142,8 +143,10 @@ export default function OnboardingPage() {
   const [searchParams] = useSearchParams();
   const { session, user, profile } = useAuth();
 
-  const selectedPlan = searchParams.get('plan') || 'basico';
-  const planInfo = PLAN_LABELS[selectedPlan] || PLAN_LABELS.basico;
+  const [currentPlan, setCurrentPlan] = useState<string>(() => {
+    return searchParams.get('plan') || 'gratis';
+  });
+  const planInfo = useMemo(() => PLAN_LABELS[currentPlan] || PLAN_LABELS.gratis, [currentPlan]);
 
   // Steps
   const [step, setStep] = useState(1);
@@ -225,7 +228,7 @@ export default function OnboardingPage() {
   const isStep2Valid = suggestedSlug.length >= 3 && slugAvailable === true;
 
   // ── Submit final ──────────────────────────────────────────────
-  const handleFinish = async () => {
+  const handleFinish = async (skipPayment = false) => {
     if (!user) return;
     setLoading(true);
     setError(null);
@@ -273,16 +276,18 @@ export default function OnboardingPage() {
 
       if (perfilError) throw perfilError;
 
+      if (skipPayment || currentPlan === 'gratis') {
+        // Redirigir directamente al panel de administración del nuevo subdominio
+        const adminUrl = getSubdomainUrl(suggestedSlug, '/admin?registration=complete');
+        window.location.href = adminUrl;
+        return;
+      }
+
       // 3. Redirigir al Checkout de Stripe
-
-      // Detección de locale y moneda basada en el navegador
       const { locale, currency } = getLocaleAndCurrency();
-
-      // Armar URLs de retorno dinámicas
       const successUrl = getSubdomainUrl(suggestedSlug, `/admin?session_id={CHECKOUT_SESSION_ID}&saas_success=true`);
-      const cancelUrl = getSubdomainUrl(suggestedSlug, `/onboarding?plan=${selectedPlan}&saas_cancel=true`);
+      const cancelUrl = getSubdomainUrl(suggestedSlug, `/onboarding?plan=${currentPlan}&saas_cancel=true`);
 
-      // Obtener la sesión actual para recuperar el JWT
       const { data: { session: currentSession } } = await supabase.auth.getSession();
       if (!currentSession) {
         throw new Error('Sesión de usuario no encontrada.');
@@ -297,7 +302,7 @@ export default function OnboardingPage() {
             'Authorization': `Bearer ${currentSession.access_token}`,
           },
           body: JSON.stringify({
-            plan: selectedPlan,
+            plan: currentPlan,
             tenant_id: tiendaId,
             currency,
             locale,
@@ -311,12 +316,8 @@ export default function OnboardingPage() {
       if (!response.ok || !resData.url) {
         throw new Error(resData.error || 'No se pudo iniciar el flujo de pago con Stripe.');
       }
-
-      // Redirigir al Checkout de Stripe
       window.location.href = resData.url;
-
     } catch (err: any) {
-      console.error('Onboarding error:', err);
       if (err?.message?.includes('duplicate')) {
         setError('Ese nombre de tienda ya está registrado. Intenta con otro.');
       } else {
@@ -561,6 +562,25 @@ export default function OnboardingPage() {
                     </div>
                   </div>
 
+                  {/* Plan Seleccionado */}
+                  <div className="onb-field">
+                    <label className="onb-label">Plan Seleccionado</label>
+                    <div className="onb-input-wrap">
+                      <Sparkles className="onb-input-icon animate-pulse text-[#D94F6E]" />
+                      <select
+                        value={currentPlan}
+                        onChange={e => setCurrentPlan(e.target.value)}
+                        className="onb-input onb-select"
+                        style={{ paddingLeft: '2.5rem' }}
+                      >
+                        <option value="gratis">BotaniQ Inicio (Prueba Gratis de 14 días - Sin tarjeta)</option>
+                        <option value="basico">BotaniQ Esencia (Básico - $400/mes)</option>
+                        <option value="pro">BotaniQ Alquimia (Pro - $900/mes - Recomendado)</option>
+                        <option value="premium">BotaniQ Edén (Premium - $1,300/mes)</option>
+                      </select>
+                    </div>
+                  </div>
+
                   <button
                     type="button"
                     disabled={!isStep1Valid}
@@ -622,16 +642,29 @@ export default function OnboardingPage() {
                     <button
                       type="button"
                       disabled={!isStep2Valid || loading}
-                      onClick={handleFinish}
+                      onClick={() => handleFinish(currentPlan === 'gratis')}
                       className="onb-btn onb-btn--primary"
                     >
                       {loading ? (
                         <Loader2 style={{ width: 18, height: 18 }} className="animate-spin" />
-                      ) : (
+                      ) : currentPlan === 'gratis' ? (
                         <>Crear mi tienda <ArrowRight style={{ width: 16, height: 16 }} /></>
+                      ) : (
+                        <>Proceder al pago <ArrowRight style={{ width: 16, height: 16 }} /></>
                       )}
                     </button>
                   </div>
+
+                  {currentPlan !== 'gratis' && (
+                    <button
+                      type="button"
+                      disabled={!isStep2Valid || loading}
+                      onClick={() => handleFinish(true)}
+                      className="w-full mt-3 text-xs text-white/50 hover:text-white underline transition-all bg-transparent border-none py-2 cursor-pointer flex items-center justify-center gap-1"
+                    >
+                      Omitir por ahora y comenzar prueba de 14 días
+                    </button>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
