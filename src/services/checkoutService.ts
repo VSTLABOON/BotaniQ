@@ -97,3 +97,65 @@ export async function initiateStripeCheckout({
 
   return data.url;
 }
+
+interface OpenpayCheckoutParams extends CheckoutParams {
+  paymentMethodType: "card" | "spei" | "store";
+  deviceData: string;
+  tokenId?: string | null;
+  customer: {
+    name: string;
+    email: string;
+    phone: string;
+  };
+}
+
+export async function initiateOpenpayCheckout({
+  tenantId,
+  items,
+  successUrl,
+  cancelUrl,
+  orderId,
+  paymentMethodType,
+  deviceData,
+  tokenId,
+  customer
+}: OpenpayCheckoutParams): Promise<any> {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  const authToken = session?.access_token || supabaseAnonKey;
+
+  if (!authToken) {
+    throw new Error('No se pudo autenticar la solicitud de pago.');
+  }
+
+  const functionUrl = `${supabaseUrl}/functions/v1/create-openpay-checkout`;
+
+  const response = await fetch(functionUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authToken}`,
+    },
+    body: JSON.stringify({
+      tenant_id: tenantId,
+      items,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      order_id: orderId || null,
+      payment_method_type: paymentMethodType,
+      device_data: deviceData,
+      token_id: tokenId || null,
+      customer
+    }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Error al procesar el pago con OpenPay.');
+  }
+
+  return data;
+}

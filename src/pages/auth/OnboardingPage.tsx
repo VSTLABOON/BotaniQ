@@ -19,6 +19,7 @@ import {
   User, Store, Globe, ArrowRight, ArrowLeft,
   Loader2, CheckCircle2, Sparkles, AlertCircle, Flower, MapPin, LogOut
 } from 'lucide-react';
+import { createTiendaProfile, assignUserRole } from '../../services/onboardingService';
 
 // ── Utilidades ──────────────────────────────────────────────────
 
@@ -248,33 +249,20 @@ export default function OnboardingPage() {
 
       // 1. Actualizar la tienda existente en Supabase (auto-provisionada por el trigger o la RPC)
       // La seguridad se preserva al NO permitir la actualización del subscription_level desde el cliente (Fuga 1 Mitigada).
-      const { error: tiendaError } = await supabase
-        .from('tiendas')
-        .update({
-          slug: suggestedSlug,
-          nombre: nombreFloreria.trim(),
-          ciudad: ciudad,
-          whatsapp: whatsapp.trim(),
-          direccion: direccion.trim(),
-          color_primario: '#10b981',
-          color_secundario: '#064e3b',
-          color_acento: '#C49A3C',
-        })
-        .eq('id', tiendaId);
-
-      if (tiendaError) throw tiendaError;
+      await createTiendaProfile(tiendaId, {
+        slug: suggestedSlug,
+        nombre: nombreFloreria.trim(),
+        ciudad: ciudad,
+        whatsapp: whatsapp.trim(),
+        direccion: direccion.trim(),
+      });
 
       // 2. Actualizar el perfil del usuario (nombre completo, teléfono, dirección)
-      const { error: perfilError } = await supabase
-        .from('perfiles')
-        .update({
-          nombre_completo: nombreCompleto.trim(),
-          telefono: whatsapp.trim(),
-          direccion: direccion.trim(),
-        })
-        .eq('id', user.id);
-
-      if (perfilError) throw perfilError;
+      await assignUserRole(user.id, {
+        nombre_completo: nombreCompleto.trim(),
+        telefono: whatsapp.trim(),
+        direccion: direccion.trim(),
+      });
 
       if (skipPayment || currentPlan === 'gratis') {
         // Redirigir directamente al panel de administración del nuevo subdominio

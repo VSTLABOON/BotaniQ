@@ -182,6 +182,6 @@ iframe, img, canvas {
 /* Mobile bottom nav safe area padding-bottom */
 @media (max-width: 1023px) {
   .mobile-safe-pb {
-    padding-bottom: calc(64px + env(safe-area-inset-bottom)) !important;
+    padding-bottom: calc(120px + env(safe-area-inset-bottom)) !important;
   }
 }

@@ -331,17 +331,17 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     // ── Fetch de variantes (si se solicitaron) ──────────────────
-    let variantesDb: Array<{ id: string; nombre: string; modificador_precio: number; producto_id: string }> = [];
+    let variantesDb: Array<{ id: string; nombre: string; precio: number | null; producto_id: string }> = [];
     if (variantIds.length > 0) {
       const { data: vars, error: varError } = await supabaseAdmin
         .from("producto_variantes")
-        .select("id, nombre, modificador_precio, producto_id")
+        .select("id, nombre, precio, producto_id")
         .in("id", variantIds);
 
       if (varError) {
         console.error("⚠️ Error al obtener variantes:", varError.message);
       } else if (vars) {
-        variantesDb = vars;
+        variantesDb = vars as any;
       }
     }
 
@@ -368,11 +368,11 @@ serve(async (req: Request): Promise<Response> => {
       let productName: string = dbProduct.nombre;
       let resolvedVariantId: string | null = null;
 
-      // Aplicar modificador de variante si se especificó
+      // Aplicar precio de variante si se especificó
       if (item.variant_id) {
         const dbVariant = variantesDb.find((v) => v.id === item.variant_id);
         if (dbVariant && dbVariant.producto_id === item.product_id) {
-          finalPrice += Number(dbVariant.modificador_precio || 0);
+          finalPrice = dbVariant.precio !== null && dbVariant.precio !== undefined ? Number(dbVariant.precio) : Number(dbProduct.precio);
           productName = `${productName} — ${dbVariant.nombre}`;
           resolvedVariantId = dbVariant.id;
         } else if (dbVariant) {

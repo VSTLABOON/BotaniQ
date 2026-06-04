@@ -39,6 +39,7 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.39.0";
 import { getCorsHeaders, forbiddenOriginResponse, isOriginAllowed } from "../_shared/cors.ts";
+import { checkRateLimit } from "../_shared/rateLimit.ts";
 
 // ── Roles que un dueño puede asignar a su equipo ────────────────
 // 'superadmin' está excluido deliberadamente — solo se puede asignar
@@ -74,6 +75,12 @@ serve(async (req: Request): Promise<Response> => {
       },
     });
   };
+
+  // ── Verificar Rate Limiting ────────────────────────────────────
+  const isAllowed = await checkRateLimit(req, 'create-team-member', 5, 1);
+  if (!isAllowed) {
+    return json({ error: "Demasiadas peticiones. Intenta de nuevo en un minuto." }, 429);
+  }
 
   // ── Solo POST ─────────────────────────────────────────────────
   if (req.method !== "POST") {

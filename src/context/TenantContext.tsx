@@ -149,6 +149,11 @@ const FALLBACK_TENANT: TenantConfig = {
   created_at: null,
   has_active_subscription: false,
   meta_title: null,
+  openpay_merchant_id: null,
+  openpay_public_key: null,
+  openpay_private_key: null,
+  openpay_sandbox_mode: true,
+  preferred_gateway: 'openpay',
   // ── Secciones dinámicas ───────────────────────────────────────
   servicios: [],
   beneficios: [],
@@ -278,6 +283,11 @@ function mapRowToTenant(row: Record<string, unknown>): TenantConfig {
     created_at:         (row.created_at as string) ?? FALLBACK_TENANT.created_at,
     has_active_subscription: (row.has_active_subscription as boolean) ?? FALLBACK_TENANT.has_active_subscription,
     meta_title:         (row.meta_title as string) ?? null,
+    openpay_merchant_id:  (row.openpay_merchant_id as string) ?? null,
+    openpay_public_key:   (row.openpay_public_key as string) ?? null,
+    openpay_private_key:  (row.openpay_private_key as string) ?? null,
+    openpay_sandbox_mode:  (row.openpay_sandbox_mode as boolean) ?? true,
+    preferred_gateway:     (row.preferred_gateway as 'stripe' | 'openpay') ?? 'openpay',
 
     // Arrays extraídos del JSONB config_ui
     servicios:          configUi.servicios || [],
@@ -352,7 +362,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
 
       try {
         // Construir query dinámica según el modo de resolución
-        let query = supabase.from('tiendas').select('id, slug, nombre, logo_url, color_primario, color_secundario, color_acento, ciudad, estado, area_metropolitana, mapa_url, direccion, whatsapp, wa_base, horarios, redes_sociales, nav_links, campana, anio_fundacion, texto_nosotros, firma, envio_costo, colonias, subscription_level, custom_domain, currency, created_at, meta_title, config_ui');
+        let query = supabase.from('tiendas').select('id, slug, nombre, logo_url, color_primario, color_secundario, color_acento, ciudad, estado, area_metropolitana, mapa_url, direccion, whatsapp, wa_base, horarios, redes_sociales, nav_links, campana, anio_fundacion, texto_nosotros, firma, envio_costo, colonias, subscription_level, custom_domain, currency, created_at, meta_title, config_ui, openpay_merchant_id, openpay_public_key, openpay_sandbox_mode, preferred_gateway');
 
         if (hasProfileOverride) {
           logger.info(`🔧 [TenantContext] Entorno override detectado. Forzando tienda_id: "${profile.tienda_id}"`);
@@ -580,6 +590,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
         'nav_links', 'campana', 'anio_fundacion', 'texto_nosotros',
         'firma', 'envio_costo', 'colonias',
         'meta_title',
+        'openpay_merchant_id', 'openpay_public_key', 'openpay_private_key', 'openpay_sandbox_mode', 'preferred_gateway',
         // SaaS columns (read-only from admin, but included for completeness)
         'custom_domain', 'currency',
       ];

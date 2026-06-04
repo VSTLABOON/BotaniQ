@@ -11,6 +11,8 @@ interface BottomSheetProps {
   onItemClick: (item: BottomSheetItem) => void;
 }
 
+const MotionLink = motion(Link);
+
 export default function BottomSheet({
   isOpen,
   onClose,
@@ -93,12 +95,19 @@ export default function BottomSheet({
 
                 const buttonContent = (
                   <>
-                    <item.icon
-                      size={22}
-                      strokeWidth={2}
-                      style={{ color: activeColor }}
-                      className="transition-transform duration-200 group-hover:scale-105"
-                    />
+                    <div
+                      className="p-3 rounded-full flex items-center justify-center transition-all duration-300 mb-1 group-hover:scale-110"
+                      style={{
+                        background: `radial-gradient(circle, ${activeColor}15 0%, ${activeColor}03 100%)`,
+                        border: `1px solid ${activeColor}20`,
+                      }}
+                    >
+                      <item.icon
+                        size={22}
+                        strokeWidth={2}
+                        style={{ color: activeColor }}
+                      />
+                    </div>
                     <span
                       style={{ color: isDestructive ? '#ef4444' : 'rgba(255, 255, 255, 0.75)' }}
                       className="text-[12px] font-semibold text-center leading-tight transition-colors group-hover:text-white"
@@ -121,9 +130,17 @@ export default function BottomSheet({
                   width: '100%',
                 };
 
+                const hoverAnimation = {
+                  y: -4,
+                  scale: 1.02,
+                  borderColor: `${activeColor}40`,
+                  boxShadow: `0 8px 24px -4px ${activeColor}20, 0 4px 12px -2px ${activeColor}15`,
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                };
+
                 if (item.path) {
                   return (
-                    <Link
+                    <MotionLink
                       key={item.id}
                       to={item.path}
                       onClick={() => {
@@ -131,25 +148,31 @@ export default function BottomSheet({
                         onClose();
                       }}
                       style={itemStyle}
-                      className="group hover:bg-white/10 hover:border-white/10 transition-all duration-200 active:scale-98"
+                      whileHover={hoverAnimation}
+                      whileTap={{ scale: 0.98 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                      className="group transition-colors duration-200 active:scale-98"
                     >
                       {buttonContent}
-                    </Link>
+                    </MotionLink>
                   );
                 }
 
                 return (
-                  <button
+                  <motion.button
                     key={item.id}
                     type="button"
                     onClick={() => {
                       onItemClick(item);
                     }}
                     style={itemStyle}
-                    className="group hover:bg-white/10 hover:border-white/10 transition-all duration-200 active:scale-98 focus:outline-none"
+                    whileHover={hoverAnimation}
+                    whileTap={{ scale: 0.98 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                    className="group transition-colors duration-200 active:scale-98 focus:outline-none"
                   >
                     {buttonContent}
-                  </button>
+                  </motion.button>
                 );
               })}
             </div>

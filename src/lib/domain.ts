@@ -166,7 +166,8 @@ export function getSubdomainUrl(subdomain: string, path: string = ''): string {
     hostname === '127.0.0.1' ||
     /^(\d{1,3}\.){3}\d{1,3}$/.test(hostname)
   ) {
-    return `${protocol}//${hostname}${port}${cleanPath}`;
+    const joinChar = cleanPath.includes('?') ? '&' : '?';
+    return `${protocol}//${hostname}${port}${cleanPath}${joinChar}store=${subdomain}`;
   }
 
   // Staging en Vercel/Railway: como no soportan wildcards por defecto,

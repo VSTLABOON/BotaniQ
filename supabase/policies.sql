@@ -1,9 +1,9 @@
 -- ─────────────────────────────────────────────────────────────────
 -- REPOSITORIO DE POLÍTICAS RLS (Row Level Security)
 -- ─────────────────────────────────────────────────────────────────
--- Este archivo documenta las políticas necesarias para la 
--- arquitectura multi-tenant y de seguridad del SaaS.
--- Deben aplicarse manualmente o mediante migrations en Supabase.
+-- ADVERTENCIA: Este archivo es referencia histórica únicamente.
+-- Las políticas activas y definitivas están definidas en supabase/migrations/.
+-- No aplicar este archivo directamente en producción.
 -- ─────────────────────────────────────────────────────────────────
 
 -- Habilitar RLS en todas las tablas clave
@@ -21,12 +21,6 @@ ALTER TABLE public.rate_limits ENABLE ROW LEVEL SECURITY;
 -- Lectura: Público (necesario para el Storefront y resolución DNS)
 CREATE POLICY "Tiendas son públicas para lectura" 
 ON public.tiendas FOR SELECT TO public USING (true);
-
--- Escritura/Actualización: Solo el dueño de la tienda (Owner)
-CREATE POLICY "Dueños pueden actualizar su tienda" 
-ON public.tiendas FOR UPDATE TO authenticated 
-USING (auth.uid() = owner_id) 
-WITH CHECK (auth.uid() = owner_id);
 
 -- Inserción: Solo a través de funciones o Superadmin (o self-service si se habilita)
 CREATE POLICY "Superadmin puede insertar tiendas" 
@@ -56,9 +50,14 @@ USING (
   auth.uid() IN (SELECT owner_id FROM tiendas WHERE id = tienda_id)
 );
 
--- Variantes siguen la misma regla de lectura
+-- Variantes siguen la misma regla de lectura (solo si el producto está disponible)
 CREATE POLICY "Variantes públicas" 
-ON public.producto_variantes FOR SELECT TO public USING (true);
+ON public.producto_variantes FOR SELECT TO public 
+USING (
+  producto_id IN (
+    SELECT id FROM public.productos WHERE disponible = true
+  )
+);
 
 -- Variantes escritura: verificar a través del producto padre
 CREATE POLICY "Dueños gestionan variantes" 

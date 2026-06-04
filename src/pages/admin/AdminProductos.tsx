@@ -46,7 +46,7 @@ const uid = () => {
 
 // ── Variante vacía para "añadir fila" ────────────────────────────
 const emptyVariant = (productId: string): ProductVariant => ({
-  id: uid(), productId, name: '', priceModifier: 0, stock: 0, sku: '',
+  id: uid(), productId, name: '', price: null, stock: 0, sku: '',
 });
 
 // ═══════════════════════════════════════════════════════════════════
@@ -419,7 +419,7 @@ export default function AdminProductos() {
                         <div className="flex justify-between items-center text-xs">
                           <span className="text-[var(--color-text-tertiary)]">SKU: {v.sku || '-'}</span>
                           <span className="font-mono font-bold text-[var(--color-text-secondary)]">
-                            ${(product.basePrice + v.priceModifier).toLocaleString()}
+                            ${(v.price !== null && v.price !== undefined ? v.price : product.basePrice).toLocaleString()}
                           </span>
                         </div>
                       </div>
@@ -467,6 +467,7 @@ export default function AdminProductos() {
       {editingProduct && (
         <ProductModal
           product={editingProduct}
+          isNew={!products.some(p => p.id === editingProduct.id)}
           onClose={() => setEditingProduct(null)}
           onSave={handleProductSave}
         />

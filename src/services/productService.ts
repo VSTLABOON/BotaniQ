@@ -14,6 +14,7 @@ export async function fetchAdminProducts(tiendaId: string): Promise<Product[]> {
     .select(`
       id,
       tienda_id,
+      slug,
       nombre,
       descripcion,
       precio,
@@ -23,7 +24,7 @@ export async function fetchAdminProducts(tiendaId: string): Promise<Product[]> {
         id,
         producto_id,
         nombre,
-        modificador_precio,
+        precio,
         stock,
         sku,
         imagen_url
@@ -37,6 +38,7 @@ export async function fetchAdminProducts(tiendaId: string): Promise<Product[]> {
   return (dbProducts || []).map(p => ({
     id: p.id,
     tienda_id: p.tienda_id,
+    slug: p.slug ?? '',
     name: p.nombre,
     description: p.descripcion || '',
     basePrice: Number(p.precio) || 0,
@@ -46,7 +48,7 @@ export async function fetchAdminProducts(tiendaId: string): Promise<Product[]> {
       id: v.id,
       productId: v.producto_id,
       name: v.nombre,
-      priceModifier: Number(v.modificador_precio) || 0,
+      price: v.precio !== null && v.precio !== undefined ? Number(v.precio) : null,
       stock: v.stock ?? 0,
       sku: v.sku || '',
       image: v.imagen_url || undefined
@@ -106,7 +108,7 @@ export async function saveAdminProduct(
       id: v.id,
       producto_id: product.id,
       nombre: v.name,
-      modificador_precio: v.priceModifier,
+      precio: v.price,
       stock: v.stock,
       sku: v.sku,
       imagen_url: v.image || null

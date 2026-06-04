@@ -18,6 +18,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabaseClient';
 import { logger } from '../../lib/logger';
+import { updateStoreSubscriptionLevel } from '../../services/superadminService';
 import {
   Store,
   TrendingUp,
@@ -223,12 +224,9 @@ export default function SuperadminDashboard() {
       prev.map((t) => (t.id === tenantId ? { ...t, subscription_level: newLevel } : t))
     );
 
-    const { error } = await supabase
-      .from('tiendas')
-      .update({ subscription_level: newLevel })
-      .eq('id', tenantId);
-
-    if (error) {
+    try {
+      await updateStoreSubscriptionLevel(tenantId, newLevel);
+    } catch (error) {
       logger.error('Error updating subscription level:', error as Error);
       setRefreshTrigger((prev) => prev + 1); // Revertir con refetch
     }

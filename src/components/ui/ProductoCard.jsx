@@ -8,11 +8,27 @@ const ProductoCard = memo(function ProductoCard({ producto, priority = false }) 
   const addItem = useCartStore((s) => s.addItem);
   const openCart = useCartStore((s) => s.openCart);
 
+  const hasVariants = producto.variants && producto.variants.length > 0;
+  let displayPrice = '';
+
+  if (hasVariants) {
+    const prices = producto.variants.map(v => v.price !== null && v.price !== undefined ? v.price : producto.precioNum);
+    const minPrice = Math.min(...prices, producto.precioNum);
+    displayPrice = `Desde $${minPrice.toLocaleString()} ${tenant?.currency || 'MXN'}`;
+  } else {
+    displayPrice = typeof producto.precio === 'number'
+      ? `$${producto.precio.toLocaleString()} ${tenant?.currency || 'MXN'}`
+      : producto.precio;
+  }
+
   const handlePedir = (e) => {
+    if (hasVariants) {
+      // Permitir que la propagación continúe para que el Link padre maneje la navegación
+      return;
+    }
+
     e.stopPropagation(); 
     
-    // Mapear la estructura legacy del producto al contrato CartItem de Zustand.
-    // producto.id se usa tanto como productId como variantId (variante "estándar").
     addItem({
       productId: producto.id,
       variantId: producto.id,           // Variante default
@@ -64,21 +80,32 @@ const ProductoCard = memo(function ProductoCard({ producto, priority = false }) 
         
         <div className="flex items-center justify-between gap-2">
           <span className="font-display text-[1.4rem] font-bold text-verde">
-            {typeof producto.precio === 'number' ? `$${producto.precio} ${tenant?.currency || 'MXN'}` : producto.precio}
+            {displayPrice}
           </span>
           <button 
             type="button"
             onClick={handlePedir}
-            aria-label={`Pedir ${producto.name} ahora`}
+            aria-label={hasVariants ? `Ver opciones para ${producto.name}` : `Pedir ${producto.name} ahora`}
             className="inline-flex items-center gap-[0.4rem] bg-rosa text-[var(--color-background-primary)] py-[0.45rem] px-4 rounded-lg font-body text-[0.75rem] font-semibold tracking-[0.04em] transition-all duration-200 hover:bg-[var(--hover-bg)] hover:scale-[1.04] shrink-0"
             style={{ '--hover-bg': UI_COLORS.PRIMARY_HOVER }}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13" aria-hidden="true">
-              <path d="M9 18V5l12-2v13"/>
-              <circle cx="6" cy="18" r="3"/>
-              <circle cx="18" cy="16" r="3"/>
-            </svg>
-            Pedir
+            {hasVariants ? (
+              <>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13" aria-hidden="true">
+                  <path d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+                Ver Opciones
+              </>
+            ) : (
+              <>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13" aria-hidden="true">
+                  <path d="M9 18V5l12-2v13"/>
+                  <circle cx="6" cy="18" r="3"/>
+                  <circle cx="18" cy="16" r="3"/>
+                </svg>
+                Pedir
+              </>
+            )}
           </button>
         </div>
       </div>

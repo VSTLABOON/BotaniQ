@@ -10,7 +10,7 @@ import { HERO, PLAN_FEATURES, PRICING, TESTIMONIALS, SAFETY, FAQS } from './land
 
 /* ── Liquid Glass Card Component ── */
 const GlassCard = ({ children, className = '', ...props }: any) => (
-  <div className={`liquid-glass rounded-3xl overflow-hidden ${className}`} {...props}>
+  <div className={`liquid-glass rounded-3xl ${className}`} {...props}>
     {children}
   </div>
 );
@@ -602,7 +602,7 @@ export default function SaasLandingPage() {
             {PRICING.map((plan, i) => (
               <GlassCard 
                 key={i} 
-                className={`p-8 bg-white/80 border border-[#526243]/10 flex flex-col justify-between relative shadow-sm hover:shadow-md transition-all overflow-hidden ${plan.popular ? 'md:scale-105 z-10 border-[#526243] ring-1 ring-[#526243]/20 shadow-md' : ''}`}
+                className={`p-8 bg-white/80 border border-[#526243]/10 flex flex-col justify-between relative shadow-sm hover:shadow-md transition-all ${plan.popular ? 'md:scale-105 z-10 border-[#526243] ring-1 ring-[#526243]/20 shadow-md' : ''}`}
               >
                 {plan.popular && (
                   <div className="absolute top-0 right-8 transform -translate-y-1/2">

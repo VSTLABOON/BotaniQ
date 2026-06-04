@@ -17,9 +17,10 @@ import {
   Package, Search, ChevronRight, X,
   MapPin, Heart, Clock, User, Phone,
   Calendar, CreditCard, MessageSquare, ShoppingBag,
-  Plus, CheckCircle, Loader2, Save
+  Plus, CheckCircle, Loader2, Save, RefreshCw
 } from 'lucide-react';
 import { toast } from '../../store/toastStore';
+import { supabase } from '../../lib/supabaseClient';
 
 import { CARD } from './components/config/SharedUI';
 import { ManualOrderModal } from './components/ManualOrderModal';
@@ -329,6 +330,11 @@ export default function AdminPedidos() {
   const [showManualModal, setShowManualModal] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
+  // Estados de Realtime (Módulo 2)
+  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
+  const [retryCount, setRetryCount] = useState(0);
+  const [subscriptionTrigger, setSubscriptionTrigger] = useState(0);
+
   // Estados de paginación
   const [loadedLimit, setLoadedLimit] = useState(20);
   const [hasMore, setHasMore] = useState(true);
@@ -417,6 +423,175 @@ export default function AdminPedidos() {
       active = false;
     };
   }, [tenant?.id, refreshTrigger, loadedLimit]);
+
+  // ── Suscripción a Supabase Realtime (Módulo 2) ──────────────────
+  useEffect(() => {
+    if (!tenant?.id) return;
+
+    let active = true;
+    let retryTimeoutId: any = null;
+    let currentChannel: any = null;
+
+    const subscribeWithRetry = (attempt: number) => {
+      if (!active) return;
+      setConnectionStatus('connecting');
+
+      const channel = supabase
+        .channel(`pedidos-realtime-${tenant.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'pedidos',
+            filter: `tienda_id=eq.${tenant.id}`,
+          },
+          async (payload) => {
+            if (!active) return;
+
+            if (payload.eventType === 'INSERT') {
+              const newOrderRaw = payload.new;
+              try {
+                // Pequeña espera para evitar condición de carrera con pedido_items
+                await new Promise((resolve) => setTimeout(resolve, 200));
+
+                const { data: row, error } = await supabase
+                  .from('pedidos')
+                  .select(`
+                    id,
+                    tienda_id,
+                    total,
+                    estado,
+                    metodo_pago,
+                    datos_envio,
+                    email_cliente,
+                    cliente_nombre,
+                    created_at,
+                    pedido_items (
+                      id,
+                      nombre_producto,
+                      variante_id,
+                      cantidad,
+                      precio_unitario,
+                      productos (
+                        imagenes
+                      )
+                    )
+                  `)
+                  .eq('id', newOrderRaw.id)
+                  .single();
+
+                if (error) throw error;
+
+                if (row && active) {
+                  const rawEnvio = row.datos_envio || {};
+                  const datos_envio: ShippingInfo = {
+                    recipientName: rawEnvio.recipientName || row.cliente_nombre || 'Sin nombre',
+                    recipientPhone: rawEnvio.recipientPhone || 'Sin teléfono',
+                    deliveryAddress: rawEnvio.deliveryAddress || 'Recoger en tienda',
+                    deliveryDate: rawEnvio.deliveryDate || new Date(row.created_at).toLocaleDateString(),
+                    customMessage: rawEnvio.customMessage || '',
+                    tipo_pago: rawEnvio.tipo_pago,
+                    monto_anticipo: rawEnvio.monto_anticipo,
+                    monto_pendiente: rawEnvio.monto_pendiente,
+                    metodo_pago_manual: rawEnvio.metodo_pago_manual,
+                  };
+
+                  const items: OrderItem[] = (row.pedido_items || []).map((item: any) => {
+                    const productImages = item.productos?.imagenes || [];
+                    const imageUrl = productImages.length > 0 ? productImages[0] : 'https://placehold.co/150x150/f3f4f6/9ca3af?text=Sin+Imagen';
+                    
+                    return {
+                      id: item.id,
+                      nombre: item.nombre_producto,
+                      variante: item.variante_id ? 'Variante específica' : 'Estándar',
+                      cantidad: item.cantidad,
+                      precio_unitario: item.precio_unitario,
+                      imagen: imageUrl,
+                    };
+                  });
+
+                  const mappedOrder: Order = {
+                    id: row.id,
+                    numero: `#${row.id.slice(0, 8).toUpperCase()}`,
+                    fecha: row.created_at,
+                    cliente_nombre: row.cliente_nombre || rawEnvio.recipientName || 'Cliente anónimo',
+                    cliente_email: row.email_cliente || 'Sin email',
+                    total: row.total,
+                    estado: row.estado as OrderStatus,
+                    datos_envio,
+                    items,
+                  };
+
+                  setOrders((prev) => {
+                    if (prev.some((o) => o.id === mappedOrder.id)) return prev;
+                    return [mappedOrder, ...prev];
+                  });
+
+                  toast.success(`Nuevo pedido recibido: ${mappedOrder.numero}`);
+                }
+              } catch (err) {
+                logger.error('Error fetching new order details in Realtime:', err as Error);
+              }
+            } else if (payload.eventType === 'UPDATE') {
+              const updatedRow = payload.new;
+              setOrders((prev) =>
+                prev.map((o) =>
+                  o.id === updatedRow.id
+                    ? { ...o, estado: updatedRow.estado as OrderStatus }
+                    : o
+                )
+              );
+              setSelectedOrder((prev) =>
+                prev?.id === updatedRow.id
+                  ? { ...prev, estado: updatedRow.estado as OrderStatus }
+                  : prev
+              );
+            }
+          }
+        )
+        .subscribe((status) => {
+          if (!active) return;
+
+          if (status === 'SUBSCRIBED') {
+            setConnectionStatus('connected');
+            setRetryCount(0);
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+            setConnectionStatus('disconnected');
+
+            if (attempt < 3) {
+              const delay = Math.pow(2, attempt) * 1000;
+              logger.warn(`[RealtimePedidos] Falló suscripción. Reintentando en ${delay}ms...`);
+
+              if (currentChannel) {
+                supabase.removeChannel(currentChannel);
+              }
+
+              retryTimeoutId = setTimeout(() => {
+                if (active) {
+                  setRetryCount(attempt + 1);
+                  subscribeWithRetry(attempt + 1);
+                }
+              }, delay);
+            } else {
+              logger.error('[RealtimePedidos] Se superó el límite de reintentos de conexión en tiempo real.');
+            }
+          }
+        });
+
+      currentChannel = channel;
+    };
+
+    subscribeWithRetry(0);
+
+    return () => {
+      active = false;
+      if (retryTimeoutId) clearTimeout(retryTimeoutId);
+      if (currentChannel) {
+        supabase.removeChannel(currentChannel);
+      }
+    };
+  }, [tenant?.id, subscriptionTrigger]);
 
   const filtered = useMemo(() => {
     return orders.filter(o => {
@@ -551,6 +726,30 @@ export default function AdminPedidos() {
           Gestiona y da seguimiento a todos los pedidos de tu tienda
         </p>
       </div>
+
+      {/* Banner de desconexión en tiempo real */}
+      {connectionStatus === 'disconnected' && retryCount >= 3 && (
+        <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-amber-800 dark:text-amber-300">
+          <div className="flex items-center gap-2">
+            <Clock className="w-5 h-5 animate-pulse text-amber-600 dark:text-amber-400" />
+            <div className="text-sm">
+              <span className="font-semibold">Conexión en tiempo real perdida.</span>
+              <span className="block sm:inline sm:ml-1 text-xs opacity-90">Los nuevos pedidos podrían no aparecer automáticamente.</span>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              setRetryCount(0);
+              setSubscriptionTrigger(prev => prev + 1);
+              setRefreshTrigger(prev => prev + 1);
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition-all shadow-sm active:scale-[0.98]"
+          >
+            <RefreshCw className="w-3.5 h-3.5 animate-spin" style={{ animationDuration: '3s' }} />
+            Reconectar y Actualizar
+          </button>
+        </div>
+      )}
 
       {/* ── Filtros por estado ── */}
       <div className="flex flex-wrap items-center gap-2">

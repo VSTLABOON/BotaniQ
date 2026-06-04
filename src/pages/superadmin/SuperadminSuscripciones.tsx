@@ -11,6 +11,7 @@ import { useTenant } from '../../context/TenantContext';
 import { toast } from '../../store/toastStore';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { CARD } from '../admin/components/config/SharedUI';
+import { updateSubscription } from '../../services/superadminService';
 
 type PlanSaaS = 'basico' | 'pro' | 'enterprise';
 type EstadoSuscripcion = 'activo' | 'vencido' | 'prueba' | 'cancelado';
@@ -147,13 +148,9 @@ export default function SuperadminSuscripciones() {
     });
   }, [tenants, searchTerm, planFilter, estadoFilter]);
 
-  const updateSub = useCallback(async (tenantId: string, updates: Partial<Suscripcion>) => {
+  const updateSub = useCallback(async (tenantId: string, updates: any) => {
     try {
-      const { error } = await supabase
-        .from('suscripciones')
-        .update(updates)
-        .eq('tenant_id', tenantId);
-      if (error) throw error;
+      await updateSubscription(tenantId, updates);
       await fetchData(); // Reload
       if (selectedTenant && selectedTenant.id === tenantId) {
         setSelectedTenant(prev => prev ? { ...prev, suscripcion: { ...prev.suscripcion!, ...updates } } : null);

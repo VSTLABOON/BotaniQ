@@ -13,6 +13,7 @@ const BottomSheet = lazy(() => import('../components/ui/BottomSheet'));
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTenant } from '../context/TenantContext';
 import { useAuth } from '../context/AuthContext';
+import { isPlatformDomain, getSubdomainFromHostname, getPlatformDomain, getSubdomainUrl } from '../lib/domain';
 import { supabase } from '../lib/supabaseClient';
 import { logger } from '../lib/logger';
 import { useInactivityLogout } from '../hooks/useInactivityLogout';
@@ -42,6 +43,9 @@ import {
   MessageSquare,
   Truck,
   BarChart2,
+  CheckCircle2,
+  XCircle,
+  Check,
 } from 'lucide-react';
 
 const OnboardingBot = lazy(() => import('../components/ui/OnboardingBot').then(m => ({ default: m.OnboardingBot })));
@@ -227,7 +231,7 @@ function Sidebar({
         {/* ── Ver mi tienda — siempre visible ── */}
         <div className="px-3 py-2 shrink-0">
           <a
-            href="/"
+            href={getSubdomainUrl(tenant.slug, '/')}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-2 w-full px-3 py-2.5 rounded-lg text-[0.82rem] font-semibold transition-colors"
@@ -271,6 +275,7 @@ function Topbar({
   onLogout,
   notifications,
   onMarkAllRead,
+  onMarkAsRead,
 }: {
   onMenuToggle: () => void;
   displayName: string;
@@ -279,11 +284,13 @@ function Topbar({
   onLogout: () => void;
   notifications: any[];
   onMarkAllRead: () => void;
+  onMarkAsRead: (id: string) => void;
 }) {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const { tenant } = useTenant();
 
   // Cerrar dropdowns al hacer clic fuera
   useEffect(() => {
@@ -304,6 +311,29 @@ function Topbar({
     else if (q.includes('ajuste') || q.includes('config') || q.includes('tema')) navigate('/admin/ajustes');
     else navigate('/admin/pedidos');
     setSearchQuery('');
+  };
+
+  const getNotificationIcon = (tipo: string, leida: boolean) => {
+    const t = tipo?.toLowerCase() || '';
+    if (t.includes('pago_exitoso') || t.includes('exitoso') || t.includes('pago.exitoso') || t.includes('pago_completo')) {
+      return {
+        icon: CheckCircle2,
+        bg: leida ? 'bg-[var(--color-background-secondary)]' : 'bg-emerald-100 dark:bg-emerald-950/40',
+        color: leida ? 'text-[var(--color-text-tertiary)]' : 'text-emerald-600 dark:text-emerald-400',
+      };
+    }
+    if (t.includes('pago_fallido') || t.includes('fallido') || t.includes('pago.fallido')) {
+      return {
+        icon: XCircle,
+        bg: leida ? 'bg-[var(--color-background-secondary)]' : 'bg-rose-100 dark:bg-rose-950/40',
+        color: leida ? 'text-[var(--color-text-tertiary)]' : 'text-rose-600 dark:text-rose-400',
+      };
+    }
+    return {
+      icon: ShoppingBag,
+      bg: leida ? 'bg-[var(--color-background-secondary)]' : 'bg-blue-100 dark:bg-blue-950/40',
+      color: leida ? 'text-[var(--color-text-tertiary)]' : 'text-blue-600 dark:text-blue-400',
+    };
   };
 
   return (
@@ -345,10 +375,9 @@ function Topbar({
           >
             <Bell className="w-5 h-5" strokeWidth={1.8} />
             {unreadCount > 0 && (
-              <>
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-[var(--color-background-primary)] z-10" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-ping opacity-75" />
-              </>
+              <span className="absolute -top-1 -right-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[0.65rem] font-bold text-white ring-2 ring-[var(--color-background-primary)]">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
             )}
           </button>
 
@@ -370,25 +399,42 @@ function Topbar({
                     <p className="text-xs text-[var(--color-text-tertiary)]">Sin notificaciones</p>
                   </div>
                 ) : (
-                  notifications.slice(0, 8).map((n: any, i: number) => (
-                    <button
-                      key={n.id || i}
-                      onClick={() => { navigate('/admin/pedidos'); setShowNotifications(false); }}
-                      className={`w-full text-left px-4 py-3 hover:bg-[var(--color-background-secondary)] transition-colors flex items-start gap-3 border-b border-[var(--color-border-tertiary)] last:border-0 ${
-                        !n.leida ? 'bg-emerald-50/10' : ''
-                      }`}
-                    >
-                      <div className={`mt-0.5 p-1.5 rounded-full shrink-0 ${!n.leida ? 'bg-emerald-100 dark:bg-emerald-900/40' : 'bg-[var(--color-background-secondary)]'}`}>
-                        <ShoppingBag className={`w-3.5 h-3.5 ${!n.leida ? 'text-emerald-600' : 'text-[var(--color-text-tertiary)]'}`} />
-                      </div>
-                      <div className="min-w-0">
-                        <p className={`text-sm truncate ${!n.leida ? 'font-semibold text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)]'}`}>
-                          {n.titulo || 'Notificación'}
-                        </p>
-                        <p className="text-xs text-[var(--color-text-tertiary)] truncate mt-0.5">{n.mensaje || ''}</p>
-                      </div>
-                    </button>
-                  ))
+                  notifications.slice(0, 8).map((n: any, i: number) => {
+                    const iconInfo = getNotificationIcon(n.tipo, n.leida);
+                    return (
+                      <button
+                        key={n.id || i}
+                        onClick={() => { navigate('/admin/pedidos'); setShowNotifications(false); }}
+                        className={`w-full text-left px-4 py-3 hover:bg-[var(--color-background-secondary)] transition-colors flex items-start justify-between gap-3 border-b border-[var(--color-border-tertiary)] last:border-0 ${
+                          !n.leida ? 'bg-emerald-50/10' : ''
+                        }`}
+                      >
+                        <div className="flex items-start gap-3 min-w-0 flex-1">
+                          <div className={`mt-0.5 p-1.5 rounded-full shrink-0 ${iconInfo.bg}`}>
+                            <iconInfo.icon className={`w-3.5 h-3.5 ${iconInfo.color}`} />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className={`text-sm truncate ${!n.leida ? 'font-semibold text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)]'}`}>
+                              {n.titulo || 'Notificación'}
+                            </p>
+                            <p className="text-xs text-[var(--color-text-tertiary)] truncate mt-0.5">{n.mensaje || ''}</p>
+                          </div>
+                        </div>
+                        {!n.leida && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onMarkAsRead(n.id);
+                            }}
+                            title="Marcar como leída"
+                            className="p-1.5 rounded-lg text-[var(--color-text-tertiary)] hover:text-emerald-600 hover:bg-[var(--color-background-tertiary)] transition-colors shrink-0 self-center"
+                          >
+                            <Check className="w-4 h-4" />
+                          </button>
+                        )}
+                      </button>
+                    );
+                  })
                 )}
               </div>
             </div>
@@ -424,7 +470,7 @@ function Topbar({
                 <p className="text-xs text-[var(--color-text-tertiary)] truncate">{displayEmail}</p>
               </div>
               <button
-                onClick={() => { navigate('/'); setShowProfile(false); }}
+                onClick={() => { window.location.href = getSubdomainUrl(tenant.slug, '/'); setShowProfile(false); }}
                 className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-background-secondary)] transition-colors"
               >
                 <Store className="w-4 h-4 text-[var(--color-text-tertiary)]" />
@@ -478,7 +524,7 @@ export default function AdminLayout() {
   const displayEmail = profile?.email || '';
 
   // ── FIX: Realtime UI para Notificaciones ────────────────────────
-  const { notifications, unreadCount, toasts, handleMarkAllRead } = useNotifications(tenant?.id);
+  const { notifications, unreadCount, toasts, handleMarkAllRead, handleMarkAsRead } = useNotifications(tenant?.id);
 
   // FIX DT-07: Logout funcional con limpieza completa de sesión
   const handleLogout = useCallback(async () => {
@@ -572,6 +618,7 @@ export default function AdminLayout() {
           onLogout={handleLogout}
           notifications={notifications}
           onMarkAllRead={handleMarkAllRead}
+          onMarkAsRead={handleMarkAsRead}
         />
 
         {/* ── Contenido (rutas hijas) ── */}

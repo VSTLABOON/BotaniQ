@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTenant } from '../../context/TenantContext.tsx';
 import { logger } from '../../lib/logger';
 import { X } from 'lucide-react';
+import { supabase } from '../../lib/supabaseClient';
 
 export function Cursor() {
   const curRef = useRef(null);
@@ -84,14 +85,47 @@ export function CountdownBanner() {
   const { tenant } = useTenant();
   const [timeLeft, setTimeLeft] = useState(null);
   const [isVisible, setIsVisible] = useState(false);
+  const [productAvailable, setProductAvailable] = useState(true);
   const bannerRef = useRef(null);
 
-  const evento = tenant.evento;
+  const evento = tenant?.evento;
+
+  useEffect(() => {
+    if (!evento || !evento.activo || !evento.producto || !tenant?.id) {
+      setProductAvailable(true);
+      return;
+    }
+
+    let active = true;
+    async function verifyProduct() {
+      try {
+        const { data, error } = await supabase
+          .from('productos')
+          .select('id, disponible')
+          .eq('tienda_id', tenant.id)
+          .or(`slug.eq.${evento.producto},id.eq.${evento.producto}`)
+          .maybeSingle();
+
+        if (error) throw error;
+        if (active) {
+          setProductAvailable(!!(data && data.disponible));
+        }
+      } catch (err) {
+        logger.error('Error verifying event banner product availability', err);
+        if (active) {
+          setProductAvailable(false);
+        }
+      }
+    }
+    verifyProduct();
+    return () => { active = false; };
+  }, [evento, tenant?.id]);
 
   useEffect(() => {
     // Si no hay evento activo, no mostrar el banner
-    if (!evento || !evento.activo) {
+    if (!evento || !evento.activo || !productAvailable) {
       document.documentElement.style.setProperty('--cd-height', '0px');
+      setIsVisible(false);
       return;
     }
 
@@ -150,7 +184,7 @@ export function CountdownBanner() {
   }, [evento]);
 
   useEffect(() => {
-    if (isVisible && bannerRef.current) {
+    if (isVisible && bannerRef.current && productAvailable) {
       const adjustOffset = () => {
         document.documentElement.style.setProperty('--cd-height', `${bannerRef.current.offsetHeight}px`);
       };
@@ -161,9 +195,9 @@ export function CountdownBanner() {
     } else {
       document.documentElement.style.setProperty('--cd-height', '0px');
     }
-  }, [isVisible]);
+  }, [isVisible, productAvailable]);
 
-  if (!isVisible || !timeLeft) return null;
+  if (!isVisible || !timeLeft || !productAvailable) return null;
 
   const handleClose = () => {
     setIsVisible(false);

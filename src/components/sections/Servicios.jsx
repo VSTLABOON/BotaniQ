@@ -1,10 +1,50 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTenant } from '../../context/TenantContext.tsx';
 import CategorySlider from '../ui/CategorySlider';
+import { fetchSeccionProductos } from '../../services/seccionProductosService';
 
 export default function Servicios() {
   const { tenant, loading } = useTenant();
   const [openCatalogId, setOpenCatalogId] = useState(null);
+  const [relationalCatalogs, setRelationalCatalogs] = useState({});
+  const [loadingRelational, setLoadingRelational] = useState(false);
+
+  const servicios = tenant?.servicios || [];
+
+  useEffect(() => {
+    let active = true;
+    async function loadRelational() {
+      if (!tenant?.id || servicios.length === 0) return;
+      setLoadingRelational(true);
+      try {
+        const catalogs = {};
+        await Promise.all(
+          servicios.map(async (serv, i) => {
+            const key = serv.id || i;
+            try {
+              const products = await fetchSeccionProductos(tenant.id, key, true);
+              if (products && products.length > 0) {
+                catalogs[key] = products;
+              }
+            } catch (err) {
+              console.error(`Error loading relational catalog for ${key}:`, err);
+            }
+          })
+        );
+        if (active) {
+          setRelationalCatalogs(catalogs);
+        }
+      } catch (err) {
+        console.error('Error loading relational catalogs:', err);
+      } finally {
+        if (active) {
+          setLoadingRelational(false);
+        }
+      }
+    }
+    loadRelational();
+    return () => { active = false; };
+  }, [tenant?.id, servicios]);
 
   if (loading) {
     return (
@@ -13,8 +53,6 @@ export default function Servicios() {
       </section>
     );
   }
-
-  const servicios = tenant.servicios || [];
 
   const toggleCatalog = (e, id) => {
     e.preventDefault();
@@ -54,10 +92,22 @@ export default function Servicios() {
 
       <div className="max-w-[1100px] mx-auto flex flex-col gap-8">
         {servicios.map((serv, i) => {
-          // Si usamos catalogIds, el catalog sería dinámico. Por simplicidad si viene catalog en JSON lo usamos, si no []
-          const catalog = serv.catalog || [];
-          const isOpen = openCatalogId === serv.id || openCatalogId === i;
           const idToToggle = serv.id || i;
+          const relationalProducts = relationalCatalogs[idToToggle];
+
+          // Use relational products if available, fallback to legacy catalog
+          const rawCatalog = (relationalProducts && relationalProducts.length > 0)
+            ? relationalProducts
+            : (serv.catalog || []);
+
+          // Normalize to what CategorySlider expects: { name, img, priceRange }
+          const catalog = rawCatalog.map(item => ({
+            name: item.nombre || item.name || '',
+            img: item.imagen_url || item.img || '',
+            priceRange: item.precio ? `$${item.precio}` : (item.priceRange || '')
+          }));
+
+          const isOpen = openCatalogId === idToToggle;
           
           return (
             <div 

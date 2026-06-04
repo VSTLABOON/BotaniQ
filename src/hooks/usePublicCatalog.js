@@ -30,16 +30,24 @@ function mapRow(row) {
     id:         row.id,
     slug:       row.slug ?? row.id,
     name:       row.nombre ?? row.name,
-    short:      row.descripcion_corta ?? row.short ?? '',
-    precio:     row.precio_label ?? row.precio ?? '',
-    precioNum:  parseFloat(row.precio_num ?? row.precio ?? 0),
+    short:      row.descripcion ?? '',
+    precio:     row.precio ?? '',
+    precioNum:  parseFloat(row.precio ?? 0),
     disponible: row.disponible ?? true,
-    badge:      row.badge ?? null,
-    badgeClass: row.badge_class ?? '',
-    imgUrl:     row.imagen_url ?? row.image_url ?? '',
-    desc:       row.descripcion ?? row.description ?? '',
-    waMsg:      row.wa_mensaje ?? row.wa_message ?? '',
-    category:   row.categoria ?? row.category ?? 'general',
+    badge:      null,
+    badgeClass: '',
+    imgUrl:     row.imagen_url ?? '',
+    desc:       row.descripcion ?? '',
+    waMsg:      '',
+    category:   row.categoria ?? 'general',
+    variants:   (row.producto_variantes || []).map(v => ({
+      id: v.id,
+      name: v.nombre,
+      price: v.precio !== null && v.precio !== undefined ? parseFloat(v.precio) : null,
+      stock: v.stock ?? 0,
+      sku: v.sku ?? '',
+      image: v.imagen_url
+    }))
   };
 }
 
@@ -86,6 +94,7 @@ export function usePublicCatalog(slug, options = {}) {
       const { data: tiendaData, error: tiendaError } = await queryTienda.single();
 
       if (tiendaError) {
+        logger.error('Error querying tiendas table in usePublicCatalog:', tiendaError);
         throw new Error(
           `Tienda con slug "${slug}" no encontrada: ${tiendaError.message}`
         );
@@ -99,7 +108,17 @@ export function usePublicCatalog(slug, options = {}) {
       // pero aplicamos el filtro aquí también como defensa en profundidad.
       let queryProd = supabase
         .from('productos')
-        .select('id, slug, nombre, descripcion_corta, precio, precio_num, disponible, badge, badge_class, imagen_url, descripcion, wa_mensaje, categoria, created_at')
+        .select(`
+          id, slug, nombre, descripcion, precio, disponible, imagen_url, categoria, created_at,
+          producto_variantes (
+            id,
+            nombre,
+            precio,
+            stock,
+            sku,
+            imagen_url
+          )
+        `)
         .eq('tienda_id', tiendaData.id)
         .eq('disponible', true)
         .order('created_at', { ascending: false });
@@ -116,6 +135,7 @@ export function usePublicCatalog(slug, options = {}) {
       const { data: productosData, error: productosError } = await queryProd;
 
       if (productosError) {
+        logger.error('Error querying productos table in usePublicCatalog:', productosError);
         throw new Error(
           `Error al cargar productos: ${productosError.message}`
         );

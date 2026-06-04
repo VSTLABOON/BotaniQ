@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { useCartStore } from '../../store/cartStore.ts';
 import { useTenant } from '../../context/TenantContext.tsx';
 import { useAuth } from '../../context/AuthContext.tsx';
-import { initiateStripeCheckout } from '../../services/checkoutService.ts';
+import { initiateStripeCheckout, initiateOpenpayCheckout } from '../../services/checkoutService.ts';
 import { createGuestOrder } from '../../services/orderService.ts';
-import { ShoppingCart, MessageCircle } from 'lucide-react';
+import { ShoppingCart, MessageCircle, Copy, Check, CreditCard, Landmark, DollarSign, Download } from 'lucide-react';
 import { UI_COLORS } from '../../lib/constants.ts';
 import { toast } from '../../store/toastStore.ts';
 import { logger } from '../../lib/logger';
@@ -31,6 +31,19 @@ export default function CartDrawer() {
     destinatario: '', notas: '', mensaje: '', zonaEnvio: ''
   });
 
+  // OpenPay payment states
+  const [openpayLoaded, setOpenpayLoaded] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('card'); // 'card' | 'spei' | 'store'
+  const [email, setEmail] = useState('');
+  const [cardHolder, setCardHolder] = useState('');
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpMonth, setCardExpMonth] = useState('');
+  const [cardExpYear, setCardExpYear] = useState('');
+  const [cardCvv, setCardCvv] = useState('');
+  const [openpayInstructions, setOpenpayInstructions] = useState(null);
+  const [copied, setCopied] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
+
   const zones = tenant.zonas_envio || [];
   const hasZones = zones.length > 0;
   const selectedZone = hasZones ? zones.find(z => z.nombre === formData.zonaEnvio) : null;
@@ -47,6 +60,38 @@ export default function CartDrawer() {
     }
   }, [profile]);
 
+  useEffect(() => {
+    if (profile && profile.email) {
+      setEmail(profile.email);
+    }
+  }, [profile]);
+
+  useEffect(() => {
+    const isPreferredOpenpay = tenant.preferred_gateway === 'openpay' || !tenant.preferred_gateway;
+    if (tenant.subscription_level >= 2 && isPreferredOpenpay) {
+      if (window.OpenPay) {
+        setOpenpayLoaded(true);
+        return;
+      }
+      
+      const script = document.createElement('script');
+      script.src = 'https://openpay.s3.amazonaws.com/openpay.v1.min.js';
+      script.async = true;
+      script.onload = () => {
+        const dataScript = document.createElement('script');
+        dataScript.src = 'https://openpay.s3.amazonaws.com/openpay-data.v1.min.js';
+        dataScript.async = true;
+        dataScript.onload = () => {
+          setOpenpayLoaded(true);
+        };
+        dataScript.onerror = () => logger.error("Error al cargar OpenPay Antifraud JS");
+        document.body.appendChild(dataScript);
+      };
+      script.onerror = () => logger.error("Error al cargar OpenPay SDK JS");
+      document.body.appendChild(script);
+    }
+  }, [tenant.subscription_level, tenant.preferred_gateway]);
+
   const today = new Date();
   const minDate = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
 
@@ -56,8 +101,15 @@ export default function CartDrawer() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    if (name === 'mensaje' && value.length > 120) return;
+    if (name === 'mensaje' && value.length > 160) return;
     setFormData(p => ({ ...p, [name]: value }));
+    if (validationErrors[name]) {
+      setValidationErrors(p => {
+        const copy = { ...p };
+        delete copy[name];
+        return copy;
+      });
+    }
   };
 
   // Valida que el número de WhatsApp sea real (no el fallback)
@@ -71,12 +123,13 @@ export default function CartDrawer() {
     }
     const { nombre, fecha, direccion, destinatario, telefono, notas, mensaje } = formData;
 
+    const errors = {};
     if (!nombre.trim()) {
-      return toast.error('El nombre del comprador es obligatorio.');
+      errors.nombre = 'El nombre del comprador es obligatorio.';
     }
 
     if (hasZones && !formData.zonaEnvio) {
-      return toast.error('Debes seleccionar una zona de envío.');
+      errors.zonaEnvio = 'Debes seleccionar una zona de envío.';
     }
 
     const shippingData = {
@@ -90,9 +143,24 @@ export default function CartDrawer() {
 
     const validation = PedidoEnvioSchema.safeParse(shippingData);
     if (!validation.success) {
-      return toast.error(validation.error.issues[0].message);
+      validation.error.issues.forEach(issue => {
+        const path = issue.path[0];
+        let fieldName = path;
+        if (path === 'recipientName') fieldName = 'destinatario';
+        if (path === 'recipientPhone') fieldName = 'telefono';
+        if (path === 'deliveryAddress') fieldName = 'direccion';
+        if (path === 'deliveryDate') fieldName = 'fecha';
+        if (path === 'customMessage') fieldName = 'mensaje';
+        errors[fieldName] = issue.message;
+      });
     }
 
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      return;
+    }
+
+    setValidationErrors({});
     const validatedShipping = validation.data;
 
     // ── 1. Registrar pedido en Supabase (estado: pendiente) ──────
@@ -154,12 +222,28 @@ export default function CartDrawer() {
 
     const { nombre, fecha, direccion, destinatario, telefono, notas, mensaje } = formData;
 
+    const errors = {};
     if (!nombre.trim()) {
-      return toast.error('El nombre del comprador es obligatorio.');
+      errors.nombre = 'El nombre del comprador es obligatorio.';
     }
 
     if (hasZones && !formData.zonaEnvio) {
-      return toast.error('Debes seleccionar una zona de envío.');
+      errors.zonaEnvio = 'Debes seleccionar una zona de envío.';
+    }
+
+    const isPreferredOpenpay = tenant.preferred_gateway === 'openpay' || !tenant.preferred_gateway;
+
+    if (isPreferredOpenpay) {
+      if (!email.trim()) {
+        errors.email = 'El correo electrónico es obligatorio para cobros en línea.';
+      }
+      if (paymentMethod === 'card') {
+        if (!cardHolder.trim()) errors.cardHolder = 'El titular es requerido.';
+        if (!cardNumber.trim()) errors.cardNumber = 'El número de tarjeta es requerido.';
+        if (!cardExpMonth.trim()) errors.cardExpMonth = 'Mes requerido.';
+        if (!cardExpYear.trim()) errors.cardExpYear = 'Año requerido.';
+        if (!cardCvv.trim()) errors.cardCvv = 'CVV requerido.';
+      }
     }
 
     const shippingData = {
@@ -173,17 +257,69 @@ export default function CartDrawer() {
 
     const validation = PedidoEnvioSchema.safeParse(shippingData);
     if (!validation.success) {
-      return toast.error(validation.error.issues[0].message);
+      validation.error.issues.forEach(issue => {
+        const path = issue.path[0];
+        let fieldName = path;
+        if (path === 'recipientName') fieldName = 'destinatario';
+        if (path === 'recipientPhone') fieldName = 'telefono';
+        if (path === 'deliveryAddress') fieldName = 'direccion';
+        if (path === 'deliveryDate') fieldName = 'fecha';
+        if (path === 'customMessage') fieldName = 'mensaje';
+        errors[fieldName] = issue.message;
+      });
     }
 
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      return;
+    }
+
+    setValidationErrors({});
     const validatedShipping = validation.data;
 
-    setCheckoutLoading(true); setCheckoutError(null); setCheckoutResult(null);
+    setCheckoutLoading(true); setCheckoutError(null); setCheckoutResult(null); setOpenpayInstructions(null);
     try {
+      let tokenId = null;
+      let deviceSessionId = null;
+
+      if (isPreferredOpenpay) {
+        if (!window.OpenPay) {
+          throw new Error("El SDK de OpenPay no se cargó correctamente. Por favor recarga.");
+        }
+
+        // Configurar credenciales del SDK de OpenPay en el cliente
+        window.OpenPay.setId(tenant.openpay_merchant_id);
+        window.OpenPay.setApiKey(tenant.openpay_public_key);
+        window.OpenPay.setSandboxMode(tenant.openpay_sandbox_mode ?? true);
+
+        // Generar device_data (antifraude)
+        deviceSessionId = window.OpenPay.deviceData.setup();
+
+        if (paymentMethod === 'card') {
+          // Tokenizar tarjeta
+          tokenId = await new Promise((resolve, reject) => {
+            const expMonth2Digits = cardExpMonth.padStart(2, '0');
+            const expYear2Digits = cardExpYear.slice(-2); // OpenPay espera 2 dígitos para el año
+
+            window.OpenPay.token.create({
+              "card_number": cardNumber.replace(/\s+/g, ''),
+              "holder_name": cardHolder.trim(),
+              "expiration_year": expYear2Digits,
+              "expiration_month": expMonth2Digits,
+              "cvv2": cardCvv.trim()
+            }, 
+            (response) => {
+              resolve(response.data.id);
+            }, 
+            (error) => {
+              console.error("Error OpenPay Tokenize:", error);
+              reject(new Error(error.data.description || "Error al validar la tarjeta con OpenPay. Verifique sus datos."));
+            });
+          });
+        }
+      }
 
       // ── 1. Crear pedido en BD con datos de envío (estado: pendiente_pago) ──
-      // Esto garantiza que la dirección, fecha y dedicatoria se persistan
-      // ANTES de redirigir a Stripe. El webhook solo necesita cambiar el estado.
       const subtotal = getSubtotal();
       const result = await createGuestOrder(
         {
@@ -210,17 +346,60 @@ export default function CartDrawer() {
       const successUrl = `${currentUrl}?checkout=success&order=${result.orderId}`;
       const cancelUrl = `${currentUrl}?checkout=cancel&order=${result.orderId}`;
 
-      // ── 3. Llamar a la Edge Function → Stripe Checkout ──
-      const stripeUrl = await initiateStripeCheckout({
-        tenantId: tenant.id,
-        items: checkoutItems,
-        successUrl,
-        cancelUrl,
-        orderId: result.orderId,
-      });
+      // ── 3. Llamar a la Edge Function correspondientes ──
+      if (isPreferredOpenpay) {
+        const responseData = await initiateOpenpayCheckout({
+          tenantId: tenant.id,
+          items: checkoutItems,
+          successUrl,
+          cancelUrl,
+          orderId: result.orderId,
+          paymentMethodType: paymentMethod,
+          deviceData: deviceSessionId,
+          tokenId: tokenId,
+          customer: {
+            name: nombre,
+            email: email.trim(),
+            phone: telefono || '5500000000'
+          }
+        });
 
-      // Redirigir al usuario a la página de pago de Stripe
-      window.location.href = stripeUrl;
+        if (paymentMethod === 'card') {
+          // Redirigir para 3D Secure
+          if (responseData.redirect_url) {
+            window.location.href = responseData.redirect_url;
+          } else {
+            // Pago directo aprobado (si no requirió 3DS)
+            clearCart();
+            setCheckoutResult({ success: true, orderId: result.orderId });
+            toast.success("¡Pago aprobado! Tu pedido ha sido confirmado.");
+          }
+        } else {
+          // SPEI o Tienda (OXXO/Paynet)
+          clearCart();
+          setOpenpayInstructions({
+            method: paymentMethod,
+            clabe: responseData.clabe,
+            bank: responseData.bank,
+            reference: responseData.reference,
+            barcode_url: responseData.barcode_url,
+            pdf_url: responseData.pdf_url,
+            amount: subtotal + shippingCost,
+            orderId: result.orderId
+          });
+          toast.success("¡Instrucciones de pago generadas con éxito!");
+        }
+      } else {
+        // Stripe Checkout
+        const stripeUrl = await initiateStripeCheckout({
+          tenantId: tenant.id,
+          items: checkoutItems,
+          successUrl,
+          cancelUrl,
+          orderId: result.orderId,
+        });
+        window.location.href = stripeUrl;
+      }
     } catch (err) {
       const errorMsg = err.message || 'Error al procesar el pago';
       setCheckoutError(errorMsg);
@@ -275,94 +454,371 @@ export default function CartDrawer() {
         </div>
 
         <div className="flex-1 overflow-y-auto overscroll-contain p-6 flex flex-col gap-6">
-          {/* Items con [−] qty [+] */}
-          <div className="flex flex-col gap-3">
-            {items.length === 0 ? (
-              <p className="text-texto-muted text-sm text-center py-6">Tu carrito está vacío</p>
-            ) : items.map((item) => (
-              <div key={item.cartItemId} className="flex items-center gap-3 bg-[var(--color-background-primary)]/5 p-3 rounded-xl border border-white/5">
-                {item.image && <img src={item.image} alt={item.name} className="w-14 h-14 object-cover rounded-lg bg-crema-dark shrink-0" />}
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-[var(--color-background-primary)] text-sm truncate">{item.name}</p>
-                  <p className="text-rosa text-xs">{item.variantName}</p>
-                  <p className="text-verde-light text-xs font-semibold mt-0.5">${item.unitPrice * item.quantity}</p>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <button onClick={() => updateQuantity(item.cartItemId, item.quantity - 1)}
-                    className="w-7 h-7 rounded-lg bg-[var(--color-background-primary)]/10 text-[var(--color-background-primary)]/60 hover:text-[var(--color-background-primary)] hover:bg-[var(--color-background-primary)]/20 flex items-center justify-center text-sm font-bold transition-colors" aria-label="Reducir">−</button>
-                  <span className="w-7 text-center text-[var(--color-background-primary)] text-sm font-semibold tabular-nums">{item.quantity}</span>
-                  <button onClick={() => updateQuantity(item.cartItemId, item.quantity + 1)}
-                    className="w-7 h-7 rounded-lg bg-[var(--color-background-primary)]/10 text-[var(--color-background-primary)]/60 hover:text-[var(--color-background-primary)] hover:bg-[var(--color-background-primary)]/20 flex items-center justify-center text-sm font-bold transition-colors" aria-label="Aumentar">+</button>
-                </div>
-                <button onClick={() => removeItem(item.cartItemId)} className="p-1.5 text-[var(--color-background-primary)]/30 hover:text-rosa hover:bg-rosa/10 rounded-lg transition-colors" aria-label="Quitar">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                </button>
-              </div>
-            ))}
-          </div>
+          {openpayInstructions ? (
+            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-5 animate-fade-up text-[var(--color-background-primary)] flex flex-col gap-4">
+              <h4 className="text-emerald-400 font-bold text-sm uppercase tracking-wider flex items-center gap-1.5 justify-center">
+                {openpayInstructions.method === 'spei' ? <Landmark className="w-4 h-4" /> : <DollarSign className="w-4 h-4" />}
+                {openpayInstructions.method === 'spei' ? 'Pago SPEI Pendiente' : 'Ficha de Pago Pendiente'}
+              </h4>
+              <p className="text-[11px] text-[var(--color-background-primary)]/80 text-center leading-relaxed">
+                {openpayInstructions.method === 'spei' 
+                  ? 'Realiza la transferencia desde tu banca móvil para completar tu pedido. El inventario se liberará si no se liquida en 24 horas.' 
+                  : 'Acude a cualquier establecimiento afiliado (Paynet, OXXO, etc.) a realizar tu pago en efectivo.'}
+              </p>
 
-          {/* Form */}
-          <form id="carrito-form" onSubmit={handleWhatsApp} className="flex flex-col gap-5 mt-2" noValidate>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="cd-nombre" className={LABEL}>Tu nombre *</label>
-                <input type="text" id="cd-nombre" name="nombre" value={formData.nombre} onChange={handleChange} required placeholder="María González" className={INPUT} />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="cd-fecha" className={LABEL}>Fecha entrega *</label>
-                <input type="date" id="cd-fecha" name="fecha" value={formData.fecha} min={minDate} onChange={handleChange} required className={`${INPUT} [color-scheme:dark]`} />
-              </div>
+              {openpayInstructions.method === 'spei' ? (
+                <div className="space-y-3 bg-black/30 p-4 rounded-xl border border-white/5 font-mono text-[11px]">
+                  <div className="flex justify-between items-center pb-1.5 border-b border-white/5">
+                    <span className="text-[var(--color-background-primary)]/40">Banco</span>
+                    <span className="font-bold text-white">{openpayInstructions.bank}</span>
+                  </div>
+                  <div className="flex justify-between items-center pb-1.5 border-b border-white/5">
+                    <span className="text-[var(--color-background-primary)]/40">CLABE</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold text-white select-all">{openpayInstructions.clabe}</span>
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          navigator.clipboard.writeText(openpayInstructions.clabe);
+                          toast.success("¡CLABE copiada!");
+                        }}
+                        className="text-emerald-400 hover:text-emerald-300 cursor-pointer"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center pb-1.5 border-b border-white/5">
+                    <span className="text-[var(--color-background-primary)]/40">Referencia</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold text-white select-all">{openpayInstructions.reference}</span>
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          navigator.clipboard.writeText(openpayInstructions.reference);
+                          toast.success("¡Referencia copiada!");
+                        }}
+                        className="text-emerald-400 hover:text-emerald-300 cursor-pointer"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center font-sans mt-2 pt-1 border-t border-white/10 text-xs">
+                    <span className="text-[var(--color-background-primary)]/50">Monto a Pagar</span>
+                    <span className="font-bold text-emerald-400 font-display text-sm">${openpayInstructions.amount} MXN</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3 bg-black/30 p-4 rounded-xl border border-white/5 text-center flex flex-col items-center">
+                  <div className="flex flex-col items-center gap-2">
+                    <span className="text-[10px] text-[var(--color-background-primary)]/40 uppercase tracking-widest">Referencia de Pago</span>
+                    <span className="font-mono font-bold text-sm text-white tracking-widest select-all">{openpayInstructions.reference}</span>
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        navigator.clipboard.writeText(openpayInstructions.reference);
+                        toast.success("¡Referencia copiada!");
+                      }}
+                      className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 hover:text-emerald-300 cursor-pointer"
+                    >
+                      <Copy className="w-3.5 h-3.5" /> Copiar Referencia
+                    </button>
+                  </div>
+
+                  {openpayInstructions.barcode_url && (
+                    <div className="bg-white p-2.5 rounded-lg inline-block my-2">
+                      <img src={openpayInstructions.barcode_url} alt="Código de barras Paynet" className="max-w-[200px] h-auto mx-auto" />
+                    </div>
+                  )}
+
+                  {openpayInstructions.pdf_url && (
+                    <div className="pt-2">
+                      <a 
+                        href={openpayInstructions.pdf_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-black rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
+                      >
+                        <Download className="w-3.5 h-3.5" /> Descargar PDF
+                      </a>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between items-center text-xs mt-2 pt-2 border-t border-white/10 w-full">
+                    <span className="text-[var(--color-background-primary)]/50">Monto a Pagar</span>
+                    <span className="font-bold text-emerald-400 font-display text-sm">${openpayInstructions.amount} MXN</span>
+                  </div>
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setOpenpayInstructions(null)}
+                className="mt-4 w-full py-2.5 bg-white/10 hover:bg-white/20 border border-white/15 text-[var(--color-background-primary)] font-bold text-xs rounded-xl transition-all cursor-pointer"
+              >
+                Volver al carrito
+              </button>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="cd-direccion" className={LABEL}>Dirección de entrega *</label>
-              <input type="text" id="cd-direccion" name="direccion" value={formData.direccion} onChange={handleChange} required placeholder="Calle, número, colonia" className={INPUT} />
-            </div>
-            {hasZones && (
-              <div className="flex flex-col gap-1.5 animate-fade-up">
-                <label htmlFor="cd-zonaEnvio" className={LABEL}>Zona de envío *</label>
-                <select
-                  id="cd-zonaEnvio"
-                  name="zonaEnvio"
-                  value={formData.zonaEnvio}
-                  onChange={handleChange}
-                  required
-                  className={INPUT}
-                >
-                  <option value="" disabled className="text-white/40">-- Selecciona tu zona de envío --</option>
-                  {zones.map((z, idx) => (
-                    <option key={idx} value={z.nombre} className="bg-negro text-white">
-                      {z.nombre} (${z.costo} MXN)
-                    </option>
-                  ))}
-                </select>
+          ) : (
+            <>
+              {/* Items con [−] qty [+] */}
+              <div className="flex flex-col gap-3">
+                {items.length === 0 ? (
+                  <p className="text-texto-muted text-sm text-center py-6">Tu carrito está vacío</p>
+                ) : items.map((item) => (
+                  <div key={item.cartItemId} className="flex items-center gap-3 bg-[var(--color-background-primary)]/5 p-3 rounded-xl border border-white/5">
+                    {item.image && <img src={item.image} alt={item.name} className="w-14 h-14 object-cover rounded-lg bg-crema-dark shrink-0" />}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-[var(--color-background-primary)] text-sm truncate">{item.name}</p>
+                      <p className="text-rosa text-xs">{item.variantName}</p>
+                      <p className="text-verde-light text-xs font-semibold mt-0.5">${item.unitPrice * item.quantity}</p>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button onClick={() => updateQuantity(item.cartItemId, item.quantity - 1)}
+                        className="w-7 h-7 rounded-lg bg-[var(--color-background-primary)]/10 text-[var(--color-background-primary)]/60 hover:text-[var(--color-background-primary)] hover:bg-[var(--color-background-primary)]/20 flex items-center justify-center text-sm font-bold transition-colors" aria-label="Reducir">−</button>
+                      <span className="w-7 text-center text-[var(--color-background-primary)] text-sm font-semibold tabular-nums">{item.quantity}</span>
+                      <button onClick={() => updateQuantity(item.cartItemId, item.quantity + 1)}
+                        className="w-7 h-7 rounded-lg bg-[var(--color-background-primary)]/10 text-[var(--color-background-primary)]/60 hover:text-[var(--color-background-primary)] hover:bg-[var(--color-background-primary)]/20 flex items-center justify-center text-sm font-bold transition-colors" aria-label="Aumentar">+</button>
+                    </div>
+                    <button onClick={() => removeItem(item.cartItemId)} className="p-1.5 text-[var(--color-background-primary)]/30 hover:text-rosa hover:bg-rosa/10 rounded-lg transition-colors" aria-label="Quitar">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </div>
+                ))}
               </div>
-            )}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="cd-destinatario" className={LABEL}>¿Para quién? *</label>
-                <input type="text" id="cd-destinatario" name="destinatario" value={formData.destinatario} onChange={handleChange} required placeholder="Nombre de quien recibe" className={INPUT} />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="cd-telefono" className={LABEL}>Teléfono</label>
-                <input type="tel" id="cd-telefono" name="telefono" value={formData.telefono} onChange={handleChange} placeholder="81 1234 5678" className={INPUT} />
-              </div>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="cd-notas" className={LABEL}>Preferencias <span className="text-[var(--color-background-primary)]/30 lowercase normal-case">(opcional)</span></label>
-              <input type="text" id="cd-notas" name="notas" value={formData.notas} onChange={handleChange} placeholder="Ej: Rosas rojas..." className={INPUT} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <div className="flex justify-between items-end">
-                <label htmlFor="cd-mensaje" className={LABEL}>Mensaje tarjeta <span className="text-[var(--color-background-primary)]/30 lowercase normal-case">(opcional)</span></label>
-                <span className={`text-xs ${formData.mensaje.length > 100 ? 'text-rosa' : 'text-[var(--color-background-primary)]/30'}`}>{formData.mensaje.length}/120</span>
-              </div>
-              <textarea id="cd-mensaje" name="mensaje" value={formData.mensaje} onChange={handleChange} rows="2" placeholder="Con todo mi amor…" maxLength="120" className={`${INPUT} resize-none`} />
-            </div>
-          </form>
+
+              {/* Form */}
+              <form id="carrito-form" onSubmit={handleWhatsApp} className="flex flex-col gap-5 mt-2" noValidate>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label htmlFor="cd-nombre" className={LABEL}>Tu nombre *</label>
+                    <input type="text" id="cd-nombre" name="nombre" value={formData.nombre} onChange={handleChange} required placeholder="María González" className={INPUT} />
+                    {validationErrors.nombre && <p className="text-[11px] text-rosa mt-0.5 animate-fade-up">{validationErrors.nombre}</p>}
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label htmlFor="cd-fecha" className={LABEL}>Fecha entrega *</label>
+                    <input type="date" id="cd-fecha" name="fecha" value={formData.fecha} min={minDate} onChange={handleChange} required className={`${INPUT} [color-scheme:dark]`} />
+                    {validationErrors.fecha && <p className="text-[11px] text-rosa mt-0.5 animate-fade-up">{validationErrors.fecha}</p>}
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="cd-direccion" className={LABEL}>Dirección de entrega *</label>
+                  <input type="text" id="cd-direccion" name="direccion" value={formData.direccion} onChange={handleChange} required placeholder="Calle, número, colonia" className={INPUT} />
+                  {validationErrors.direccion && <p className="text-[11px] text-rosa mt-0.5 animate-fade-up">{validationErrors.direccion}</p>}
+                </div>
+                {hasZones && (
+                  <div className="flex flex-col gap-1.5 animate-fade-up">
+                    <label htmlFor="cd-zonaEnvio" className={LABEL}>Zona de envío *</label>
+                    <select
+                      id="cd-zonaEnvio"
+                      name="zonaEnvio"
+                      value={formData.zonaEnvio}
+                      onChange={handleChange}
+                      required
+                      className={INPUT}
+                    >
+                      <option value="" disabled className="text-white/40">-- Selecciona tu zona de envío --</option>
+                      {zones.map((z, idx) => (
+                        <option key={idx} value={z.nombre} className="bg-negro text-white">
+                          {z.nombre} (${z.costo} MXN)
+                        </option>
+                      ))}
+                    </select>
+                    {validationErrors.zonaEnvio && <p className="text-[11px] text-rosa mt-0.5 animate-fade-up">{validationErrors.zonaEnvio}</p>}
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label htmlFor="cd-destinatario" className={LABEL}>¿Para quién? *</label>
+                    <input type="text" id="cd-destinatario" name="destinatario" value={formData.destinatario} onChange={handleChange} required placeholder="Nombre de quien recibe" className={INPUT} />
+                    {validationErrors.destinatario && <p className="text-[11px] text-rosa mt-0.5 animate-fade-up">{validationErrors.destinatario}</p>}
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label htmlFor="cd-telefono" className={LABEL}>Teléfono *</label>
+                    <input type="tel" id="cd-telefono" name="telefono" value={formData.telefono} onChange={handleChange} placeholder="81 1234 5678" className={INPUT} />
+                    {validationErrors.telefono && <p className="text-[11px] text-rosa mt-0.5 animate-fade-up">{validationErrors.telefono}</p>}
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="cd-notes" className={LABEL}>Preferencias <span className="text-[var(--color-background-primary)]/30 lowercase normal-case">(opcional)</span></label>
+                  <input type="text" id="cd-notes" name="notas" value={formData.notas} onChange={handleChange} placeholder="Ej: Rosas rojas..." className={INPUT} />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex justify-between items-end">
+                    <label htmlFor="cd-mensaje" className={LABEL}>Mensaje tarjeta <span className="text-[var(--color-background-primary)]/30 lowercase normal-case">(opcional)</span></label>
+                    <span className={`text-xs ${formData.mensaje.length > 130 ? 'text-rosa' : 'text-[var(--color-background-primary)]/30'}`}>{formData.mensaje.length}/160</span>
+                  </div>
+                  <textarea id="cd-mensaje" name="mensaje" value={formData.mensaje} onChange={handleChange} rows="2" placeholder="Con todo mi amor…" maxLength="160" className={`${INPUT} resize-none`} />
+                  {validationErrors.mensaje && <p className="text-[11px] text-rosa mt-0.5 animate-fade-up">{validationErrors.mensaje}</p>}
+                </div>
+
+                {/* Si cobros en línea están habilitados y la pasarela preferida es OpenPay */}
+                {enableCheckout && isPreferredOpenpay && (
+                  <div className="border-t border-white/10 pt-4 flex flex-col gap-4 animate-fade-up">
+                    <div className="flex flex-col gap-1.5">
+                      <label htmlFor="cd-email" className={LABEL}>Tu correo electrónico *</label>
+                      <input
+                        type="email"
+                        id="cd-email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        placeholder="correo@ejemplo.com"
+                        className={INPUT}
+                      />
+                      {validationErrors.email && <p className="text-[11px] text-rosa mt-0.5 animate-fade-up">{validationErrors.email}</p>}
+                      <p className="text-[10px] text-[var(--color-background-primary)]/40">
+                        Necesario para enviar tus comprobantes y detalles de pago.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <label className={LABEL}>Método de Pago en Línea *</label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {/* Tarjeta */}
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod('card')}
+                          className={`flex flex-col items-center justify-center py-2.5 px-1 rounded-xl border text-[10px] font-bold uppercase transition-all cursor-pointer ${
+                            paymentMethod === 'card'
+                              ? 'bg-verde text-black border-verde'
+                              : 'bg-transparent text-[var(--color-background-primary)]/60 border-white/10 hover:border-white/20'
+                          }`}
+                        >
+                          <CreditCard className="w-4 h-4 mb-1" /> Tarjeta
+                        </button>
+                        {/* SPEI */}
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod('spei')}
+                          className={`flex flex-col items-center justify-center py-2.5 px-1 rounded-xl border text-[10px] font-bold uppercase transition-all cursor-pointer ${
+                            paymentMethod === 'spei'
+                              ? 'bg-verde text-black border-verde'
+                              : 'bg-transparent text-[var(--color-background-primary)]/60 border-white/10 hover:border-white/20'
+                          }`}
+                        >
+                          <Landmark className="w-4 h-4 mb-1" /> SPEI
+                        </button>
+                        {/* Paynet / Cash */}
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod('store')}
+                          className={`flex flex-col items-center justify-center py-2.5 px-1 rounded-xl border text-[10px] font-bold uppercase transition-all cursor-pointer ${
+                            paymentMethod === 'store'
+                              ? 'bg-verde text-black border-verde'
+                              : 'bg-transparent text-[var(--color-background-primary)]/60 border-white/10 hover:border-white/20'
+                          }`}
+                        >
+                          <DollarSign className="w-4 h-4 mb-1" /> Efectivo
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Formulario de Tarjeta */}
+                    {paymentMethod === 'card' && (
+                      <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex flex-col gap-3 animate-fade-up">
+                        <div className="flex flex-col gap-1">
+                          <label htmlFor="cardHolder" className={LABEL}>Titular de la Tarjeta</label>
+                          <input
+                            type="text"
+                            id="cardHolder"
+                            value={cardHolder}
+                            onChange={(e) => {
+                              setCardHolder(e.target.value);
+                              if (validationErrors.cardHolder) {
+                                setValidationErrors(p => { const copy = {...p}; delete copy.cardHolder; return copy; });
+                              }
+                            }}
+                            placeholder="Nombre impreso"
+                            className={INPUT}
+                          />
+                          {validationErrors.cardHolder && <p className="text-[11px] text-rosa mt-0.5 animate-fade-up">{validationErrors.cardHolder}</p>}
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label htmlFor="cardNumber" className={LABEL}>Número de Tarjeta</label>
+                          <input
+                            type="text"
+                            id="cardNumber"
+                            value={cardNumber}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/\D/g, '').substring(0, 16);
+                              const formatted = val.match(/.{1,4}/g)?.join(' ') || val;
+                              setCardNumber(formatted);
+                              if (validationErrors.cardNumber) {
+                                setValidationErrors(p => { const copy = {...p}; delete copy.cardNumber; return copy; });
+                              }
+                            }}
+                            placeholder="0000 0000 0000 0000"
+                            className={INPUT}
+                          />
+                          {validationErrors.cardNumber && <p className="text-[11px] text-rosa mt-0.5 animate-fade-up">{validationErrors.cardNumber}</p>}
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="flex flex-col gap-1">
+                            <label htmlFor="cardExpMonth" className={LABEL}>Mes (MM)</label>
+                            <input
+                              type="text"
+                              id="cardExpMonth"
+                              value={cardExpMonth}
+                              onChange={(e) => {
+                                setCardExpMonth(e.target.value.replace(/\D/g, '').substring(0, 2));
+                                if (validationErrors.cardExpMonth) {
+                                  setValidationErrors(p => { const copy = {...p}; delete copy.cardExpMonth; return copy; });
+                                }
+                              }}
+                              placeholder="12"
+                              className={INPUT}
+                            />
+                            {validationErrors.cardExpMonth && <p className="text-[10px] text-rosa mt-0.5 animate-fade-up">{validationErrors.cardExpMonth}</p>}
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <label htmlFor="cardExpYear" className={LABEL}>Año (AA)</label>
+                            <input
+                              type="text"
+                              id="cardExpYear"
+                              value={cardExpYear}
+                              onChange={(e) => {
+                                setCardExpYear(e.target.value.replace(/\D/g, '').substring(0, 2));
+                                if (validationErrors.cardExpYear) {
+                                  setValidationErrors(p => { const copy = {...p}; delete copy.cardExpYear; return copy; });
+                                }
+                              }}
+                              placeholder="28"
+                              className={INPUT}
+                            />
+                            {validationErrors.cardExpYear && <p className="text-[10px] text-rosa mt-0.5 animate-fade-up">{validationErrors.cardExpYear}</p>}
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <label htmlFor="cardCvv" className={LABEL}>CVV</label>
+                            <input
+                              type="password"
+                              id="cardCvv"
+                              value={cardCvv}
+                              onChange={(e) => {
+                                setCardCvv(e.target.value.replace(/\D/g, '').substring(0, 4));
+                                if (validationErrors.cardCvv) {
+                                  setValidationErrors(p => { const copy = {...p}; delete copy.cardCvv; return copy; });
+                                }
+                              }}
+                              placeholder="123"
+                              className={INPUT}
+                            />
+                            {validationErrors.cardCvv && <p className="text-[10px] text-rosa mt-0.5 animate-fade-up">{validationErrors.cardCvv}</p>}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </form>
+            </>
+          )}
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-white/5 bg-negro shrink-0 flex flex-col gap-3">
+        {!openpayInstructions && (
+          <div className="p-6 border-t border-white/5 bg-negro shrink-0 flex flex-col gap-3">
           <div className="flex flex-col gap-1.5 mb-1">
             <div className="flex justify-between items-center text-[var(--color-background-primary)]">
               <span className="text-xs text-[var(--color-background-primary)]/40">Subtotal</span>
@@ -429,7 +885,8 @@ export default function CartDrawer() {
               : enableWhatsApp ? 'Sin apps, sin registro. Confirman en minutos.'
               : 'Pago seguro procesado por nuestro servidor.'}
           </p>
-        </div>
+          </div>
+        )}
       </aside>
     </>
   );

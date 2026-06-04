@@ -41,14 +41,14 @@ export default function ProductDetailPage() {
             precio,
             imagen_url,
             disponible,
-            imagenes_extra,
             producto_variantes (
               id,
               producto_id,
               nombre,
-              modificador_precio,
+              precio,
               stock,
-              sku
+              sku,
+              imagen_url
             )
           `)
           .eq('tienda_id', tenant.id);
@@ -67,17 +67,15 @@ export default function ProductDetailPage() {
         if (active && data) {
           const images = [];
           if (data.imagen_url) images.push(data.imagen_url);
-          if (data.imagenes_extra && Array.isArray(data.imagenes_extra)) {
-            images.push(...data.imagenes_extra);
-          }
           
           const variants = (data.producto_variantes || []).map((v: any) => ({
             id: v.id,
             productId: v.producto_id,
             name: v.nombre,
-            priceModifier: Number(v.modificador_precio) || 0,
+            price: v.precio !== null && v.precio !== undefined ? Number(v.precio) : null,
             stock: v.stock ?? 0,
-            sku: v.sku || ''
+            sku: v.sku || '',
+            image: v.imagen_url || undefined
           }));
 
           const mappedProduct: Product = {
@@ -114,7 +112,7 @@ export default function ProductDetailPage() {
   }, [slug, tenant.id]);
 
   const selectedVariant = product?.variants.find(v => v.id === selectedVariantId);
-  const finalPrice = product ? (product.basePrice + (selectedVariant?.priceModifier || 0)) : 0;
+  const finalPrice = product ? (selectedVariant?.price ?? product.basePrice) : 0;
 
   // Cambiar la foto automáticamente si la variante tiene una
   useEffect(() => {
@@ -265,11 +263,9 @@ export default function ProductDetailPage() {
                       }`}
                     >
                       {v.name}
-                      {v.priceModifier !== 0 && (
-                        <span className="ml-1.5 opacity-60 font-normal">
-                          ({v.priceModifier > 0 ? '+' : ''}${v.priceModifier})
-                        </span>
-                      )}
+                      <span className="ml-1.5 opacity-60 font-normal">
+                        (${((v.price !== null && v.price !== undefined) ? v.price : product.basePrice).toLocaleString()} {tenant.currency})
+                      </span>
                     </button>
                   ))}
                 </div>

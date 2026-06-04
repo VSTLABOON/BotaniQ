@@ -20,8 +20,8 @@ export interface Product {
 export interface ProductVariant {
   id: string;
   productId: string;
-  name: string;            // "Estándar", "Premium (+15 rosas)"
-  priceModifier: number;   // Diferencia sobre basePrice
+  name: string;            // "Estándar", "Premium"
+  price: number | null;    // Precio propio absoluto de la variante (null si no está capturado)
   stock: number;
   sku: string;
   image?: string;
@@ -35,7 +35,7 @@ export interface CartItem {
   variantId: string;       // Identifica la versión exacta
   name: string;
   variantName: string;
-  unitPrice: number;       // basePrice + priceModifier
+  unitPrice: number;       // Precio unitario absoluto (precio de la variante o del producto base)
   quantity: number;
   image: string;
 }
@@ -107,6 +107,13 @@ export interface TenantConfig {
   created_at?: string | null;
   has_active_subscription?: boolean;
   meta_title?: string | null;
+
+  // ── OpenPay y Preferred Gateway ────────────────────────────────
+  openpay_merchant_id?: string | null;
+  openpay_public_key?: string | null;
+  openpay_private_key?: string | null;
+  openpay_sandbox_mode?: boolean;
+  preferred_gateway?: 'stripe' | 'openpay';
 
   // Secciones Dinámicas desde config_ui
   servicios: any[];

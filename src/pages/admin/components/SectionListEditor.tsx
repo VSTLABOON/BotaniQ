@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Plus, Trash2, Edit2, GripVertical, Upload, Loader2, Package } from 'lucide-react';
+import { Plus, Trash2, Edit2, GripVertical, GripHorizontal, Upload, Loader2, Package, Search } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { IconPicker } from './IconPicker';
 import { CARD } from './config/SharedUI';
@@ -7,6 +7,12 @@ import { SlideOverPanel } from './SlideOverPanel';
 import { useTenant } from '../../../context/TenantContext';
 import { supabase } from '../../../lib/supabaseClient';
 import { logger } from '../../../lib/logger';
+import { fetchAdminProducts } from '../../../services/productService';
+import {
+  fetchSeccionProductos,
+  reorderSeccionProductos
+} from '../../../services/seccionProductosService';
+import { toast } from '../../../store/toastStore';
 
 function EmptyStateIllustration() {
   return (
@@ -248,6 +254,108 @@ function CatalogListEditor({ items, onChange }: { items: CatalogItem[]; onChange
   );
 }
 
+function ProductSelector({
+  availableProducts,
+  selectedProductIds,
+  onToggleSelection,
+  loading,
+  useLegacyCatalog,
+  setUseLegacyCatalog
+}: {
+  availableProducts: any[];
+  selectedProductIds: string[];
+  onToggleSelection: (id: string) => void;
+  loading: boolean;
+  useLegacyCatalog: boolean;
+  setUseLegacyCatalog: (val: boolean) => void;
+}) {
+  const [filterQuery, setFilterQuery] = useState('');
+  
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 text-xs text-[var(--color-text-tertiary)] py-2">
+        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+        <span>Cargando productos de la tienda...</span>
+      </div>
+    );
+  }
+
+  const filtered = availableProducts.filter(p => 
+    p.name.toLowerCase().includes(filterQuery.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold text-[var(--color-text-secondary)]">
+          Vincular productos reales
+        </span>
+        <button
+          type="button"
+          onClick={() => setUseLegacyCatalog(!useLegacyCatalog)}
+          className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 underline"
+        >
+          {useLegacyCatalog ? 'Usar vinculación real' : 'Usar catálogo virtual (legacy)'}
+        </button>
+      </div>
+
+      {!useLegacyCatalog ? (
+        <div className="border border-[var(--color-border-secondary)] rounded-xl p-3 bg-[var(--color-background-secondary)]/20 space-y-2">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Buscar producto..."
+              value={filterQuery}
+              onChange={(e) => setFilterQuery(e.target.value)}
+              className="w-full pl-8 pr-3 py-1.5 border border-white/30 dark:border-white/10 rounded-lg text-xs bg-white/50 dark:bg-black/50 text-[var(--color-text-primary)] outline-none focus:ring-2 focus:ring-emerald-500/20"
+              style={{ fontSize: '14px' }}
+            />
+            <Search className="absolute left-2.5 top-2 w-3.5 h-3.5 text-[var(--color-text-tertiary)]" />
+          </div>
+
+          <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1 select-none">
+            {filtered.length === 0 ? (
+              <p className="text-[10px] text-[var(--color-text-tertiary)] text-center py-4">
+                No hay productos en el inventario
+              </p>
+            ) : (
+              filtered.map(p => {
+                const isSelected = selectedProductIds.includes(p.id);
+                return (
+                  <label
+                    key={p.id}
+                    className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-[var(--color-background-secondary)]/40 cursor-pointer text-xs transition-colors"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => onToggleSelection(p.id)}
+                      className="rounded border-[var(--color-border-secondary)] text-emerald-600 focus:ring-emerald-500/20"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-[var(--color-text-primary)] truncate">{p.name}</p>
+                      <p className="text-[10px] text-[var(--color-text-tertiary)] font-mono">${p.basePrice}</p>
+                    </div>
+                  </label>
+                );
+              })
+            )}
+          </div>
+          
+          <div className="text-[10px] text-[var(--color-text-tertiary)] border-t border-[var(--color-border-tertiary)] pt-2 flex justify-between items-center">
+            <span>{selectedProductIds.length} seleccionados</span>
+            <span className="font-semibold text-emerald-600">Conexión Relacional Activa</span>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 p-3 rounded-xl text-[10px] leading-relaxed">
+          Modo catálogo virtual legacy activo. Los productos se administran de forma independiente al inventario real. Selecciona productos del listado superior para vincular de forma relacional.
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface SectionListEditorProps {
   title: string;
   description: string;
@@ -262,6 +370,13 @@ export function SectionListEditor({ title, description, items, fields, onChange,
   const [editingId, setEditingId] = useState<number | null>(null);
   const [tempItem, setTempItem] = useState<any>({});
 
+  // States for relational product linking
+  const [availableProducts, setAvailableProducts] = useState<any[]>([]);
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const [loadingLinked, setLoadingLinked] = useState(false);
+  const [useLegacyCatalog, setUseLegacyCatalog] = useState(false);
+  const [savingRelational, setSavingRelational] = useState(false);
+
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
     if (result.source.index === result.destination.index) return;
@@ -272,22 +387,78 @@ export function SectionListEditor({ title, description, items, fields, onChange,
     onChange(reordered);
   };
 
-  const startEdit = (index: number) => {
+  const startEdit = async (index: number) => {
+    const item = items[index];
+    const finalId = item.id || (crypto.randomUUID ? crypto.randomUUID() : 'serv_' + Date.now());
+    const itemWithId = { ...item, id: finalId };
+    
     setEditingId(index);
-    setTempItem({ ...items[index] });
+    setTempItem(itemWithId);
+    setSelectedProductIds([]);
+    setUseLegacyCatalog(false);
+    
+    if (tenant?.id) {
+      setLoadingLinked(true);
+      try {
+        // Fetch all store products
+        const allProds = await fetchAdminProducts(tenant.id);
+        setAvailableProducts(allProds);
+        
+        // Fetch linked products
+        const linkedProds = await fetchSeccionProductos(tenant.id, finalId);
+        if (linkedProds && linkedProds.length > 0) {
+          setSelectedProductIds(linkedProds.map(p => p.id));
+          setUseLegacyCatalog(false);
+        } else {
+          // If no linked products, fall back to legacy JSONB
+          setUseLegacyCatalog(true);
+        }
+      } catch (err) {
+        logger.error('Error fetching linked products for editor:', err as Error);
+        setUseLegacyCatalog(true);
+      } finally {
+        setLoadingLinked(false);
+      }
+    }
   };
 
-  const saveEdit = () => {
-    if (editingId !== null) {
-      const newItems = [...items];
-      newItems[editingId] = tempItem;
-      onChange(newItems);
-      setEditingId(null);
+  const saveEdit = async () => {
+    if (savingRelational) return;
+    if (editingId !== null && tenant?.id) {
+      const finalId = tempItem.id;
+      
+      setSavingRelational(true);
+      try {
+        // Save the product associations to seccion_productos
+        if (!useLegacyCatalog) {
+          await reorderSeccionProductos(tenant.id, finalId, selectedProductIds);
+        } else {
+          // If using legacy catalog, clear any relacional links so fallback stays active
+          await reorderSeccionProductos(tenant.id, finalId, []);
+        }
+        
+        // Save the rest of the edits to the parent list
+        const newItems = [...items];
+        newItems[editingId] = tempItem;
+        onChange(newItems);
+        
+        setEditingId(null);
+        toast.success('Cambios guardados correctamente');
+      } catch (err) {
+        logger.error('Error saving relational section products:', err as Error);
+        toast.error('Error al guardar vinculos de productos');
+      } finally {
+        setSavingRelational(false);
+      }
     }
   };
 
   const cancelEdit = () => {
     setEditingId(null);
+    setAvailableProducts([]);
+    setSelectedProductIds([]);
+    setUseLegacyCatalog(false);
+    setSavingRelational(false);
   };
 
   const deleteItem = (index: number) => {
@@ -296,7 +467,9 @@ export function SectionListEditor({ title, description, items, fields, onChange,
   };
 
   const addNewItem = () => {
-    const newItem: any = {};
+    const newItem: any = {
+      id: crypto.randomUUID ? crypto.randomUUID() : 'serv_' + Date.now()
+    };
     fields.forEach(f => {
       newItem[f.key] = f.type === 'number' ? 0 : f.type === 'color' ? '#D94F6E' : '';
     });
@@ -365,10 +538,34 @@ export function SectionListEditor({ title, description, items, fields, onChange,
         );
       case 'catalog':
         return (
-          <CatalogListEditor
-            items={val || []}
-            onChange={(catalogItems) => setTempItem({ ...tempItem, [field.key]: catalogItems })}
-          />
+          <div className="space-y-4">
+            <ProductSelector
+              availableProducts={availableProducts}
+              selectedProductIds={selectedProductIds}
+              onToggleSelection={(id) => {
+                setSelectedProductIds(prev => {
+                  const next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
+                  if (next.length > 0) setUseLegacyCatalog(false);
+                  return next;
+                });
+              }}
+              loading={loadingLinked}
+              useLegacyCatalog={useLegacyCatalog}
+              setUseLegacyCatalog={setUseLegacyCatalog}
+            />
+
+            {useLegacyCatalog && (
+              <div className="border-t border-[var(--color-border-tertiary)] pt-4">
+                <p className="text-xs font-semibold text-[var(--color-text-secondary)] mb-2">
+                  Editar Catálogo Virtual (Legacy)
+                </p>
+                <CatalogListEditor
+                  items={val || []}
+                  onChange={(catalogItems) => setTempItem({ ...tempItem, [field.key]: catalogItems })}
+                />
+              </div>
+            )}
+          </div>
         );
       default:
         return (

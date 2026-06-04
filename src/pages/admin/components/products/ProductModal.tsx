@@ -45,7 +45,7 @@ const generateSlug = (name: string) => {
 
 // ── Variante vacía para "añadir fila" ────────────────────────────
 const emptyVariant = (productId: string): ProductVariant => ({
-  id: uid(), productId, name: '', priceModifier: 0, stock: 0, sku: '',
+  id: uid(), productId, name: '', price: null, stock: 0, sku: '',
 });
 
 // ═══════════════════════════════════════════════════════════════════
@@ -95,11 +95,12 @@ function AvailabilityToggle({
  * SAAS_FLAG: NIVEL 2 - Variantes ilimitadas.
  */
 export function ProductModal({
-  product, onClose, onSave,
+  product, onClose, onSave, isNew,
 }: {
   product: Product;
   onClose: () => void;
   onSave: (updated: Product) => Promise<void> | void;
+  isNew?: boolean;
 }) {
   const { tenant } = useTenant();
   const [draft, setDraft] = useState<Product>({ ...product, variants: [...product.variants.map(v => ({ ...v }))] });
@@ -201,7 +202,7 @@ export function ProductModal({
   };
 
   /** Actualizar un campo de una variante específica */
-  const updateVariant = (variantId: string, field: keyof ProductVariant, value: string | number) => {
+  const updateVariant = (variantId: string, field: keyof ProductVariant, value: string | number | null | undefined) => {
     setDraft(prev => ({
       ...prev,
       variants: prev.variants.map(v =>
@@ -255,7 +256,9 @@ export function ProductModal({
       <div className="fixed inset-0 md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[680px] md:max-h-[85vh] bg-[var(--color-background-primary)] md:bg-[var(--color-background-primary)]/90 md:backdrop-blur-2xl md:rounded-2xl shadow-2xl z-[9999] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border-tertiary)] shrink-0">
-          <h3 className="text-lg font-bold text-[var(--color-text-primary)]">Editar Producto</h3>
+          <h3 className="text-lg font-bold text-[var(--color-text-primary)]">
+            {isNew ? 'Nuevo Producto' : 'Editar Producto'}
+          </h3>
           <button onClick={onClose} className="p-1.5 rounded-lg text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-background-secondary)] transition-colors">
             <X className="w-5 h-5" />
           </button>
@@ -368,12 +371,16 @@ export function ProductModal({
                 <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1.5">Precio Base (MXN)</label>
                 <input
                   type="number" min={0} step={10} 
-                  value={draft.basePrice || ''}
-                  placeholder="0"
+                  value={draft.variants.length > 0 ? '' : (draft.basePrice || '')}
+                  disabled={draft.variants.length > 0}
+                  placeholder={draft.variants.length > 0 ? 'Definido en variantes' : '0'}
                   onChange={e => updateField('basePrice', Number(e.target.value))}
                   onFocus={(e) => e.target.select()}
-                  className="w-full h-10 px-4 bg-[var(--color-background-secondary)] border border-[var(--color-border-secondary)] rounded-xl text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all"
+                  className="w-full h-10 px-4 bg-[var(--color-background-secondary)] border border-[var(--color-border-secondary)] rounded-xl text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all disabled:opacity-60 disabled:bg-[var(--color-background-tertiary)] disabled:cursor-not-allowed"
                 />
+                {draft.variants.length > 0 && (
+                  <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">El precio se define por variante</p>
+                )}
               </div>
               <div className="flex flex-col justify-end">
                 <label className="flex items-center gap-3 text-sm font-medium text-[var(--color-text-secondary)]">
@@ -460,14 +467,17 @@ export function ProductModal({
                           />
                         </div>
 
-                        {/* Modificador de precio */}
+                        {/* Precio absolute */}
                         <div>
-                          <label className="block text-[0.7rem] font-medium text-[var(--color-text-tertiary)] mb-1 uppercase tracking-wider">+/- Precio</label>
+                          <label className="block text-[0.7rem] font-medium text-[var(--color-text-tertiary)] mb-1 uppercase tracking-wider">Precio</label>
                           <input
-                            type="number" step={10} 
-                            value={variant.priceModifier || ''}
-                            placeholder="0"
-                            onChange={e => updateVariant(variant.id, 'priceModifier', Number(e.target.value))}
+                            type="number" step={10} min={0}
+                            value={variant.price !== null && variant.price !== undefined ? variant.price : ''}
+                            placeholder="Ej: 250"
+                            onChange={e => {
+                              const val = e.target.value === '' ? null : Number(e.target.value);
+                              updateVariant(variant.id, 'price', val);
+                            }}
                             onFocus={(e) => e.target.select()}
                             className="w-full h-9 px-3 bg-[var(--color-background-primary)] border border-[var(--color-border-secondary)] rounded-lg text-sm text-[var(--color-text-primary)] font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all"
                           />
@@ -507,10 +517,10 @@ export function ProductModal({
                       </div>
                     </div>
 
-                    {/* Preview de precio final */}
+                    {/* Preview de precio de variante */}
                     <div className="mt-2 text-right text-xs text-[var(--color-text-tertiary)]">
-                      Precio final: <span className="font-semibold text-[var(--color-text-secondary)]">
-                        ${(draft.basePrice + variant.priceModifier).toLocaleString()} MXN
+                      Precio de la variante: <span className="font-semibold text-[var(--color-text-secondary)]">
+                        {variant.price !== null && variant.price !== undefined ? `$${variant.price.toLocaleString()} MXN` : 'Sin precio (se usará precio base)'}
                       </span>
                     </div>
                   </div>

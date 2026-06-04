@@ -1,0 +1,360 @@
+import React from 'react';
+import { Clock, CreditCard, Check, AlertCircle, ShoppingBag } from 'lucide-react';
+import { Accordion } from './SharedUI';
+import { motion, AnimatePresence } from 'framer-motion';
+
+export function HorariosTab({
+  state,
+  actions,
+  tenant
+}: {
+  state: any;
+  actions: any;
+  tenant: any;
+}) {
+  const {
+    horarioRegular,
+    horarioEspecial,
+    openpayMerchantId,
+    openpayPublicKey,
+    openpayPrivateKey,
+    openpaySandboxMode,
+    preferredGateway,
+    openAccordions
+  } = state;
+
+  const {
+    setHorarioRegular,
+    setHorarioEspecial,
+    setOpenpayMerchantId,
+    setOpenpayPublicKey,
+    setOpenpayPrivateKey,
+    setOpenpaySandboxMode,
+    setPreferredGateway,
+    onToggleAccordion
+  } = actions;
+
+  const inputClass = "w-full px-4 py-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all";
+
+  // Determinar si los pagos en línea con Stripe están activos según el nivel del plan de suscripción
+  const hasStripeEnabled = tenant.subscription_level >= 2;
+
+  return (
+    <div className="space-y-6">
+      {/* ── Horarios de Atención ── */}
+      <Accordion
+        id="editor-Horarios"
+        title="Horarios de Atención"
+        icon={Clock}
+        isOpen={openAccordions.Horarios ?? true}
+        onToggle={(open) => onToggleAccordion('Horarios', open)}
+      >
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="horarioRegular" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
+              Horario Comercial Regular
+            </label>
+            <input
+              id="horarioRegular"
+              type="text"
+              value={horarioRegular}
+              onChange={(e) => setHorarioRegular(e.target.value)}
+              className={inputClass}
+              placeholder="Ej: Lunes a Domingo · 8:00 AM – 8:00 PM"
+              style={{ fontSize: '16px' }}
+            />
+            <p className="text-xs text-[var(--color-text-tertiary)] mt-1">
+              Se muestra públicamente en el pie de página (footer) de tu catálogo digital.
+            </p>
+          </div>
+          <div>
+            <label htmlFor="horarioEspecial" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
+              Notas u Horario Especial (Opcional)
+            </label>
+            <input
+              id="horarioEspecial"
+              type="text"
+              value={horarioEspecial}
+              onChange={(e) => setHorarioEspecial(e.target.value)}
+              className={inputClass}
+              placeholder="Ej: Días festivos cerrado de 1:00 PM a 3:00 PM"
+              style={{ fontSize: '16px' }}
+            />
+            <p className="text-xs text-[var(--color-text-tertiary)] mt-1">
+              Mensaje secundario de horarios para días festivos o avisos breves.
+            </p>
+          </div>
+        </div>
+      </Accordion>
+
+      {/* ── Métodos de Pago ── */}
+      <Accordion
+        id="editor-Pagos"
+        title="Métodos de Pago Integrados"
+        icon={CreditCard}
+        isOpen={openAccordions.Pagos ?? false}
+        onToggle={(open) => onToggleAccordion('Pagos', open)}
+      >
+        <div className="space-y-6">
+          <div>
+            <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">Canales de Venta y Cobro</h3>
+            <p className="text-xs text-[var(--color-text-tertiary)] mt-1">
+              Así es como tus clientes eligen y pagan sus arreglos florales en el checkout.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* WhatsApp Checkout */}
+            <div className="p-5 rounded-2xl bg-white/5 border border-white/10 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full uppercase tracking-wider">
+                    Efectivo / Transfer
+                  </span>
+                  <span className="text-xs text-[var(--color-text-tertiary)] font-semibold flex items-center gap-1">
+                    <Check className="w-3.5 h-3.5 text-emerald-500" /> Siempre activo
+                  </span>
+                </div>
+                <h4 className="text-base font-bold text-[var(--color-text-primary)] mb-1">Pedido por WhatsApp</h4>
+                <p className="text-xs text-[var(--color-text-tertiary)] leading-relaxed">
+                  Los clientes arman su carrito y envían el pedido con todos sus datos directo a tu chat. Coordinas el pago en efectivo o por transferencia bancaria de forma directa.
+                </p>
+              </div>
+              <div className="mt-4 pt-3 border-t border-white/5 text-[11px] text-[var(--color-text-tertiary)]">
+                Pedidos registrados al instante en tu pestaña de <strong>Pedidos</strong>.
+              </div>
+            </div>
+
+            {/* Stripe Online Checkout */}
+            <div className={`p-5 rounded-2xl border flex flex-col justify-between transition-all ${
+              hasStripeEnabled 
+                ? 'bg-white/5 border-white/10' 
+                : 'bg-white/5 dark:bg-black/10 border-white/5 opacity-80'
+            }`}>
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <span className={`text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${
+                    hasStripeEnabled 
+                      ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' 
+                      : 'bg-white/10 text-[var(--color-text-tertiary)]'
+                  }`}>
+                    Tarjetas de Crédito
+                  </span>
+                  {hasStripeEnabled ? (
+                    <span className="text-xs text-[var(--color-text-tertiary)] font-semibold flex items-center gap-1">
+                      <Check className="w-3.5 h-3.5 text-indigo-500" /> Canal Activo
+                    </span>
+                  ) : (
+                    <span className="text-xs text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1">
+                      <AlertCircle className="w-3.5 h-3.5" /> Plan Básico
+                    </span>
+                  )}
+                </div>
+                <h4 className="text-base font-bold text-[var(--color-text-primary)] mb-1">Stripe Checkout</h4>
+                <p className="text-xs text-[var(--color-text-tertiary)] leading-relaxed">
+                  Pasarela segura hosted para recibir pagos con tarjeta Visa, Mastercard o AMEX. El dinero se deposita directamente en la cuenta bancaria de tu negocio.
+                </p>
+              </div>
+              {!hasStripeEnabled ? (
+                <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between gap-2">
+                  <span className="text-[11px] text-amber-600 dark:text-amber-400">Disponible a partir del Plan Pro</span>
+                  <a href="/admin" className="text-[10px] font-bold text-indigo-500 hover:underline uppercase tracking-wider shrink-0">Actualizar →</a>
+                </div>
+              ) : (
+                <div className="mt-4 pt-3 border-t border-white/5 text-[11px] text-[var(--color-text-tertiary)]">
+                  Procesamiento y depósitos automatizados con Price Hardening.
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Configuración de Pasarela de Pagos (Cobros en Línea) */}
+          <div className="pt-6 border-t border-white/10">
+            <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-1">
+              Pasarelas de Pago (Cobros en Línea)
+            </h3>
+            <p className="text-xs text-[var(--color-text-tertiary)] mb-4">
+              Configura tus credenciales para recibir pagos directos con tarjetas y otros medios locales.
+            </p>
+
+            {/* Selector de Pasarelas (Radio Cards) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+              {/* Opción OpenPay */}
+              <button
+                type="button"
+                onClick={() => setPreferredGateway('openpay')}
+                className={`relative p-4 rounded-xl border text-left transition-all cursor-pointer ${
+                  preferredGateway === 'openpay'
+                    ? 'bg-emerald-500/10 border-emerald-500 shadow-md ring-1 ring-emerald-500/20'
+                    : 'bg-white/5 border-white/10 hover:border-white/20'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-sm font-bold text-[var(--color-text-primary)]">OpenPay</span>
+                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                    Recomendado (México)
+                  </span>
+                </div>
+                <p className="text-xs text-[var(--color-text-tertiary)] leading-relaxed">
+                  Pasarela de BBVA en LATAM. Soporta cobros con tarjetas 3D Secure, transferencias SPEI directas y pagos en tiendas Paynet/OXXO.
+                </p>
+                {preferredGateway === 'openpay' && (
+                  <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white">
+                    <Check className="w-3 h-3 text-white" />
+                  </div>
+                )}
+              </button>
+
+              {/* Opción Stripe */}
+              <button
+                type="button"
+                onClick={() => setPreferredGateway('stripe')}
+                className={`relative p-4 rounded-xl border text-left transition-all cursor-pointer ${
+                  preferredGateway === 'stripe'
+                    ? 'bg-indigo-500/10 border-indigo-500 shadow-md ring-1 ring-indigo-500/20'
+                    : 'bg-white/5 border-white/10 hover:border-white/20'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-sm font-bold text-[var(--color-text-primary)]">Stripe</span>
+                  <span className="text-[10px] font-bold text-[var(--color-text-tertiary)] bg-white/10 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                    Global
+                  </span>
+                </div>
+                <p className="text-xs text-[var(--color-text-tertiary)] leading-relaxed">
+                  Pasarela internacional confiable. Acepta cobros con tarjetas globales y depósitos automatizados a tu cuenta bancaria.
+                </p>
+                {preferredGateway === 'stripe' && (
+                  <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-indigo-500 flex items-center justify-center text-white">
+                    <Check className="w-3 h-3 text-white" />
+                  </div>
+                )}
+              </button>
+            </div>
+
+            {/* Formulario Dinámico según Pasarela */}
+            <AnimatePresence mode="wait">
+              {preferredGateway === 'openpay' ? (
+                <motion.div
+                  key="openpay-form"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="space-y-4 p-5 rounded-2xl bg-white/5 border border-white/10"
+                >
+                  <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                      <span className="text-xs font-bold text-[var(--color-text-primary)] uppercase tracking-wider">Credenciales de OpenPay</span>
+                    </div>
+                    
+                    {/* Sandbox Mode Toggle */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-[var(--color-text-tertiary)] font-medium">
+                        {openpaySandboxMode ? 'Modo Pruebas (Sandbox)' : 'Modo Producción'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setOpenpaySandboxMode(!openpaySandboxMode)}
+                        className={`relative w-9 h-5 rounded-full transition-colors duration-200 cursor-pointer ${
+                          openpaySandboxMode ? 'bg-amber-500' : 'bg-emerald-500'
+                        }`}
+                      >
+                        <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${
+                          openpaySandboxMode ? 'translate-x-0' : 'translate-x-4'
+                        }`} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="md:col-span-2">
+                      <label htmlFor="openpayMerchantId" className="block text-xs font-medium text-[var(--color-text-secondary)] mb-1">
+                        ID de Comercio (Merchant ID)
+                      </label>
+                      <input
+                        id="openpayMerchantId"
+                        type="text"
+                        value={openpayMerchantId}
+                        onChange={(e) => setOpenpayMerchantId(e.target.value)}
+                        className={inputClass}
+                        placeholder="Ej: mxxxxxxxxxxxxxxxxxxx"
+                        style={{ fontSize: '16px' }}
+                      />
+                      <p className="text-[10px] text-[var(--color-text-tertiary)] mt-1">
+                        Tu identificador único de comercio de OpenPay.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label htmlFor="openpayPublicKey" className="block text-xs font-medium text-[var(--color-text-secondary)] mb-1">
+                        Llave Pública (Public Key)
+                      </label>
+                      <input
+                        id="openpayPublicKey"
+                        type="password"
+                        value={openpayPublicKey}
+                        onChange={(e) => setOpenpayPublicKey(e.target.value)}
+                        className={inputClass}
+                        placeholder="Ej: pk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                        style={{ fontSize: '16px' }}
+                      />
+                      <p className="text-[10px] text-[var(--color-text-tertiary)] mt-1">
+                        Comienza con <code className="bg-white/10 px-1 rounded">pk_</code>.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label htmlFor="openpayPrivateKey" className="block text-xs font-medium text-[var(--color-text-secondary)] mb-1">
+                        Llave Privada (Private Key)
+                      </label>
+                      <input
+                        id="openpayPrivateKey"
+                        type="password"
+                        value={openpayPrivateKey}
+                        onChange={(e) => setOpenpayPrivateKey(e.target.value)}
+                        className={inputClass}
+                        placeholder="Ej: sk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                        style={{ fontSize: '16px' }}
+                      />
+                      <p className="text-[10px] text-[var(--color-text-tertiary)] mt-1">
+                        Comienza con <code className="bg-white/10 px-1 rounded">sk_</code>. Nunca compartas esta llave.
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="stripe-info"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-3"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
+                    <span className="text-xs font-bold text-[var(--color-text-primary)] uppercase tracking-wider">Configuración de Stripe</span>
+                  </div>
+                  <p className="text-xs text-[var(--color-text-tertiary)] leading-relaxed">
+                    Stripe funciona mediante la vinculación rápida de tu cuenta Stripe Connect. Los cobros y depósitos se configuran de manera nativa sin requerir llaves manuales.
+                  </p>
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      disabled
+                      className="px-4 py-2 bg-indigo-600/20 text-indigo-400 border border-indigo-500/20 rounded-xl text-xs font-bold"
+                    >
+                      Stripe Connect Vinculado
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+      </Accordion>
+    </div>
+  );
+}

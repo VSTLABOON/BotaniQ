@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Heart, MapPin, Gift, Globe, Truck, Plus, Trash2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Heart, Globe, Gift, Phone, Instagram, Facebook, Loader2 } from 'lucide-react';
 import { Accordion } from './SharedUI';
+import { fetchAdminProducts } from '../../../../services/productService';
 
 export function GeneralTab({ 
   state, 
@@ -11,32 +12,73 @@ export function GeneralTab({
   actions: any,
   tenant: any
 }) {
-  const { textoNosotros, anioFundacion, firma, mapaUrl, direccion, colonias, metaTitle, zonasEnvio = [], eventoActivo, eventoTitulo, eventoProducto, eventoFechaFin, openAccordions } = state;
-  const { setTextoNosotros, setAnioFundacion, setFirma, setMapaUrl, setDireccion, setColonias, setMetaTitle, setZonasEnvio, setEventoActivo, setEventoTitulo, setEventoProducto, setEventoFechaFin, onToggleAccordion } = actions;
+  const [products, setProducts] = useState<any[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    async function loadProducts() {
+      if (!tenant?.id) return;
+      setLoadingProducts(true);
+      try {
+        const data = await fetchAdminProducts(tenant.id);
+        if (active) {
+          setProducts(data.filter(p => p.isAvailable));
+        }
+      } catch (err) {
+        console.error('Error fetching active products for banner select:', err);
+      } finally {
+        if (active) {
+          setLoadingProducts(false);
+        }
+      }
+    }
+    loadProducts();
+    return () => { active = false; };
+  }, [tenant?.id]);
+
+  const { 
+    textoNosotros, 
+    anioFundacion, 
+    firma, 
+    metaTitle, 
+    customDomain,
+    whatsapp,
+    instagram,
+    facebook,
+    eventoActivo, 
+    eventoTitulo, 
+    eventoProducto, 
+    eventoFechaFin, 
+    openAccordions 
+  } = state;
+
+  const { 
+    setTextoNosotros, 
+    setAnioFundacion, 
+    setFirma, 
+    setMetaTitle, 
+    setCustomDomain,
+    setWhatsapp,
+    setInstagram,
+    setFacebook,
+    setEventoActivo, 
+    setEventoTitulo, 
+    setEventoProducto, 
+    setEventoFechaFin, 
+    onToggleAccordion 
+  } = actions;
 
   const [seoOpen, setSeoOpen] = useState(true);
 
-  const handleAddZona = () => {
-    setZonasEnvio([...zonasEnvio, { nombre: 'Nueva Zona', costo: 50 }]);
-  };
-
-  const handleUpdateZona = (index: number, field: 'nombre' | 'costo', value: any) => {
-    const updated = [...zonasEnvio];
-    updated[index] = { ...updated[index], [field]: value };
-    setZonasEnvio(updated);
-  };
-
-  const handleRemoveZona = (index: number) => {
-    const updated = [...zonasEnvio];
-    updated.splice(index, 1);
-    setZonasEnvio(updated);
-  };
+  const inputClass = "w-full px-4 py-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all";
 
   return (
     <div className="space-y-6">
+      {/* ── Identidad Digital / SEO ── */}
       <Accordion 
         id="editor-SEO"
-        title="Identidad Digital (Pestaña del Navegador)" 
+        title="Identidad Digital y SEO" 
         icon={Globe} 
         isOpen={seoOpen}
         onToggle={setSeoOpen}
@@ -44,7 +86,7 @@ export function GeneralTab({
         <div className="space-y-4">
           <div>
             <label htmlFor="metaTitle" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
-              Título de pestaña
+              Título de pestaña (SEO Meta Title)
             </label>
             <input
               id="metaTitle"
@@ -52,15 +94,36 @@ export function GeneralTab({
               maxLength={60}
               value={metaTitle}
               onChange={(e) => setMetaTitle(e.target.value)}
-              className="w-full px-4 py-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all" style={{ fontSize: '16px' }}
+              className={inputClass}
+              style={{ fontSize: '16px' }}
               placeholder="Ej: Flores del Amor — Tu Florería en Monterrey"
             />
             <p className="text-xs text-[var(--color-text-tertiary)] mt-1">
               Máximo 60 caracteres. Si se deja vacío, el navegador mostrará por defecto: <strong>{tenant.nombre} — {tenant.ciudad}</strong>.
             </p>
           </div>
+
+          <div>
+            <label htmlFor="customDomain" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
+              Dominio Personalizado (opcional)
+            </label>
+            <input
+              id="customDomain"
+              type="text"
+              value={customDomain}
+              onChange={(e) => setCustomDomain(e.target.value)}
+              className={inputClass}
+              style={{ fontSize: '16px' }}
+              placeholder="Ej: mifloreria.com"
+            />
+            <p className="text-xs text-[var(--color-text-tertiary)] mt-1">
+              Ingresa el dominio web si cuentas con uno contratado. Debe ser configurado en tu DNS apuntando a la plataforma.
+            </p>
+          </div>
         </div>
       </Accordion>
+
+      {/* ── Sobre Nosotros ── */}
       <Accordion 
         id="editor-Nosotros"
         title="Sobre Nosotros" 
@@ -75,7 +138,8 @@ export function GeneralTab({
               id="textoNosotros"
               value={textoNosotros}
               onChange={(e) => setTextoNosotros(e.target.value)}
-              className="w-full px-4 py-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all min-h-[100px] leading-relaxed" style={{ fontSize: '16px' }}
+              className={`${inputClass} min-h-[100px] leading-relaxed`}
+              style={{ fontSize: '16px' }}
               placeholder="Cuenta la historia de tu florería..."
             />
           </div>
@@ -85,9 +149,13 @@ export function GeneralTab({
               <input
                 id="anioFundacion"
                 type="number"
-                value={anioFundacion}
-                onChange={(e) => setAnioFundacion(parseInt(e.target.value) || 2020)}
-                className="w-full px-4 py-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all" style={{ fontSize: '16px' }}
+                value={anioFundacion === undefined || anioFundacion === null ? '' : anioFundacion}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setAnioFundacion(val === '' ? '' : parseInt(val) || '');
+                }}
+                className={inputClass}
+                style={{ fontSize: '16px' }}
               />
             </div>
             <div>
@@ -97,122 +165,76 @@ export function GeneralTab({
                 type="text"
                 value={firma}
                 onChange={(e) => setFirma(e.target.value)}
-                className="w-full px-4 py-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all" style={{ fontSize: '16px' }}
+                className={inputClass}
+                style={{ fontSize: '16px' }}
               />
             </div>
           </div>
         </div>
       </Accordion>
 
+      {/* ── Contacto y Redes Sociales ── */}
       <Accordion 
-        id="editor-Cobertura"
-        title="Cobertura" 
-        icon={MapPin} 
-        isOpen={openAccordions.Cobertura}
-        onToggle={(open) => onToggleAccordion('Cobertura', open)}
+        id="editor-Contacto"
+        title="Contacto y Redes Sociales" 
+        icon={Phone} 
+        isOpen={openAccordions.Contacto ?? false}
+        onToggle={(open) => onToggleAccordion('Contacto', open)}
       >
         <div className="space-y-4">
           <div>
-            <label htmlFor="direccion" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Dirección Física de la Tienda</label>
+            <label htmlFor="whatsapp" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1 flex items-center gap-1.5">
+              <Phone className="w-4 h-4 text-emerald-500" /> Teléfono de WhatsApp Comercial *
+            </label>
             <input
-              id="direccion"
+              id="whatsapp"
               type="text"
-              value={direccion}
-              onChange={(e) => setDireccion(e.target.value)}
-              className="w-full px-4 py-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all" style={{ fontSize: '16px' }}
-              placeholder="Ej: Av. Constitución 456, Col. Centro, Monterrey"
+              value={whatsapp}
+              onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, ''))}
+              className={inputClass}
+              style={{ fontSize: '16px' }}
+              placeholder="Ej: 528112345678"
+              maxLength={15}
             />
+            <p className="text-xs text-[var(--color-text-tertiary)] mt-1">
+              Ingresa el número con clave de país (ej. 52 para México) sin espacios ni símbolos. Se utiliza para recibir tus pedidos de compra.
+            </p>
           </div>
-          <div>
-            <label htmlFor="mapaUrl" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Enlace del Mapa (Google Maps URL)</label>
-            <input
-              id="mapaUrl"
-              type="text"
-              value={mapaUrl}
-              onChange={(e) => setMapaUrl(e.target.value)}
-              className="w-full px-4 py-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all" style={{ fontSize: '16px' }}
-              placeholder="https://maps.app.goo.gl/..."
-            />
-          </div>
-          <div>
-            <label htmlFor="colonias" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Colonias de entrega (separadas por coma)</label>
-            <textarea
-              id="colonias"
-              value={colonias}
-              onChange={(e) => setColonias(e.target.value)}
-              className="w-full px-4 py-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all min-h-[80px] leading-relaxed" style={{ fontSize: '16px' }}
-              placeholder="Centro, San Pedro, Cumbres..."
-            />
-          </div>
-        </div>
-      </Accordion>
 
-      <Accordion 
-        id="editor-ZonasEnvio"
-        title="Zonas de Envío" 
-        icon={Truck}
-        isOpen={openAccordions.ZonasEnvio}
-        onToggle={(open) => onToggleAccordion('ZonasEnvio', open)}
-      >
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">Costos de Envío por Zona</h3>
-              <p className="text-xs text-[var(--color-text-tertiary)] mt-1">Configura zonas de entrega y sus tarifas correspondientes (MXN).</p>
+              <label htmlFor="instagram" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1 flex items-center gap-1.5">
+                <Instagram className="w-4 h-4 text-pink-500" /> Enlace de Instagram
+              </label>
+              <input
+                id="instagram"
+                type="text"
+                value={instagram}
+                onChange={(e) => setInstagram(e.target.value)}
+                className={inputClass}
+                style={{ fontSize: '16px' }}
+                placeholder="https://instagram.com/tu_floreria"
+              />
             </div>
-            <button
-              type="button"
-              onClick={handleAddZona}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-all"
-            >
-              <Plus className="w-3.5 h-3.5" /> Agregar Zona
-            </button>
+            <div>
+              <label htmlFor="facebook" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1 flex items-center gap-1.5">
+                <Facebook className="w-4 h-4 text-blue-600" /> Enlace de Facebook
+              </label>
+              <input
+                id="facebook"
+                type="text"
+                value={facebook}
+                onChange={(e) => setFacebook(e.target.value)}
+                className={inputClass}
+                style={{ fontSize: '16px' }}
+                placeholder="https://facebook.com/tu_floreria"
+              />
+            </div>
           </div>
-
-          {zonasEnvio.length === 0 ? (
-            <div className="text-center py-6 border border-dashed border-white/20 dark:border-white/10 rounded-xl bg-white/5">
-              <Truck className="w-8 h-8 text-[var(--color-text-tertiary)] mx-auto mb-2 opacity-50" />
-              <p className="text-xs text-[var(--color-text-secondary)] font-medium">No tienes zonas de envío configuradas</p>
-              <p className="text-[11px] text-[var(--color-text-tertiary)] mt-0.5">Se utilizará el costo de envío general por defecto (${tenant.envio_costo || 0} MXN).</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {zonasEnvio.map((zona: any, index: number) => (
-                <div key={index} className="flex items-end gap-3 p-3 bg-white/5 border border-white/10 rounded-xl animate-fade-up">
-                  <div className="flex-1">
-                    <label className="block text-[10px] uppercase tracking-wider text-[var(--color-text-tertiary)] mb-1 font-medium">Nombre de la Zona</label>
-                    <input
-                      type="text"
-                      value={zona.nombre}
-                      onChange={(e) => handleUpdateZona(index, 'nombre', e.target.value)}
-                      className="w-full px-3 py-1.5 bg-white/10 dark:bg-black/40 border border-white/20 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
-                      placeholder="Ej: Zona Norte, Cholula..."
-                    />
-                  </div>
-                  <div className="w-32">
-                    <label className="block text-[10px] uppercase tracking-wider text-[var(--color-text-tertiary)] mb-1 font-medium">Costo (MXN)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={zona.costo}
-                      onChange={(e) => handleUpdateZona(index, 'costo', parseFloat(e.target.value) || 0)}
-                      className="w-full px-3 py-1.5 bg-white/10 dark:bg-black/40 border border-white/20 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveZona(index)}
-                    className="p-2.5 text-red-500 hover:text-red-600 hover:bg-red-500/10 rounded-lg transition-colors self-end"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       </Accordion>
 
+      {/* ── Evento / Promoción ── */}
       <Accordion title="Evento / Promoción (Banner Superior)" icon={Gift}>
         <div className="flex items-center justify-between mb-4 bg-emerald-500/10 dark:bg-emerald-500/15 backdrop-blur-sm p-4 rounded-xl border border-emerald-500/20 dark:border-emerald-500/15">
           <div>
@@ -233,21 +255,35 @@ export function GeneralTab({
               type="text"
               value={eventoTitulo}
               onChange={(e) => setEventoTitulo(e.target.value)}
-              className="w-full px-4 py-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all" style={{ fontSize: '16px' }}
+              className={inputClass}
+              style={{ fontSize: '16px' }}
               placeholder="Ej. ¡Día de las Madres!"
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="eventoProducto" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Nombre de producto o promoción</label>
-              <input
-                id="eventoProducto"
-                type="text"
-                value={eventoProducto}
-                onChange={(e) => setEventoProducto(e.target.value)}
-                className="w-full px-4 py-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all" style={{ fontSize: '16px' }}
-                placeholder="Ej. 20% OFF en Arreglos"
-              />
+              <label htmlFor="eventoProducto" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Producto Vinculado</label>
+              {loadingProducts ? (
+                <div className="text-xs text-[var(--color-text-tertiary)] py-2.5 flex items-center gap-1.5">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Cargando productos...</span>
+                </div>
+              ) : (
+                <select
+                  id="eventoProducto"
+                  value={eventoProducto}
+                  onChange={(e) => setEventoProducto(e.target.value)}
+                  className={inputClass}
+                  style={{ fontSize: '16px' }}
+                >
+                  <option value="">-- Ninguno (Sin vínculo) --</option>
+                  {products.map(p => (
+                    <option key={p.id} value={p.slug || p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
             <div>
               <label htmlFor="eventoFechaFin" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Fecha y hora límite</label>
@@ -256,7 +292,8 @@ export function GeneralTab({
                 type="datetime-local"
                 value={eventoFechaFin}
                 onChange={(e) => setEventoFechaFin(e.target.value)}
-                className="w-full px-4 py-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all" style={{ fontSize: '16px' }}
+                className={inputClass}
+                style={{ fontSize: '16px' }}
               />
             </div>
           </div>

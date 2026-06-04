@@ -10,6 +10,7 @@ import AnimatedBackground from '../../components/ui/AnimatedBackground';
 import { CARD } from '../admin/components/config/SharedUI';
 import { LogOut, Package, ExternalLink, Calendar, MapPin, ChevronRight, Store, ShoppingBag, User, Phone } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { updateCustomerProfile } from '../../services/customerService';
 
 type OrderStatus = 'pendiente' | 'preparando' | 'en_ruta' | 'entregado' | 'cancelado' | 'pagado';
 
@@ -116,16 +117,11 @@ export default function CustomerAccountPage() {
 
     setIsSaving(true);
     try {
-      const { error } = await supabase
-        .from('perfiles')
-        .update({
-          nombre_completo: nombre.trim(),
-          telefono: telefono.trim(),
-          direccion: direccion.trim(),
-        })
-        .eq('id', profile.id);
-
-      if (error) throw error;
+      await updateCustomerProfile(profile.id, {
+        nombre_completo: nombre.trim(),
+        telefono: telefono.trim(),
+        direccion: direccion.trim(),
+      });
 
       toast.success('Perfil actualizado', {
         message: 'Tus datos se actualizaron correctamente.',
