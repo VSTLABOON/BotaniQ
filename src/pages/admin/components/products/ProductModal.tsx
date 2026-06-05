@@ -178,6 +178,20 @@ export function ProductModal({
     }
   };
 
+  /** Remover imagen de variante */
+  const handleVariantImageRemove = async (variantId: string, imageUrl: string) => {
+    try {
+      const url = new URL(imageUrl);
+      const pathParts = url.pathname.split('/storage/v1/object/public/productos/');
+      if (pathParts[1]) {
+        await supabase.storage.from('productos').remove([pathParts[1]]);
+      }
+    } catch (err) {
+      logger.error('Error al remover imagen de variante del Storage:', err as Error);
+    }
+    updateVariant(variantId, 'image', null);
+  };
+
   /** Remover imagen actual */
   const handleImageRemove = async () => {
     if (!draft.images[0]) return;
@@ -233,6 +247,10 @@ export function ProductModal({
 
   /** Eliminar una variante del array */
   const removeVariant = (variantId: string) => {
+    const variant = draft.variants.find(v => v.id === variantId);
+    if (variant?.image) {
+      handleVariantImageRemove(variantId, variant.image);
+    }
     setDraft(prev => ({
       ...prev,
       variants: prev.variants.filter(v => v.id !== variantId),
@@ -561,28 +579,37 @@ export function ProductModal({
                       {/* Imagen de la variante */}
                       <div className="shrink-0">
                         <label className="block text-[0.7rem] font-medium text-[var(--color-text-tertiary)] mb-1 uppercase tracking-wider">Foto</label>
-                        <div className="relative w-12 h-12 rounded-lg bg-[var(--color-background-primary)] border border-[var(--color-border-secondary)] overflow-hidden flex items-center justify-center group cursor-pointer hover:border-emerald-400 transition-colors">
-                          {variant.image ? (
-                            <>
-                              <img src={variant.image} alt={variant.name} className="w-full h-full object-cover" />
-                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <ImagePlus className="w-4 h-4 text-white" />
-                              </div>
-                            </>
-                          ) : (
+                        {variant.image ? (
+                          <div className="relative w-12 h-12 rounded-lg bg-[var(--color-background-primary)] border border-[var(--color-border-secondary)] overflow-hidden flex items-center justify-center group">
+                            <img src={variant.image} alt={variant.name} className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleVariantImageRemove(variant.id, variant.image!);
+                              }}
+                              className="absolute inset-0 bg-red-500/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white cursor-pointer"
+                              title="Eliminar imagen de variante"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <label className="relative w-12 h-12 rounded-lg bg-[var(--color-background-primary)] border border-[var(--color-border-secondary)] overflow-hidden flex items-center justify-center group cursor-pointer hover:border-emerald-400 transition-colors">
                             <ImagePlus className="w-4 h-4 text-[var(--color-text-tertiary)] group-hover:text-emerald-500 transition-colors" />
-                          )}
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            disabled={uploading}
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) handleVariantImageUpload(variant.id, file);
-                            }}
-                          />
-                        </div>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="sr-only"
+                              disabled={uploading}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleVariantImageUpload(variant.id, file);
+                              }}
+                            />
+                          </label>
+                        )}
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 flex-1">
