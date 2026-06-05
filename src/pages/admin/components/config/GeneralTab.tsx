@@ -50,7 +50,8 @@ export function GeneralTab({
     eventoTitulo, 
     eventoProducto, 
     eventoFechaFin, 
-    openAccordions 
+    openAccordions,
+    mostrarDescripcionEnTarjeta
   } = state;
 
   const { 
@@ -66,7 +67,8 @@ export function GeneralTab({
     setEventoTitulo, 
     setEventoProducto, 
     setEventoFechaFin, 
-    onToggleAccordion 
+    onToggleAccordion,
+    setMostrarDescripcionEnTarjeta
   } = actions;
 
   const [seoOpen, setSeoOpen] = useState(true);
@@ -297,6 +299,28 @@ export function GeneralTab({
               />
             </div>
           </div>
+        </div>
+      </Accordion>
+
+      {/* ── Ajustes del Catálogo ── */}
+      <Accordion title="Ajustes del Catálogo" icon={Gift}>
+        <div className="flex items-center justify-between bg-emerald-500/10 dark:bg-emerald-500/15 backdrop-blur-sm p-4 rounded-xl border border-emerald-500/20 dark:border-emerald-500/15">
+          <div>
+            <h3 className="text-sm font-semibold text-emerald-800 dark:text-emerald-400">Mostrar descripción en tarjetas</h3>
+            <p className="text-xs text-emerald-600 dark:text-emerald-500 mt-1">
+              Si está activado, la descripción del producto aparecerá en las tarjetas de la landing y el catálogo.
+            </p>
+          </div>
+          <label htmlFor="mostrarDescripcionEnTarjeta" className="relative inline-flex items-center cursor-pointer select-none">
+            <input
+              id="mostrarDescripcionEnTarjeta"
+              type="checkbox"
+              className="sr-only peer"
+              checked={mostrarDescripcionEnTarjeta}
+              onChange={e => setMostrarDescripcionEnTarjeta(e.target.checked)}
+            />
+            <div className="w-11 h-6 bg-[var(--color-background-tertiary)] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-[var(--color-background-primary)] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[var(--color-background-primary)] after:border-[var(--color-border-secondary)] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+          </label>
         </div>
       </Accordion>
     </div>

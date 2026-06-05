@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { usePublicCatalog } from '../../hooks/usePublicCatalog';
 import { useTenant } from '../../context/TenantContext.tsx';
 import { motion, useReducedMotion } from 'framer-motion';
@@ -6,32 +6,63 @@ import { Link } from 'react-router-dom';
 import ProductoCard from '../ui/ProductoCard';
 import { fadeUp, staggerContainer, getMotionVariants } from '../../lib/motion';
 
-// ── Slug de la tienda actual ─────────────────────────────────────
-// Ahora proviene dinámicamente del TenantContext en lugar de ser
-// una constante hardcodeada.
-
-const RANGES = {
-  'all':     [0, Infinity],
-  '300-500': [300, 500],
-  '500-800': [500, 800],
-  '800+':    [800, Infinity],
-};
-
 export default function Catalogo() {
   const { tenant } = useTenant();
   const { productos, loading, error, source } = usePublicCatalog(tenant.slug);
-  const [filtroActivo, setFiltroActivo] = useState('all');
   const shouldReduceMotion = useReducedMotion();
 
-  // Filtrado derivado del estado (no duplicamos el array en otro useState)
-  const productosFiltrados = useMemo(() => {
-    const [min, max] = RANGES[filtroActivo];
-    if (filtroActivo === 'all') return productos;
-    return productos.filter(p => p.precioNum >= min && p.precioNum <= max);
-  }, [productos, filtroActivo]);
+  // Control del Modal de Catálogo Completo
+  const [catalogModalOpen, setCatalogModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('todos');
+
+  // Asegurar que al abrir el modal se bloquee el scroll del body
+  useEffect(() => {
+    if (catalogModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [catalogModalOpen]);
+
+  // Cerrar modal con la tecla Esc
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setCatalogModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Productos destacados en la landing: primeros 3 según campo `orden` (que ya viene ordenado del hook)
+  const productosDestacados = useMemo(() => {
+    return productos.slice(0, 3);
+  }, [productos]);
+
+  // Categorías únicas
+  const categories = useMemo(() => {
+    if (!productos) return ['todos'];
+    const cats = productos.map(p => p.category).filter(Boolean);
+    return ['todos', ...new Set(cats)];
+  }, [productos]);
+
+  // Filtrado para el modal
+  const filteredModalProducts = useMemo(() => {
+    return productos.filter(p => {
+      const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                            p.desc.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = selectedCategory === 'todos' || p.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [productos, searchQuery, selectedCategory]);
 
   return (
-    <section id="catalogo" className="bg-crema pt-28 px-6 pb-24">
+    <section id="catalogo" className="bg-crema pt-28 px-6 pb-24 text-texto">
       <div className="text-center mb-[3.5rem]">
         <p className="inline-flex items-center gap-[0.45rem] text-[0.65rem] tracking-[0.28em] uppercase text-verde font-body font-medium mb-[0.9rem]">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" width="11" height="11" aria-hidden="true">
@@ -48,42 +79,10 @@ export default function Catalogo() {
         </p>
       </div>
 
-
-
-      {/* Filtros por presupuesto */}
-      <div className="max-w-[1180px] mx-auto mb-10 flex items-center gap-4 flex-wrap" role="group" aria-label="Filtrar por presupuesto">
-        <span className="text-[0.78rem] tracking-[0.08em] text-texto-muted font-medium whitespace-nowrap">
-          ¿Cuánto quieres gastar?
-        </span>
-        <div className="flex gap-2 flex-wrap">
-          {[
-            { key: 'all', label: 'Ver todo' },
-            { key: '300-500', label: '$300 – $500' },
-            { key: '500-800', label: '$500 – $800' },
-            { key: '800+', label: '$800+' },
-          ].map(btn => (
-            <button
-              key={btn.key}
-              type="button"
-              disabled={loading}
-              onClick={() => setFiltroActivo(btn.key)}
-              className={`py-[0.38rem] px-4 rounded-full border-[1.5px] font-body text-[0.78rem] transition-all duration-200 ease-spring disabled:opacity-40 disabled:cursor-not-allowed
-                ${filtroActivo === btn.key 
-                  ? 'bg-verde border-verde text-[var(--color-background-primary)] font-semibold scale-[1.04]' 
-                  : 'border-verde/[.25] text-texto-muted hover:border-verde hover:text-verde'
-                }
-              `}
-            >
-              {btn.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* Estado de carga */}
       {loading ? (
-        <div className="max-w-[1180px] mx-auto grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
-          {[...Array(6)].map((_, i) => (
+        <div className="max-w-[1180px] mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+          {[...Array(3)].map((_, i) => (
             <div key={i} className="bg-blanco rounded-card overflow-hidden shadow-card animate-pulse">
               <div className="relative aspect-[4/3] bg-[var(--color-border-secondary)]"></div>
               <div className="p-[1.3rem_1.4rem_1.5rem]">
@@ -97,31 +96,130 @@ export default function Catalogo() {
             </div>
           ))}
         </div>
-      ) : productosFiltrados.length > 0 ? (
-        <motion.div 
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: '-50px' }}
-          variants={getMotionVariants(staggerContainer, shouldReduceMotion)}
-          className="max-w-[1180px] mx-auto grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6"
-        >
-          {productosFiltrados.map((prod, i) => (
-            <motion.div 
-              key={prod.id} 
-              variants={getMotionVariants(fadeUp, shouldReduceMotion)}
+      ) : productosDestacados.length > 0 ? (
+        <div className="space-y-12">
+          <motion.div 
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-50px' }}
+            variants={getMotionVariants(staggerContainer, shouldReduceMotion)}
+            className="max-w-[1180px] mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"
+          >
+            {productosDestacados.map((prod, i) => (
+              <motion.div 
+                key={prod.id} 
+                variants={getMotionVariants(fadeUp, shouldReduceMotion)}
+              >
+                <Link to={`/producto/${prod.slug}`} className="block h-full">
+                  <ProductoCard producto={prod} priority={i < 3} />
+                </Link>
+              </motion.div>
+            ))}
+          </motion.div>
+
+          {/* Botón Ver Catálogo Completo */}
+          <div className="text-center mt-12">
+            <button
+              onClick={() => setCatalogModalOpen(true)}
+              className="inline-flex items-center gap-2.5 px-8 py-3.5 rounded-full text-sm font-bold bg-rosa text-[var(--color-background-primary)] hover:scale-[1.04] active:scale-[0.98] transition-all duration-200 shadow-lg cursor-pointer"
             >
-              <Link to={`/producto/${prod.slug}`} className="block h-full">
-                <ProductoCard producto={prod} priority={i < 4} />
-              </Link>
-            </motion.div>
-          ))}
-        </motion.div>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="16" height="16" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16m-7 6h7" />
+              </svg>
+              Ver catálogo completo
+            </button>
+          </div>
+        </div>
       ) : (
         <p className="text-center py-12 px-6 text-[0.9rem] text-texto-muted max-w-[500px] mx-auto">
-          No hay arreglos en ese rango ahora mismo. <a href="#" className="text-verde underline">Consúltanos por WhatsApp</a> y encontramos algo para ti.
+          No hay arreglos disponibles en este momento. <a href="#" className="text-verde underline">Consúltanos por WhatsApp</a> y encontramos algo para ti.
         </p>
       )}
 
+      {/* ── MODAL: CATÁLOGO COMPLETO ── */}
+      {catalogModalOpen && (
+        <div className="fixed inset-0 z-[9999] flex flex-col bg-negro text-crema animate-fade-in">
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-negro-soft shrink-0">
+            <div>
+              <h3 className="font-display text-xl md:text-2xl font-bold text-crema">Catálogo Completo</h3>
+              <p className="text-xs text-texto-muted mt-0.5">{productos.length} arreglos disponibles</p>
+            </div>
+            <button
+              onClick={() => setCatalogModalOpen(false)}
+              className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/5 text-crema/70 hover:text-crema transition-colors cursor-pointer"
+              aria-label="Cerrar catálogo"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="22" height="22">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Scrollable Body */}
+          <div className="flex-1 overflow-y-auto p-6 bg-negro">
+            {/* Buscador y Categorías (Solo si hay más de 8 productos) */}
+            {productos.length > 8 && (
+              <div className="max-w-[1180px] mx-auto mb-8 space-y-4">
+                <div className="relative max-w-md">
+                  <input
+                    type="text"
+                    placeholder="Buscar arreglo por nombre o descripción..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full h-11 pl-4 pr-10 rounded-xl border border-white/20 bg-negro-soft text-crema text-sm focus:outline-none focus:border-verde focus:ring-1 focus:ring-verde transition-all"
+                  />
+                  <span className="absolute right-3.5 top-3.5 text-texto-muted">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="16" height="16">
+                      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                  </span>
+                </div>
+                {categories.length > 1 && (
+                  <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar">
+                    {categories.map((cat) => (
+                      <button
+                        key={cat}
+                        onClick={() => setSelectedCategory(cat)}
+                        className={`py-1.5 px-4 rounded-full border text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                          selectedCategory === cat
+                            ? 'bg-verde border-verde text-negro'
+                            : 'border-white/20 text-crema/70 hover:border-verde hover:text-verde'
+                        }`}
+                      >
+                        {cat === 'todos' ? 'Ver todo' : cat}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Grid de todos los productos (2 cols móvil, 3 cols desktop) */}
+            <div className="max-w-[1180px] mx-auto">
+              {filteredModalProducts.length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 pb-12">
+                  {filteredModalProducts.map((prod) => (
+                    <Link 
+                      key={prod.id} 
+                      to={`/producto/${prod.slug}`} 
+                      onClick={() => setCatalogModalOpen(false)}
+                      className="block h-full"
+                    >
+                      <ProductoCard producto={prod} />
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-20 text-texto-muted">
+                  No se encontraron arreglos para esta búsqueda.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

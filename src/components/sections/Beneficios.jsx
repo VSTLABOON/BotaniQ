@@ -97,9 +97,13 @@ export default function Beneficios() {
                 className="flex gap-5"
               >
                 <div className="w-12 h-12 shrink-0 rounded-full bg-[var(--color-background-primary)]/5 border border-white/10 flex items-center justify-center text-verde-light">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="20" height="20">
-                    {iconMap[b.icon] || iconMap.flower}
-                  </svg>
+                  {b.icon && b.icon.startsWith('ti-') ? (
+                    <i className={`ti ${b.icon} text-xl`} style={{ fontSize: '20px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} />
+                  ) : (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="20" height="20">
+                      {iconMap[b.icon] || iconMap.flower}
+                    </svg>
+                  )}
                 </div>
                 <div className="flex flex-col pt-1">
                   <h3 className="text-[1.05rem] font-bold text-[var(--color-background-primary)] mb-2">{b.title}</h3>

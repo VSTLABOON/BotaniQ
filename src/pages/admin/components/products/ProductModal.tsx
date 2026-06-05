@@ -96,6 +96,8 @@ export function ProductModal({
       base.nota_interna = '';
       base.nota_publica = false;
       base.disponible_hasta = '';
+      base.por_encargo = false;
+      base.ultimas_unidades = false;
     } else {
       base.variants = product.variants.map(v => ({ ...v }));
     }
@@ -479,6 +481,31 @@ export function ProductModal({
                   />
                 </label>
               </div>
+            </div>
+
+            {/* Badges de Catálogo (Por encargo y Últimas unidades) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-[var(--color-background-secondary)] p-4 rounded-xl border border-[var(--color-border-secondary)]">
+              <label className="flex items-center justify-between gap-3 text-sm font-medium text-[var(--color-text-secondary)] cursor-pointer">
+                <div>
+                  <span className="block font-semibold">Por encargo</span>
+                  <span className="block text-xs text-[var(--color-text-tertiary)] font-normal">Indica que el arreglo se hace bajo pedido</span>
+                </div>
+                <AvailabilityToggle
+                  checked={draft.por_encargo ?? false}
+                  onChange={val => updateField('por_encargo', val)}
+                />
+              </label>
+
+              <label className="flex items-center justify-between gap-3 text-sm font-medium text-[var(--color-text-secondary)] cursor-pointer">
+                <div>
+                  <span className="block font-semibold">Últimas unidades</span>
+                  <span className="block text-xs text-[var(--color-text-tertiary)] font-normal">Muestra una etiqueta de urgencia en la tarjeta</span>
+                </div>
+                <AvailabilityToggle
+                  checked={draft.ultimas_unidades ?? false}
+                  onChange={val => updateField('ultimas_unidades', val)}
+                />
+              </label>
             </div>
 
             {/* SKU y Categoría Opcionales */}

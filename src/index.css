@@ -61,6 +61,7 @@
   --color-crema: #F7F3EC;
   --color-blanco: #FEFEFE;
   --color-texto: #1A1E18;
+  --color-texto-muted: #5d6659;
 
   /* 4. Tipografía Dinámica */
   --font-display: var(--font-display, "Playfair Display", Georgia, serif);

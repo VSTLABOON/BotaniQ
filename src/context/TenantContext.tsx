@@ -171,6 +171,9 @@ const FALLBACK_TENANT: TenantConfig = {
     producto: '',
     fecha_fin: '',
   },
+  catalogo: {
+    mostrar_descripcion_en_tarjeta: false,
+  },
   orden_secciones: DEFAULT_ORDEN_SECCIONES,
   secciones: {
     hero: {
@@ -300,6 +303,7 @@ function mapRowToTenant(row: Record<string, unknown>): TenantConfig {
     orden_secciones:    configUi.orden_secciones || DEFAULT_ORDEN_SECCIONES,
     font_family:        configUi.font_family,
     secciones:          configUi.secciones || FALLBACK_TENANT.secciones,
+    catalogo:           configUi.catalogo || { mostrar_descripcion_en_tarjeta: false },
   };
 }
 
@@ -579,7 +583,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
       const directColumns: Record<string, unknown> = {};
       const configUiFields = [
         'servicios', 'beneficios', 'flores', 'galeria',
-        'testimonios', 'seo', 'evento', 'orden_secciones', 'secciones',
+        'testimonios', 'seo', 'evento', 'orden_secciones', 'secciones', 'catalogo',
       ];
 
       // Campos que son columnas directas en la tabla `tiendas`

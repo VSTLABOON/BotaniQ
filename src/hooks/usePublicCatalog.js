@@ -43,6 +43,8 @@ function mapRow(row) {
     disponibleHasta: row.disponible_hasta,
     notaInterna: row.nota_interna ?? '',
     notaPublica: row.nota_publica ?? false,
+    porEncargo: row.por_encargo ?? false,
+    ultimasUnidades: row.ultimas_unidades ?? false,
     variants:   (row.producto_variantes || []).map(v => ({
       id: v.id,
       name: v.nombre,
@@ -112,7 +114,7 @@ export function usePublicCatalog(slug, options = {}) {
       let queryProd = supabase
         .from('productos')
         .select(`
-          id, slug, nombre, descripcion, precio, disponible, imagen_url, categoria, disponible_hasta, nota_interna, nota_publica, orden, created_at,
+          id, slug, nombre, descripcion, precio, disponible, imagen_url, categoria, disponible_hasta, nota_interna, nota_publica, orden, created_at, por_encargo, ultimas_unidades,
           producto_variantes (
             id,
             nombre,

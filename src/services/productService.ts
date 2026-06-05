@@ -26,6 +26,8 @@ export async function fetchAdminProducts(tiendaId: string): Promise<Product[]> {
       disponible_hasta,
       orden,
       categoria,
+      por_encargo,
+      ultimas_unidades,
       producto_variantes (
         id,
         producto_id,
@@ -57,6 +59,8 @@ export async function fetchAdminProducts(tiendaId: string): Promise<Product[]> {
     disponible_hasta: p.disponible_hasta || '',
     orden: p.orden ?? 0,
     categoria: p.categoria || '',
+    por_encargo: p.por_encargo ?? false,
+    ultimas_unidades: p.ultimas_unidades ?? false,
     variants: (p.producto_variantes || []).map((v: any) => ({
       id: v.id,
       productId: v.producto_id,
@@ -103,7 +107,9 @@ export async function saveAdminProduct(
     nota_publica: product.nota_publica ?? false,
     disponible_hasta: product.disponible_hasta || null,
     orden: product.orden ?? 0,
-    categoria: product.categoria || null
+    categoria: product.categoria || null,
+    por_encargo: product.por_encargo ?? false,
+    ultimas_unidades: product.ultimas_unidades ?? false
   };
 
   const { error: prodError } = await supabase

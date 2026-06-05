@@ -45,9 +45,14 @@ export function SlideOverPanel({ isOpen, onClose, onSave, title, children }: Sli
     };
 
     document.addEventListener('keydown', handleKeyDown);
-    
-    // Auto focus first element
-    setTimeout(() => {
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  // Auto focus first element ONCE when panel opens
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const timer = setTimeout(() => {
       const focusableElements = panelRef.current?.querySelectorAll<HTMLElement>(
         'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
       );
@@ -58,8 +63,8 @@ export function SlideOverPanel({ isOpen, onClose, onSave, title, children }: Sli
       }
     }, 100);
 
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+    return () => clearTimeout(timer);
+  }, [isOpen]);
 
   // Lock body scroll
   useEffect(() => {

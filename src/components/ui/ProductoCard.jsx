@@ -14,10 +14,10 @@ const ProductoCard = memo(function ProductoCard({ producto, priority = false }) 
   if (hasVariants) {
     const prices = producto.variants.map(v => v.price !== null && v.price !== undefined ? v.price : producto.precioNum);
     const minPrice = Math.min(...prices, producto.precioNum);
-    displayPrice = `Desde $${minPrice.toLocaleString()} ${tenant?.currency || 'MXN'}`;
+    displayPrice = `Desde $${minPrice.toLocaleString()}`;
   } else {
     displayPrice = typeof producto.precio === 'number'
-      ? `$${producto.precio.toLocaleString()} ${tenant?.currency || 'MXN'}`
+      ? `$${producto.precio.toLocaleString()}`
       : producto.precio;
   }
 
@@ -33,7 +33,7 @@ const ProductoCard = memo(function ProductoCard({ producto, priority = false }) 
       productId: producto.id,
       variantId: producto.id,           // Variante default
       name: producto.name,
-      variantName: typeof producto.precio === 'number' ? `$${producto.precio} ${tenant?.currency || 'MXN'}` : producto.precio,     // Ej: "$450 MXN"
+      variantName: typeof producto.precio === 'number' ? `$${producto.precio}` : producto.precio,     // Ej: "$450"
       unitPrice: producto.precioNum,
       quantity: 1,
       image: producto.imgUrl,
@@ -41,6 +41,8 @@ const ProductoCard = memo(function ProductoCard({ producto, priority = false }) 
     
     openCart();
   };
+
+  const showDescription = tenant?.config_ui?.catalogo?.mostrar_descripcion_en_tarjeta ?? false;
 
   return (
     <div className="group bg-blanco rounded-card overflow-hidden shadow-card transition-all duration-[350ms] ease-out cursor-pointer hover:-translate-y-2 hover:shadow-lg-custom focus-visible:outline-2 focus-visible:outline-rosa focus-visible:outline-offset-3 relative">
@@ -53,12 +55,29 @@ const ProductoCard = memo(function ProductoCard({ producto, priority = false }) 
           decoding="async"
           className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.07]"
         />
+
+        {/* Overlay semitransparente oscuro en la parte inferior de la imagen para asegurar contraste de textos */}
+        <div className="absolute inset-x-0 bottom-0 h-1/2 pointer-events-none z-[1]" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.6), transparent)' }} />
         
         {producto.badge && (
-          <span className={`absolute top-[0.8rem] left-[0.8rem] text-[var(--color-background-primary)] text-[0.65rem] font-bold tracking-[0.1em] uppercase py-[0.2rem] px-[0.65rem] rounded-[6px] ${producto.badgeClass === 'especial' ? 'bg-rosa' : 'bg-verde'}`}>
+          <span className={`absolute top-[0.8rem] left-[0.8rem] text-[var(--color-background-primary)] text-[0.65rem] font-bold tracking-[0.1em] uppercase py-[0.2rem] px-[0.65rem] rounded-[6px] z-[2] ${producto.badgeClass === 'especial' ? 'bg-rosa' : 'bg-verde'}`}>
             {producto.badge}
           </span>
         )}
+
+        {/* Badges de Catálogo (Por encargo y Últimas unidades) */}
+        <div className="absolute top-[0.8rem] right-[0.8rem] flex flex-col gap-1.5 items-end z-[3]">
+          {producto.porEncargo && (
+            <span className="text-[var(--color-background-primary)] bg-verde-dark/95 backdrop-blur-[4px] text-[0.6rem] font-bold tracking-[0.06em] uppercase py-[0.2rem] px-[0.5rem] rounded-[6px] shadow-sm">
+              Por encargo
+            </span>
+          )}
+          {producto.ultimasUnidades && (
+            <span className="text-[var(--color-background-primary)] bg-rosa/95 backdrop-blur-[4px] text-[0.6rem] font-bold tracking-[0.06em] uppercase py-[0.2rem] px-[0.5rem] rounded-[6px] shadow-sm">
+              Últimas unidades
+            </span>
+          )}
+        </div>
 
         <div className={`absolute bottom-[0.65rem] left-[0.65rem] flex items-center gap-[0.35rem] bg-[rgba(10,20,10,0.82)] backdrop-blur-[6px] text-[0.65rem] font-semibold tracking-[0.06em] uppercase py-[0.22rem] px-[0.6rem] rounded-full z-[3] ${producto.disponible ? 'text-[var(--color-background-primary)]' : 'text-[var(--color-background-primary)]/[.55]'}`}>
           {producto.disponible ? (
@@ -70,13 +89,15 @@ const ProductoCard = memo(function ProductoCard({ producto, priority = false }) 
         </div>
       </div>
 
-      <div className="p-[1.3rem_1.4rem_1.5rem]">
+      <div className="p-[1.3rem_1.4rem_1.5rem] text-texto bg-blanco">
         <h3 className="font-display text-[1.25rem] font-bold text-texto leading-[1.1] mb-[0.4rem]">
           {producto.name}
         </h3>
-        <p className="text-[0.8rem] text-texto-muted mb-[1rem]">
-          {producto.short}
-        </p>
+        {showDescription && producto.short && (
+          <p className="text-[0.8rem] text-texto-muted mb-[1rem] line-clamp-2 leading-relaxed">
+            {producto.short}
+          </p>
+        )}
         
         <div className="flex items-center justify-between gap-2">
           <span className="font-display text-[1.4rem] font-bold text-verde">

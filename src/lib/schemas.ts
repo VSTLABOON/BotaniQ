@@ -20,7 +20,7 @@ const isValidGoogleMapsUrl = (url: string): boolean => {
 
 // ── Schemas de Dominio ───────────────────────────────────────────
 
-export const TenantConfigSchema = z.object({
+export const TenantConfigBaseSchema = z.object({
   id: z.string().uuid(),
   slug: z.string().min(3).max(50).regex(/^[a-z0-9-]+$/),
   nombre: safeStringMinMax(1, 100, "El nombre de la tienda es requerido", "El nombre no puede exceder 100 caracteres"),
@@ -60,7 +60,9 @@ export const TenantConfigSchema = z.object({
   openpay_private_key: z.string().max(200, "La llave privada no puede exceder 200 caracteres").nullable().optional().or(z.literal('')),
   openpay_sandbox_mode: z.boolean().optional().default(true),
   preferred_gateway: z.enum(['stripe', 'openpay']).optional().default('openpay'),
-}).superRefine((data, ctx) => {
+});
+
+export const TenantConfigSchema = TenantConfigBaseSchema.superRefine((data, ctx) => {
   if (data.preferred_gateway === 'openpay') {
     if (!data.openpay_merchant_id || data.openpay_merchant_id.trim() === '') {
       ctx.addIssue({

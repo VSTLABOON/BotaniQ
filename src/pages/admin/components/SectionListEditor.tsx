@@ -107,17 +107,17 @@ function ImageUploadField({ value, onChange }: { value: string, onChange: (url: 
 // ── Catalog List Editor (nested sub-list) ────────────────────────
 interface CatalogItem {
   nombre: string;
-  precio: number;
+  precio?: number | string;
   imagen_url: string;
 }
 
 function CatalogListEditor({ items, onChange }: { items: CatalogItem[]; onChange: (items: CatalogItem[]) => void }) {
   const { tenant } = useTenant();
   const [editIdx, setEditIdx] = useState<number | null>(null);
-  const [draft, setDraft] = useState<CatalogItem>({ nombre: '', precio: 0, imagen_url: '' });
+  const [draft, setDraft] = useState<CatalogItem>({ nombre: '', precio: '', imagen_url: '' });
 
   const addItem = () => {
-    const newItem: CatalogItem = { nombre: '', precio: 0, imagen_url: '' };
+    const newItem: CatalogItem = { nombre: '', precio: '', imagen_url: '' };
     const updated = [...items, newItem];
     onChange(updated);
     setEditIdx(updated.length - 1);
@@ -164,8 +164,8 @@ function CatalogListEditor({ items, onChange }: { items: CatalogItem[]; onChange
                 <p className="text-xs font-semibold text-[var(--color-text-primary)] truncate">
                   {item.nombre || '(Sin nombre)'}
                 </p>
-                <p className="text-[0.65rem] text-[var(--color-text-tertiary)] mt-0.5">
-                  {item.precio ? `$${item.precio.toLocaleString()}` : '$0'}
+                <p className="text-[0.65rem] text-[var(--color-text-tertiary)] mt-0.5 font-medium">
+                  {(item.precio !== undefined && item.precio !== '') ? `$${Number(item.precio).toLocaleString()}` : 'Precio no especificado'}
                 </p>
                 <div className="flex gap-1 mt-2">
                   <button
@@ -193,29 +193,29 @@ function CatalogListEditor({ items, onChange }: { items: CatalogItem[]; onChange
       {editIdx !== null && (
         <div className="p-4 rounded-xl border border-emerald-300/30 bg-emerald-50/10 dark:bg-emerald-950/20 space-y-3">
           <div>
-            <label className="block text-[0.7rem] font-bold text-[var(--color-text-secondary)] uppercase tracking-wider mb-1">Nombre</label>
+            <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1.5">Nombre</label>
             <input
               type="text"
               value={draft.nombre}
               onChange={(e) => setDraft({ ...draft, nombre: e.target.value })}
-              className="w-full px-3 py-2 border border-white/30 dark:border-white/10 rounded-lg text-sm bg-white/50 dark:bg-black/50 text-[var(--color-text-primary)] outline-none focus:ring-2 focus:ring-emerald-500/20"
+              className="w-full h-10 px-4 bg-[var(--color-background-secondary)] border border-[var(--color-border-secondary)] rounded-xl text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all"
               placeholder="Ej. Ramo Elegante"
               style={{ fontSize: '16px' }}
             />
           </div>
           <div>
-            <label className="block text-[0.7rem] font-bold text-[var(--color-text-secondary)] uppercase tracking-wider mb-1">Precio (MXN)</label>
+            <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1.5">Precio (MXN)</label>
             <input
               type="number"
-              value={draft.precio}
-              onChange={(e) => setDraft({ ...draft, precio: parseFloat(e.target.value) || 0 })}
-              className="w-full px-3 py-2 border border-white/30 dark:border-white/10 rounded-lg text-sm bg-white/50 dark:bg-black/50 text-[var(--color-text-primary)] outline-none focus:ring-2 focus:ring-emerald-500/20"
-              placeholder="0"
+              value={draft.precio ?? ''}
+              onChange={(e) => setDraft({ ...draft, precio: e.target.value === '' ? '' : parseFloat(e.target.value) })}
+              className="w-full h-10 px-4 bg-[var(--color-background-secondary)] border border-[var(--color-border-secondary)] rounded-xl text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all"
+              placeholder="Ej. 450.00"
               style={{ fontSize: '16px' }}
             />
           </div>
           <div>
-            <label className="block text-[0.7rem] font-bold text-[var(--color-text-secondary)] uppercase tracking-wider mb-1">Imagen</label>
+            <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1.5">Imagen</label>
             <ImageUploadField
               value={draft.imagen_url}
               onChange={(url) => setDraft({ ...draft, imagen_url: url })}
@@ -307,10 +307,10 @@ function ProductSelector({
               placeholder="Buscar producto..."
               value={filterQuery}
               onChange={(e) => setFilterQuery(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 border border-white/30 dark:border-white/10 rounded-lg text-xs bg-white/50 dark:bg-black/50 text-[var(--color-text-primary)] outline-none focus:ring-2 focus:ring-emerald-500/20"
+              className="w-full pl-9 pr-4 h-10 bg-[var(--color-background-secondary)] border border-[var(--color-border-secondary)] rounded-xl text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all"
               style={{ fontSize: '14px' }}
             />
-            <Search className="absolute left-2.5 top-2 w-3.5 h-3.5 text-[var(--color-text-tertiary)]" />
+            <Search className="absolute left-3 top-3 w-4 h-4 text-[var(--color-text-tertiary)]" />
           </div>
 
           <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1 select-none">
@@ -471,7 +471,7 @@ export function SectionListEditor({ title, description, items, fields, onChange,
       id: crypto.randomUUID ? crypto.randomUUID() : 'serv_' + Date.now()
     };
     fields.forEach(f => {
-      newItem[f.key] = f.type === 'number' ? 0 : f.type === 'color' ? '#D94F6E' : '';
+      newItem[f.key] = f.type === 'number' ? '' : f.type === 'color' ? '#D94F6E' : '';
     });
     
     const newItems = [...items, newItem];
@@ -489,7 +489,7 @@ export function SectionListEditor({ title, description, items, fields, onChange,
           <textarea
             value={val}
             onChange={(e) => setTempItem({ ...tempItem, [field.key]: e.target.value })}
-            className="w-full px-3 py-2 border border-white/30 dark:border-white/10 rounded-lg text-sm bg-white/50 dark:bg-black/50 backdrop-blur-sm focus:bg-white/70 dark:focus:bg-black/70 text-[var(--color-text-primary)] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all min-h-[80px]"
+            className="w-full px-4 py-3 bg-[var(--color-background-secondary)] border border-[var(--color-border-secondary)] rounded-xl text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all resize-none min-h-[100px]"
             style={{ fontSize: '16px' }}
           />
         );
@@ -506,25 +506,25 @@ export function SectionListEditor({ title, description, items, fields, onChange,
           <input
             type="number"
             value={val}
-            onChange={(e) => setTempItem({ ...tempItem, [field.key]: parseFloat(e.target.value) || 0 })}
-            className="w-full px-3 py-2 border border-white/30 dark:border-white/10 rounded-lg text-sm bg-white/50 dark:bg-black/50 backdrop-blur-sm focus:bg-white/70 dark:focus:bg-black/70 text-[var(--color-text-primary)] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+            onChange={(e) => setTempItem({ ...tempItem, [field.key]: e.target.value === '' ? '' : parseFloat(e.target.value) })}
+            className="w-full h-10 px-4 bg-[var(--color-background-secondary)] border border-[var(--color-border-secondary)] rounded-xl text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all"
             style={{ fontSize: '16px' }}
           />
         );
       case 'color':
         return (
-          <div className="flex gap-2 items-center">
+          <div className="flex gap-3 items-center">
             <input
               type="color"
               value={val}
               onChange={(e) => setTempItem({ ...tempItem, [field.key]: e.target.value })}
-              className="w-8 h-8 rounded border border-white/30 dark:border-white/10 cursor-pointer p-0 shrink-0"
+              className="w-10 h-10 rounded-xl border border-[var(--color-border-secondary)] cursor-pointer p-0 shrink-0 overflow-hidden bg-transparent"
             />
             <input
               type="text"
               value={val}
               onChange={(e) => setTempItem({ ...tempItem, [field.key]: e.target.value })}
-              className="flex-1 px-3 py-2 border border-white/30 dark:border-white/10 rounded-lg text-sm bg-white/50 dark:bg-black/50 backdrop-blur-sm focus:bg-white/70 dark:focus:bg-black/70 text-[var(--color-text-primary)] outline-none min-w-0"
+              className="flex-1 h-10 px-4 bg-[var(--color-background-secondary)] border border-[var(--color-border-secondary)] rounded-xl text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all"
               style={{ fontSize: '16px' }}
             />
           </div>
@@ -573,7 +573,7 @@ export function SectionListEditor({ title, description, items, fields, onChange,
             type="text"
             value={val}
             onChange={(e) => setTempItem({ ...tempItem, [field.key]: e.target.value })}
-            className="w-full px-3 py-2 border border-white/30 dark:border-white/10 rounded-lg text-sm bg-white/50 dark:bg-black/50 backdrop-blur-sm focus:bg-white/70 dark:focus:bg-black/70 text-[var(--color-text-primary)] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+            className="w-full h-10 px-4 bg-[var(--color-background-secondary)] border border-[var(--color-border-secondary)] rounded-xl text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all"
             style={{ fontSize: '16px' }}
           />
         );
@@ -693,7 +693,7 @@ export function SectionListEditor({ title, description, items, fields, onChange,
         <div className="flex flex-col gap-5">
           {fields.map((f) => (
             <div key={f.key}>
-              <label className="block text-[0.75rem] font-bold text-[var(--color-text-secondary)] uppercase tracking-wider mb-2">
+              <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1.5">
                 {f.label}
               </label>
               {renderFieldInput(f)}

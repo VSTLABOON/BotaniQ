@@ -21,6 +21,8 @@ export interface Product {
   disponible_hasta?: string;
   orden?: number;
   categoria?: string;
+  por_encargo?: boolean;
+  ultimas_unidades?: boolean;
 }
 
 export interface ProductVariant {
@@ -31,6 +33,7 @@ export interface ProductVariant {
   isAvailable: boolean;
   sku?: string;
   image?: string;
+  description?: string;
 }
 
 // ── Carrito ──────────────────────────────────────────────────────
@@ -137,6 +140,9 @@ export interface TenantConfig {
     titulo: string;
     producto: string;
     fecha_fin: string;
+  };
+  catalogo?: {
+    mostrar_descripcion_en_tarjeta: boolean;
   };
 
   // ── Page Builder — Orden dinámico de secciones ─────────────────

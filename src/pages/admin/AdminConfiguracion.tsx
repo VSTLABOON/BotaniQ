@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { type DropResult } from '@hello-pangea/dnd';
@@ -20,7 +20,7 @@ import { useTheming } from '../../hooks/useTheming';
 import { supabase } from '../../lib/supabaseClient';
 import { toast } from '../../store/toastStore';
 import { logger } from '../../lib/logger';
-import { TenantConfigSchema } from '../../lib/schemas';
+import { TenantConfigSchema, TenantConfigBaseSchema } from '../../lib/schemas';
 import { getSubdomainUrl } from '../../lib/domain';
 
 // --- Subcomponentes Extraídos ---
@@ -40,7 +40,7 @@ function reorder<T>(list: T[], startIndex: number, endIndex: number): T[] {
 }
 
 export default function AdminConfiguracion() {
-  const { tenant, updateTenantConfig } = useTenant();
+  const { tenant, loading, updateTenantConfig } = useTenant();
   const navigate = useNavigate();
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -157,6 +157,9 @@ export default function AdminConfiguracion() {
   const [eventoProducto, setEventoProducto] = useState(tenant.evento?.producto || '');
   const [eventoFechaFin, setEventoFechaFin] = useState(tenant.evento?.fecha_fin || '');
 
+  // Catálogo Config
+  const [mostrarDescripcionEnTarjeta, setMostrarDescripcionEnTarjeta] = useState(tenant.catalogo?.mostrar_descripcion_en_tarjeta ?? false);
+
   // Contenido Dinámico
   const [seccionesData, setSeccionesData] = useState(tenant.secciones || {});
   const [serviciosList, setServiciosList] = useState(tenant.servicios || []);
@@ -209,7 +212,8 @@ export default function AdminConfiguracion() {
       openpayMerchantId !== (tenant.openpay_merchant_id || '') ||
       openpayPublicKey !== (tenant.openpay_public_key || '') ||
       openpayPrivateKey !== (tenant.openpay_private_key || '') ||
-      openpaySandboxMode !== (tenant.openpay_sandbox_mode ?? true)
+      openpaySandboxMode !== (tenant.openpay_sandbox_mode ?? true) ||
+      mostrarDescripcionEnTarjeta !== (tenant.catalogo?.mostrar_descripcion_en_tarjeta ?? false)
     );
   }, [
     colorPrimario, colorSecundario, colorAcento, fontFamily, logoPreview, sections,
@@ -219,7 +223,8 @@ export default function AdminConfiguracion() {
     ciudad, estado, areaMetropolitana, whatsapp, instagram, facebook, customDomain,
     horarioRegular, horarioEspecial,
     eventoActivo, eventoTitulo, eventoProducto, eventoFechaFin,
-    preferredGateway, openpayMerchantId, openpayPublicKey, openpayPrivateKey, openpaySandboxMode
+    preferredGateway, openpayMerchantId, openpayPublicKey, openpayPrivateKey, openpaySandboxMode,
+    mostrarDescripcionEnTarjeta
   ]);
 
   const handleDiscard = useCallback(() => {
@@ -241,6 +246,7 @@ export default function AdminConfiguracion() {
     setEventoTitulo(tenant.evento?.titulo || '');
     setEventoProducto(tenant.evento?.producto || '');
     setEventoFechaFin(tenant.evento?.fecha_fin || '');
+    setMostrarDescripcionEnTarjeta(tenant.catalogo?.mostrar_descripcion_en_tarjeta ?? false);
     setServiciosList(tenant.servicios || []);
     setBeneficiosList(tenant.beneficios || []);
     setTestimoniosList(tenant.testimonios || []);
@@ -289,6 +295,62 @@ export default function AdminConfiguracion() {
       document.head.appendChild(link);
     }
   }, []);
+
+  // Sync state once when tenant resolves and loading completes
+  const hasLoadedRef = useRef(false);
+  useEffect(() => {
+    if (!loading && tenant && !hasLoadedRef.current) {
+      hasLoadedRef.current = true;
+      setColorPrimario(tenant.color_primario);
+      setColorSecundario(tenant.color_secundario);
+      setColorAcento(tenant.color_acento);
+      setFontFamily(tenant.font_family || 'Inter');
+      setSections(tenant.orden_secciones);
+      setLogoPreview(tenant.logo_url);
+      setTextoNosotros(tenant.texto_nosotros || '');
+      setAnioFundacion(tenant.anio_fundacion || '');
+      setFirma(tenant.firma || '');
+      setMapaUrl(tenant.mapa_url || '');
+      setDireccion(tenant.direccion || '');
+      setColonias(tenant.colonias?.join(', ') || '');
+      setMetaTitle(tenant.meta_title || '');
+      setZonasEnvio(tenant.zonas_envio || []);
+      setEventoActivo(tenant.evento?.activo || false);
+      setEventoTitulo(tenant.evento?.titulo || '');
+      setEventoProducto(tenant.evento?.producto || '');
+      setEventoFechaFin(tenant.evento?.fecha_fin || '');
+      setMostrarDescripcionEnTarjeta(tenant.catalogo?.mostrar_descripcion_en_tarjeta ?? false);
+      setServiciosList(tenant.servicios || []);
+      setBeneficiosList(tenant.beneficios || []);
+      setTestimoniosList(tenant.testimonios || []);
+      setFloresList(tenant.flores || []);
+      setGaleriaList(tenant.galeria || []);
+      setSeccionesData(tenant.secciones || {});
+      setCiudad(tenant.ciudad || 'Monterrey');
+      setEstado(tenant.estado || 'Nuevo León');
+      setAreaMetropolitana(tenant.area_metropolitana || 'área metropolitana');
+      setWhatsapp(tenant.whatsapp || '0000000000');
+      setInstagram(tenant.redes_sociales?.instagram || '');
+      setFacebook(tenant.redes_sociales?.facebook || '');
+      setCustomDomain(tenant.custom_domain || '');
+      setHorarioRegular(tenant.horarios?.regular || 'Lunes a Domingo · 9:00 AM – 6:00 PM');
+      setHorarioEspecial(tenant.horarios?.especial || '');
+      setPreferredGateway(tenant.preferred_gateway || 'openpay');
+      setOpenpayMerchantId(tenant.openpay_merchant_id || '');
+      setOpenpayPublicKey(tenant.openpay_public_key || '');
+      setOpenpayPrivateKey(tenant.openpay_private_key || '');
+      setOpenpaySandboxMode(tenant.openpay_sandbox_mode ?? true);
+    }
+  }, [loading, tenant]);
+
+  const previewUrl = getSubdomainUrl(tenant.slug, '/?preview=true');
+  const isSameHost = useMemo(() => {
+    try {
+      return new URL(previewUrl).hostname === window.location.hostname;
+    } catch (e) {
+      return false;
+    }
+  }, [previewUrl]);
 
   // Update root CSS vars live
   useTheming({
@@ -447,7 +509,8 @@ export default function AdminConfiguracion() {
       openpay_sandbox_mode: openpaySandboxMode
     };
 
-    const validation = TenantConfigSchema.safeParse(payloadToValidate);
+    const schemaToUse = activeTab === 'horarios' ? TenantConfigSchema : TenantConfigBaseSchema;
+    const validation = schemaToUse.safeParse(payloadToValidate);
     if (!validation.success) {
       toast.error('Error de validación', {
         message: validation.error.issues[0].message
@@ -501,7 +564,10 @@ export default function AdminConfiguracion() {
         openpay_merchant_id: validatedData.openpay_merchant_id,
         openpay_public_key: validatedData.openpay_public_key,
         openpay_private_key: validatedData.openpay_private_key,
-        openpay_sandbox_mode: validatedData.openpay_sandbox_mode
+        openpay_sandbox_mode: validatedData.openpay_sandbox_mode,
+        catalogo: {
+          mostrar_descripcion_en_tarjeta: mostrarDescripcionEnTarjeta
+        }
       });
 
       toast.success('Configuración guardada', {
@@ -517,6 +583,7 @@ export default function AdminConfiguracion() {
       setSaving(false);
     }
   }, [
+    activeTab,
     colorPrimario, colorSecundario, colorAcento, logoPreview, sections, fontFamily,
     textoNosotros, anioFundacion, firma, mapaUrl, direccion, colonias, metaTitle,
     serviciosList, beneficiosList, testimoniosList, floresList, galeriaList, seccionesData,
@@ -524,7 +591,8 @@ export default function AdminConfiguracion() {
     ciudad, estado, areaMetropolitana, whatsapp, instagram, facebook, customDomain,
     horarioRegular, horarioEspecial, zonasEnvio,
     eventoActivo, eventoTitulo, eventoProducto, eventoFechaFin,
-    preferredGateway, openpayMerchantId, openpayPublicKey, openpayPrivateKey, openpaySandboxMode
+    preferredGateway, openpayMerchantId, openpayPublicKey, openpayPrivateKey, openpaySandboxMode,
+    mostrarDescripcionEnTarjeta
   ]);
 
   const getListLength = (key: string) => {
@@ -537,6 +605,14 @@ export default function AdminConfiguracion() {
       default: return -1;
     }
   };
+
+  if (loading || !tenant || !tenant.slug) {
+    return (
+      <div className="flex-1 min-h-screen bg-[var(--color-background-secondary)] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -672,8 +748,8 @@ export default function AdminConfiguracion() {
           {/* TAB: IDENTIDAD Y SEO */}
           {activeTab === 'general' && (
             <GeneralTab
-              state={{ textoNosotros, anioFundacion, firma, metaTitle, customDomain, whatsapp, instagram, facebook, eventoActivo, eventoTitulo, eventoProducto, eventoFechaFin, openAccordions }}
-              actions={{ setTextoNosotros, setAnioFundacion, setFirma, setMetaTitle, setCustomDomain, setWhatsapp, setInstagram, setFacebook, setEventoActivo, setEventoTitulo, setEventoProducto, setEventoFechaFin, onToggleAccordion: handleToggleAccordion }}
+              state={{ textoNosotros, anioFundacion, firma, metaTitle, customDomain, whatsapp, instagram, facebook, eventoActivo, eventoTitulo, eventoProducto, eventoFechaFin, openAccordions, mostrarDescripcionEnTarjeta }}
+              actions={{ setTextoNosotros, setAnioFundacion, setFirma, setMetaTitle, setCustomDomain, setWhatsapp, setInstagram, setFacebook, setEventoActivo, setEventoTitulo, setEventoProducto, setEventoFechaFin, onToggleAccordion: handleToggleAccordion, setMostrarDescripcionEnTarjeta }}
               tenant={tenant}
             />
           )}
@@ -705,21 +781,45 @@ export default function AdminConfiguracion() {
           <span className="text-xs font-bold text-[var(--color-text-primary)] uppercase tracking-wider flex items-center gap-2">
             <Eye className="w-4 h-4 text-[var(--color-text-primary)]" /> Vista Previa
           </span>
-          <div className="flex items-center gap-1 bg-white/10 dark:bg-black/20 border border-white/20 dark:border-white/10 p-0.5 rounded-lg">
-            <button onClick={() => setPreviewDevice('mobile')} className={`p-1.5 rounded-md transition-colors ${previewDevice === 'mobile' ? 'bg-white/20 dark:bg-white/10 text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]'}`}>
-              <Smartphone className="w-4 h-4" />
-            </button>
-            <button onClick={() => setPreviewDevice('desktop')} className={`p-1.5 rounded-md transition-colors ${previewDevice === 'desktop' ? 'bg-white/20 dark:bg-white/10 text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]'}`}>
-              <Monitor className="w-4 h-4" />
-            </button>
-          </div>
+          {isSameHost && (
+            <div className="flex items-center gap-1 bg-white/10 dark:bg-black/20 border border-white/20 dark:border-white/10 p-0.5 rounded-lg">
+              <button onClick={() => setPreviewDevice('mobile')} className={`p-1.5 rounded-md transition-colors ${previewDevice === 'mobile' ? 'bg-white/20 dark:bg-white/10 text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]'}`}>
+                <Smartphone className="w-4 h-4" />
+              </button>
+              <button onClick={() => setPreviewDevice('desktop')} className={`p-1.5 rounded-md transition-colors ${previewDevice === 'desktop' ? 'bg-white/20 dark:bg-white/10 text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]'}`}>
+                <Monitor className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
         <div className="flex-1 bg-transparent flex justify-center overflow-hidden relative">
-          <iframe
-            src={getSubdomainUrl(tenant.slug, '/?preview=true')}
-            className={`preview-iframe border-0 bg-white shadow-xl transition-all duration-300 relative z-10 ${previewDevice === 'mobile' ? 'w-[375px] h-[calc(100%-2rem)] mt-4 rounded-[2.5rem] border-[8px] border-black/80 shadow-[0_0_0_1px_rgba(255,255,255,0.2)]' : 'w-full h-full'}`}
-            title="Preview"
-          />
+          {isSameHost ? (
+            <iframe
+              src={previewUrl}
+              className={`preview-iframe border-0 bg-white shadow-xl transition-all duration-300 relative z-10 ${previewDevice === 'mobile' ? 'w-[375px] h-[calc(100%-2rem)] mt-4 rounded-[2.5rem] border-[8px] border-black/80 shadow-[0_0_0_1px_rgba(255,255,255,0.2)]' : 'w-full h-full'}`}
+              title="Preview"
+            />
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center select-none animate-fade-in bg-white/5 dark:bg-black/5 rounded-3xl m-4 border border-white/10 dark:border-white/5">
+              <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 dark:bg-emerald-400/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-4 shadow-sm">
+                <ExternalLink className="w-8 h-8" />
+              </div>
+              <h4 className="text-sm font-bold text-[var(--color-text-primary)] mb-2">
+                Vista previa en pestaña nueva
+              </h4>
+              <p className="text-xs text-[var(--color-text-tertiary)] max-w-[280px] leading-relaxed mb-6">
+                La vista previa se abre en una pestaña independiente para garantizar que veas exactamente lo que ve tu cliente, evitando bloqueos de seguridad de tu navegador.
+              </p>
+              <a
+                href={previewUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 rounded-xl transition-all active:scale-95 shadow-lg shadow-emerald-600/15"
+              >
+                <i className="ti ti-external-link text-base" /> Ver mi tienda
+              </a>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -747,13 +847,35 @@ export default function AdminConfiguracion() {
             </button>
           </div>
           
-          {/* Iframe */}
-          <div className="flex-1 w-full h-full bg-[var(--color-background-tertiary)] overflow-hidden">
-            <iframe
-              src={getSubdomainUrl(tenant.slug, '/?preview=true')}
-              className="preview-iframe w-full h-full border-0"
-              title="Mobile Preview"
-            />
+          {/* Iframe / Placeholder */}
+          <div className="flex-1 w-full h-full bg-[var(--color-background-tertiary)] overflow-hidden flex items-center justify-center">
+            {isSameHost ? (
+              <iframe
+                src={previewUrl}
+                className="preview-iframe w-full h-full border-0"
+                title="Mobile Preview"
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center p-6 text-center select-none animate-fade-in bg-[var(--color-background-secondary)] rounded-3xl m-4 border border-[var(--color-border-secondary)]">
+                <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 dark:bg-emerald-400/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-4">
+                  <ExternalLink className="w-7 h-7" />
+                </div>
+                <h4 className="text-sm font-bold text-[var(--color-text-primary)] mb-2">
+                  Vista previa en pestaña nueva
+                </h4>
+                <p className="text-xs text-[var(--color-text-tertiary)] max-w-[240px] leading-relaxed mb-6">
+                  Tu navegador bloquea el visor embebido por seguridad de dominio cruzado. Abre tu tienda en una nueva pestaña.
+                </p>
+                <a
+                  href={previewUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 rounded-xl transition-all active:scale-95 shadow-lg shadow-emerald-600/15"
+                >
+                  <i className="ti ti-external-link text-base" /> Ver mi tienda
+                </a>
+              </div>
+            )}
           </div>
         </motion.div>
       )}
