@@ -41,12 +41,14 @@ export default function ProductDetailPage() {
             precio,
             imagen_url,
             disponible,
+            nota_interna,
+            nota_publica,
             producto_variantes (
               id,
               producto_id,
               nombre,
               precio,
-              stock,
+              disponible,
               sku,
               imagen_url
             )
@@ -73,7 +75,7 @@ export default function ProductDetailPage() {
             productId: v.producto_id,
             name: v.nombre,
             price: v.precio !== null && v.precio !== undefined ? Number(v.precio) : null,
-            stock: v.stock ?? 0,
+            isAvailable: v.disponible ?? true,
             sku: v.sku || '',
             image: v.imagen_url || undefined
           }));
@@ -86,7 +88,9 @@ export default function ProductDetailPage() {
             basePrice: Number(data.precio) || 0,
             images,
             variants,
-            isAvailable: data.disponible ?? true
+            isAvailable: data.disponible ?? true,
+            nota_interna: data.nota_interna || '',
+            nota_publica: data.nota_publica ?? false
           };
 
           setProduct(mappedProduct);
@@ -252,7 +256,7 @@ export default function ProductDetailPage() {
                   Selecciona una opción:
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  {product.variants.map((v) => (
+                  {product.variants.filter(v => v.isAvailable).map((v) => (
                     <button
                       key={v.id}
                       onClick={() => setSelectedVariantId(v.id)}
@@ -274,6 +278,11 @@ export default function ProductDetailPage() {
 
             <div className="prose prose-sm sm:prose-base prose-emerald text-texto-muted mb-8">
               <p>{product.description}</p>
+              {product.nota_publica && product.nota_interna && (
+                <div className="mt-4 p-4 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-800 text-sm italic dark:bg-emerald-950/20 dark:border-emerald-900/30 dark:text-emerald-300">
+                  <strong>Condiciones:</strong> {product.nota_interna}
+                </div>
+              )}
             </div>
 
             {/* Beneficios estáticos (ejemplo) */}

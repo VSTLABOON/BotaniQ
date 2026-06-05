@@ -2,30 +2,23 @@
 // CRUD de productos con tabla limpia, toggle de disponibilidad y
 // modal complejo para gestionar arrays de ProductVariant.
 //
-// SAAS_FLAG OVERVIEW:
-//   NIVEL 1: Máximo 20 productos, 2 variantes por producto
-//   NIVEL 2: Productos ilimitados, variantes ilimitadas
-//   NIVEL 3: Importación/exportación CSV, edición masiva
-//
 // Dependencias:
 //   TenantContext — Para leer tenant.id
 //   types.ts      — Product, ProductVariant
 // ────────────────────────────────────────────────────────────────
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState } from 'react';
+import { z } from 'zod';
 import {
-  Plus, Pencil, Trash2, X, Save, Package,
-  Image, Loader2, ChevronDown, AlertCircle, Crown,
-  Upload, ImagePlus,
+  Plus, Trash2, X, Save, Package,
+  Image as ImageIcon, Loader2, AlertCircle,
+  Upload, ImagePlus, Eye, EyeOff
 } from 'lucide-react';
 import type { Product, ProductVariant } from '../../../../types';
 import { supabase } from '../../../../lib/supabaseClient';
 import { useTenant } from '../../../../context/TenantContext';
 import { logger } from '../../../../lib/logger';
 import { toast } from '../../../../store/toastStore';
-
-// ── Clase base para tarjetas admin ───────────────────────────────
-import { CARD } from '../config/SharedUI';
 
 const uid = () => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -39,13 +32,14 @@ const uid = () => {
   });
 };
 
-const generateSlug = (name: string) => {
-  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-};
-
 // ── Variante vacía para "añadir fila" ────────────────────────────
 const emptyVariant = (productId: string): ProductVariant => ({
-  id: uid(), productId, name: '', price: null, stock: 0, sku: '',
+  id: uid(),
+  productId,
+  name: '',
+  price: null,
+  isAvailable: true,
+  sku: ''
 });
 
 // ═══════════════════════════════════════════════════════════════════
@@ -60,9 +54,10 @@ function AvailabilityToggle({
 }) {
   return (
     <button
+      type="button"
       role="switch" aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${
+      className={`relative w-11 h-6 rounded-full transition-colors duration-200 shrink-0 ${
         checked ? 'bg-emerald-500' : 'bg-[var(--color-border-secondary)]'
       }`}
     >
@@ -74,26 +69,9 @@ function AvailabilityToggle({
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// ██ COMPONENTE: MODAL DE EDICIÓN CON VARIANTES
+// ██ COMPONENTE: MODAL DE EDICIÓN CON VARIANTES Y VISTA PREVIA
 // ═══════════════════════════════════════════════════════════════════
 
-/**
- * Modal complejo para editar un producto y gestionar su array de variantes.
- *
- * Flujo de datos:
- *   1. Recibe `product` como prop → clona a estado local `draft`.
- *   2. El usuario edita nombre, descripción, precio base.
- *   3. En la sub-sección de variantes, puede:
- *      a. Añadir filas (genera un ProductVariant vacío con uid()).
- *      b. Editar nombre, priceModifier, stock de cada variante.
- *      c. Eliminar variantes existentes.
- *   4. Al pulsar "Guardar", invoca `onSave(draft)` que propaga
- *      al estado padre y eventualmente a Supabase (tabla productos
- *      + tabla producto_variantes en una transacción).
- *
- * SAAS_FLAG: NIVEL 1 - Máximo 2 variantes por producto.
- * SAAS_FLAG: NIVEL 2 - Variantes ilimitadas.
- */
 export function ProductModal({
   product, onClose, onSave, isNew,
 }: {
@@ -103,10 +81,32 @@ export function ProductModal({
   isNew?: boolean;
 }) {
   const { tenant } = useTenant();
-  const [draft, setDraft] = useState<Product>({ ...product, variants: [...product.variants.map(v => ({ ...v }))] });
+  
+  // Clonar draft con variantes limpias
+  const [draft, setDraft] = useState<Product>(() => {
+    const base = { ...product };
+    if (isNew) {
+      base.variants = [];
+      base.name = '';
+      base.basePrice = 0;
+      base.images = [];
+      base.isAvailable = true;
+      base.sku = '';
+      base.categoria = '';
+      base.nota_interna = '';
+      base.nota_publica = false;
+      base.disponible_hasta = '';
+    } else {
+      base.variants = product.variants.map(v => ({ ...v }));
+    }
+    return base;
+  });
+
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showPreview, setShowPreview] = useState(false);
 
   /** Subir imagen a Supabase Storage */
   const handleImageUpload = async (file: File) => {
@@ -132,6 +132,11 @@ export function ProductModal({
         .getPublicUrl(fileName);
 
       setDraft(prev => ({ ...prev, images: [publicUrl] }));
+      setErrors(prev => {
+        const next = { ...prev };
+        delete next.images;
+        return next;
+      });
     } catch (err) {
       logger.error('Error al subir imagen:', err as Error);
       toast.error('Error al subir la imagen. Intenta de nuevo.');
@@ -151,7 +156,8 @@ export function ProductModal({
     setUploading(true);
     try {
       const ext = file.name.split('.').pop() || 'jpg';
-      const fileName = `${draft.tienda_id}/variants/${variantId}-${Date.now()}.${ext}`;
+      // Path exacto: {tienda_id}/variantes/{variante_id}/
+      const fileName = `${draft.tienda_id}/variantes/${variantId}/image_${Date.now()}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
         .from('productos')
@@ -176,14 +182,13 @@ export function ProductModal({
   const handleImageRemove = async () => {
     if (!draft.images[0]) return;
     try {
-      // Extraer la ruta del archivo desde la URL pública
       const url = new URL(draft.images[0]);
       const pathParts = url.pathname.split('/storage/v1/object/public/productos/');
       if (pathParts[1]) {
         await supabase.storage.from('productos').remove([pathParts[1]]);
       }
     } catch {
-      // Si falla el borrado del storage, no es crítico
+      // Ignorar fallo no crítico
     }
     setDraft(prev => ({ ...prev, images: [] }));
   };
@@ -199,10 +204,17 @@ export function ProductModal({
   /** Actualizar un campo del producto */
   const updateField = <K extends keyof Product>(key: K, value: Product[K]) => {
     setDraft(prev => ({ ...prev, [key]: value }));
+    if (errors[key as string]) {
+      setErrors(prev => {
+        const next = { ...prev };
+        delete next[key as string];
+        return next;
+      });
+    }
   };
 
   /** Actualizar un campo de una variante específica */
-  const updateVariant = (variantId: string, field: keyof ProductVariant, value: string | number | null | undefined) => {
+  const updateVariant = (variantId: string, field: keyof ProductVariant, value: string | number | boolean | null | undefined) => {
     setDraft(prev => ({
       ...prev,
       variants: prev.variants.map(v =>
@@ -213,11 +225,6 @@ export function ProductModal({
 
   /** Añadir nueva variante vacía al array */
   const addVariant = () => {
-    // SAAS_FLAG: NIVEL 1 - Limitar a 2 variantes por producto en plan básico
-    // if (draft.variants.length >= 2 && tenant.subscription_level < 2) {
-    //   toast.error('Actualiza a Plan Pro para añadir más variantes.');
-    //   return;
-    // }
     setDraft(prev => ({
       ...prev,
       variants: [...prev.variants, emptyVariant(prev.id)],
@@ -232,19 +239,68 @@ export function ProductModal({
     }));
   };
 
-  /**
-   * Guardar cambios del modal.
-   * En producción, aquí se haría:
-   *   1. UPDATE a tabla `productos` con los campos del producto.
-   *   2. UPSERT batch a tabla `producto_variantes` con el array de variantes.
-   *   3. DELETE de variantes removidas (diff entre original y draft).
-   * Todo dentro de una transacción RPC de Supabase.
-   */
+  /** Ejecutar validación Zod */
+  const validateForm = () => {
+    const schema = z.object({
+      name: z.string().trim().min(1, 'El nombre es obligatorio'),
+      basePrice: z.number({ invalid_type_error: 'El precio debe ser un número' }).min(0, 'El precio debe ser mayor o igual a 0'),
+      images: z.array(z.string()).min(1, 'La imagen principal es obligatoria'),
+    });
+
+    const result = schema.safeParse({
+      name: draft.name,
+      basePrice: draft.basePrice,
+      images: draft.images,
+    });
+
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      result.error.issues.forEach(issue => {
+        const path = issue.path[0] as string;
+        fieldErrors[path] = issue.message;
+      });
+      setErrors(fieldErrors);
+      toast.error('Corrige los campos obligatorios en el formulario.');
+      return false;
+    }
+
+    // Validar variantes
+    for (let i = 0; i < draft.variants.length; i++) {
+      const v = draft.variants[i];
+      if (!v.name.trim()) {
+        toast.error(`La variante ${i + 1} requiere un nombre.`);
+        return false;
+      }
+      if (v.price === null || v.price === undefined || v.price < 0) {
+        toast.error(`La variante ${i + 1} requiere un precio válido.`);
+        return false;
+      }
+    }
+
+    setErrors({});
+    return true;
+  };
+
+  /** Mostrar Modal de Vista Previa */
+  const handlePreSave = () => {
+    if (validateForm()) {
+      setShowPreview(true);
+    }
+  };
+
+  /** Guardar definitivo */
   const handleSave = async () => {
     setSaving(true);
-    await onSave(draft);
-    setSaving(false);
-    onClose();
+    try {
+      await onSave(draft);
+      setShowPreview(false);
+      onClose();
+    } catch (err) {
+      logger.error('Error al guardar producto:', err as Error);
+      toast.error('Hubo un error al guardar el producto.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -253,7 +309,7 @@ export function ProductModal({
       <div className="fixed inset-0 bg-black/40 backdrop-blur-[3px] z-[9998]" onClick={onClose} />
 
       {/* Modal */}
-      <div className="fixed inset-0 md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[680px] md:max-h-[85vh] bg-[var(--color-background-primary)] md:bg-[var(--color-background-primary)]/90 md:backdrop-blur-2xl md:rounded-2xl shadow-2xl z-[9999] flex flex-col overflow-hidden">
+      <div className="fixed inset-0 md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[680px] md:max-h-[85vh] bg-[var(--color-background-primary)] md:bg-[var(--color-background-primary)]/90 md:backdrop-blur-2xl md:rounded-2xl shadow-2xl z-[9999] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border-tertiary)] shrink-0">
           <h3 className="text-lg font-bold text-[var(--color-text-primary)]">
@@ -269,13 +325,19 @@ export function ProductModal({
           {/* ── Datos básicos ── */}
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1.5">Nombre del producto</label>
+              <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1.5">
+                Nombre del producto <span className="text-red-500 font-bold">*</span>
+              </label>
               <input
                 type="text" value={draft.name}
                 onChange={e => updateField('name', e.target.value)}
-                className="w-full h-10 px-4 bg-[var(--color-background-secondary)] border border-[var(--color-border-secondary)] rounded-xl text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all"
+                className={`w-full h-10 px-4 bg-[var(--color-background-secondary)] border rounded-xl text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all ${
+                  errors.name ? 'border-red-500 focus:border-red-500 focus:ring-red-500/10' : 'border-[var(--color-border-secondary)]'
+                }`}
                 style={{ fontSize: '16px' }}
+                placeholder="Ej: Ramo de 24 Rosas Rojas"
               />
+              {errors.name && <p className="text-xs text-red-500 mt-1 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" /> {errors.name}</p>}
             </div>
 
             <div>
@@ -284,6 +346,7 @@ export function ProductModal({
                 value={draft.description}
                 onChange={e => updateField('description', e.target.value)}
                 rows={3}
+                placeholder="Escribe la descripción pública del arreglo..."
                 className="w-full px-4 py-3 bg-[var(--color-background-secondary)] border border-[var(--color-border-secondary)] rounded-xl text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all resize-none"
                 style={{ fontSize: '16px' }}
               />
@@ -291,7 +354,9 @@ export function ProductModal({
 
             {/* ── Imagen del producto ── */}
             <div>
-              <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1.5">Imagen del producto</label>
+              <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1.5">
+                Imagen del producto <span className="text-red-500 font-bold">*</span>
+              </label>
               {draft.images[0] ? (
                 <div className="relative group w-full aspect-[16/9] max-w-[320px] rounded-xl overflow-hidden bg-[var(--color-background-secondary)] border border-[var(--color-border-secondary)]">
                   <img
@@ -336,7 +401,9 @@ export function ProductModal({
                   className={`relative w-full max-w-[320px] aspect-[16/9] rounded-xl border-2 border-dashed transition-all flex flex-col items-center justify-center cursor-pointer ${
                     dragOver
                       ? 'border-emerald-400 bg-emerald-50'
-                      : 'border-[var(--color-border-secondary)] bg-[var(--color-background-secondary)] hover:border-[var(--color-border-primary)] hover:bg-[var(--color-background-tertiary)]'
+                      : errors.images
+                        ? 'border-red-500 bg-red-50/50'
+                        : 'border-[var(--color-border-secondary)] bg-[var(--color-background-secondary)] hover:border-[var(--color-border-primary)] hover:bg-[var(--color-background-tertiary)]'
                   }`}
                 >
                   <label className="flex flex-col items-center gap-2 cursor-pointer w-full h-full justify-center">
@@ -364,33 +431,98 @@ export function ProductModal({
                   </label>
                 </div>
               )}
+              {errors.images && <p className="text-xs text-red-500 mt-1 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" /> {errors.images}</p>}
             </div>
 
+            {/* Precio Base y Disponible */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1.5">Precio Base (MXN)</label>
+                <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1.5">
+                  Precio Base (MXN) <span className="text-red-500 font-bold">*</span>
+                </label>
                 <input
                   type="number" min={0} step={10} 
-                  value={draft.variants.length > 0 ? '' : (draft.basePrice || '')}
-                  disabled={draft.variants.length > 0}
-                  placeholder={draft.variants.length > 0 ? 'Definido en variantes' : '0'}
+                  value={draft.basePrice || ''}
+                  placeholder="0"
                   onChange={e => updateField('basePrice', Number(e.target.value))}
                   onFocus={(e) => e.target.select()}
-                  className="w-full h-10 px-4 bg-[var(--color-background-secondary)] border border-[var(--color-border-secondary)] rounded-xl text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all disabled:opacity-60 disabled:bg-[var(--color-background-tertiary)] disabled:cursor-not-allowed"
+                  className={`w-full h-10 px-4 bg-[var(--color-background-secondary)] border rounded-xl text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all ${
+                    errors.basePrice ? 'border-red-500 focus:border-red-500 focus:ring-red-500/10' : 'border-[var(--color-border-secondary)]'
+                  }`}
                 />
-                {draft.variants.length > 0 && (
-                  <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">El precio se define por variante</p>
-                )}
+                {errors.basePrice && <p className="text-xs text-red-500 mt-1 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" /> {errors.basePrice}</p>}
               </div>
               <div className="flex flex-col justify-end">
-                <label className="flex items-center gap-3 text-sm font-medium text-[var(--color-text-secondary)]">
-                  Disponible
+                <label className="flex items-center justify-between sm:justify-start gap-3 text-sm font-medium text-[var(--color-text-secondary)] h-10">
+                  <span>Disponible en tienda</span>
                   <AvailabilityToggle
                     checked={draft.isAvailable}
                     onChange={val => updateField('isAvailable', val)}
                   />
                 </label>
               </div>
+            </div>
+
+            {/* SKU y Categoría Opcionales */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1.5">SKU (Opcional)</label>
+                <input
+                  type="text"
+                  value={draft.sku || ''}
+                  onChange={e => updateField('sku', e.target.value)}
+                  placeholder="Ej: ROS-ROJ-01"
+                  className="w-full h-10 px-4 bg-[var(--color-background-secondary)] border border-[var(--color-border-secondary)] rounded-xl text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1.5">Categoría (Opcional)</label>
+                <input
+                  type="text"
+                  value={draft.categoria || ''}
+                  onChange={e => updateField('categoria', e.target.value)}
+                  placeholder="Ej: Ramos, Cajas, Bodas"
+                  className="w-full h-10 px-4 bg-[var(--color-background-secondary)] border border-[var(--color-border-secondary)] rounded-xl text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Disponible hasta */}
+            <div>
+              <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1.5">Disponible hasta (Opcional)</label>
+              <input
+                type="date"
+                value={draft.disponible_hasta ? draft.disponible_hasta.split('T')[0] : ''}
+                onChange={e => {
+                  const val = e.target.value;
+                  updateField('disponible_hasta', val ? new Date(val).toISOString() : null);
+                }}
+                className="w-full h-10 px-4 bg-[var(--color-background-secondary)] border border-[var(--color-border-secondary)] rounded-xl text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all"
+              />
+            </div>
+
+            {/* Notas / Condiciones */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="block text-sm font-medium text-[var(--color-text-secondary)]">Nota / Condiciones (Opcional)</label>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-[var(--color-text-tertiary)] flex items-center gap-1 font-semibold">
+                    {draft.nota_publica ? <><Eye className="w-3.5 h-3.5" /> Visible para clientes</> : <><EyeOff className="w-3.5 h-3.5" /> Solo interna</>}
+                  </span>
+                  <AvailabilityToggle
+                    checked={draft.nota_publica ?? false}
+                    onChange={val => updateField('nota_publica', val)}
+                  />
+                </div>
+              </div>
+              <textarea
+                value={draft.nota_interna || ''}
+                onChange={e => updateField('nota_interna', e.target.value)}
+                rows={2}
+                placeholder="Escribe notas internas o políticas especiales (ej: 'No incluye base de vidrio')"
+                className="w-full px-4 py-3 bg-[var(--color-background-secondary)] border border-[var(--color-border-secondary)] rounded-xl text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all resize-none"
+                style={{ fontSize: '16px' }}
+              />
             </div>
           </div>
 
@@ -401,17 +533,14 @@ export function ProductModal({
                 <Package className="w-4 h-4 text-[var(--color-text-tertiary)]" />
                 Variantes del producto
               </h4>
-              {/* SAAS_FLAG: NIVEL 1 - El botón "Añadir variante" se oculta cuando
-                  el tenant alcanza el límite de 3 variantes en plan básico. */}
-              {!(tenant?.subscription_level === 1 && draft.variants.length >= 3) && (
-                <button
-                  onClick={addVariant}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-semibold hover:bg-emerald-100 transition-colors"
-                >
-                  <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
-                  Añadir variante
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={addVariant}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-semibold hover:bg-emerald-100 transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
+                Agregar variante
+              </button>
             </div>
 
             {draft.variants.length === 0 ? (
@@ -456,12 +585,12 @@ export function ProductModal({
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 flex-1">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 flex-1">
                         {/* Nombre de la variante */}
-                        <div className="sm:col-span-1">
+                        <div>
                           <label className="block text-[0.7rem] font-medium text-[var(--color-text-tertiary)] mb-1 uppercase tracking-wider">Nombre</label>
                           <input
-                            type="text" value={variant.name} placeholder="Ej: Premium"
+                            type="text" value={variant.name} placeholder="Ej: Mediano, Premium"
                             onChange={e => updateVariant(variant.id, 'name', e.target.value)}
                             className="w-full h-9 px-3 bg-[var(--color-background-primary)] border border-[var(--color-border-secondary)] rounded-lg text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all"
                           />
@@ -483,37 +612,26 @@ export function ProductModal({
                           />
                         </div>
 
-                        {/* Stock */}
-                        <div>
-                          <label className="block text-[0.7rem] font-medium text-[var(--color-text-tertiary)] mb-1 uppercase tracking-wider">Stock</label>
-                          <input
-                            type="number" min={0} 
-                            value={variant.stock || ''}
-                            placeholder="0"
-                            onChange={e => updateVariant(variant.id, 'stock', Number(e.target.value))}
-                            onFocus={(e) => e.target.select()}
-                            className="w-full h-9 px-3 bg-[var(--color-background-primary)] border border-[var(--color-border-secondary)] rounded-lg text-sm text-[var(--color-text-primary)] font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all"
-                          />
+                        {/* Disponible + Eliminar */}
+                        <div className="flex items-end justify-between gap-2">
+                          <div className="flex-1">
+                            <label className="block text-[0.7rem] font-medium text-[var(--color-text-tertiary)] mb-1.5 uppercase tracking-wider">Disponible</label>
+                            <div className="h-9 flex items-center">
+                              <AvailabilityToggle
+                                checked={variant.isAvailable}
+                                onChange={val => updateVariant(variant.id, 'isAvailable', val)}
+                              />
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeVariant(variant.id)}
+                            className="h-9 w-9 shrink-0 flex items-center justify-center rounded-lg text-[var(--color-text-tertiary)] hover:text-red-600 hover:bg-red-50 transition-colors"
+                            title="Eliminar variante"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
-
-                      {/* SKU + Delete */}
-                      <div className="flex items-end gap-2">
-                        <div className="flex-1">
-                          <label className="block text-[0.7rem] font-medium text-[var(--color-text-tertiary)] mb-1 uppercase tracking-wider">SKU</label>
-                          <input
-                            type="text" value={variant.sku}
-                            onChange={e => updateVariant(variant.id, 'sku', e.target.value)}
-                            className="w-full h-9 px-3 bg-[var(--color-background-primary)] border border-[var(--color-border-secondary)] rounded-lg text-sm text-[var(--color-text-primary)] font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all"
-                          />
-                        </div>
-                        <button
-                          onClick={() => removeVariant(variant.id)}
-                          className="h-9 w-9 shrink-0 flex items-center justify-center rounded-lg text-[var(--color-text-tertiary)] hover:text-red-600 hover:bg-red-50 transition-colors"
-                          title="Eliminar variante"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
                       </div>
                     </div>
 
@@ -532,17 +650,144 @@ export function ProductModal({
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--color-border-tertiary)] bg-[var(--color-background-secondary)] shrink-0 pb-safe md:pb-4">
-          <button onClick={onClose} className="px-4 py-2.5 rounded-xl text-sm font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-background-secondary)] transition-colors">
+          <button type="button" onClick={onClose} className="px-4 py-2.5 rounded-xl text-sm font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-background-secondary)] transition-colors">
             Cancelar
           </button>
           <button
-            onClick={handleSave} disabled={saving}
-            className="flex-1 md:flex-none inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold bg-[var(--color-text-primary)] text-[var(--color-background-primary)] hover:bg-[var(--color-text-primary)] disabled:bg-[var(--color-border-primary)] disabled:cursor-wait transition-all active:scale-[0.97] shadow-lg shadow-black/5"
+            type="button"
+            onClick={handlePreSave}
+            className="flex-1 md:flex-none inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold bg-[var(--color-text-primary)] text-[var(--color-background-primary)] hover:bg-[var(--color-text-primary)] transition-all active:scale-[0.97] shadow-lg shadow-black/5"
           >
-            {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Guardando…</> : <><Save className="w-4 h-4" /> Guardar producto</>}
+            Guardar producto
           </button>
         </div>
       </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          ██ MODAL: VISTA PREVIA ANTES DE GUARDAR
+          ═══════════════════════════════════════════════════════════════════ */}
+      {showPreview && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-[2px] animate-fade-in" onClick={() => setShowPreview(false)} />
+          
+          {/* Content */}
+          <div className="relative w-full max-w-md bg-[var(--color-background-primary)] rounded-2xl shadow-2xl overflow-hidden border border-[var(--color-border-tertiary)] flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-[var(--color-border-tertiary)] bg-[var(--color-background-secondary)]">
+              <h4 className="text-base font-bold text-[var(--color-text-primary)]">Confirmar y Guardar</h4>
+              <p className="text-xs text-[var(--color-text-tertiary)]">Revisa la información del producto antes de persistir</p>
+            </div>
+            
+            {/* Body */}
+            <div className="p-6 space-y-4 overflow-y-auto">
+              <div className="flex gap-4">
+                {/* Image */}
+                <div className="w-20 h-20 rounded-xl bg-[var(--color-background-secondary)] border border-[var(--color-border-secondary)] overflow-hidden shrink-0">
+                  {draft.images[0] ? (
+                    <img src={draft.images[0]} alt={draft.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <ImageIcon className="w-5 h-5 text-[var(--color-text-tertiary)]" />
+                    </div>
+                  )}
+                </div>
+                
+                {/* Details */}
+                <div className="flex-1 min-w-0">
+                  <h5 className="font-semibold text-sm text-[var(--color-text-primary)] truncate">{draft.name}</h5>
+                  <p className="text-xs text-[var(--color-text-tertiary)] line-clamp-2 mt-1">{draft.description || 'Sin descripción'}</p>
+                  <p className="text-sm font-bold text-emerald-600 mt-1">
+                    ${draft.basePrice.toLocaleString()} <span className="text-xs text-[var(--color-text-tertiary)] font-normal">MXN</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Extra Info */}
+              <div className="bg-[var(--color-background-secondary)] rounded-xl p-3 text-xs space-y-2 border border-[var(--color-border-tertiary)] text-[var(--color-text-secondary)]">
+                {draft.sku && (
+                  <div className="flex justify-between">
+                    <span className="text-[var(--color-text-tertiary)]">SKU:</span>
+                    <span className="font-mono font-medium">{draft.sku}</span>
+                  </div>
+                )}
+                {draft.categoria && (
+                  <div className="flex justify-between">
+                    <span className="text-[var(--color-text-tertiary)]">Categoría:</span>
+                    <span className="font-medium">{draft.categoria}</span>
+                  </div>
+                )}
+                {draft.disponible_hasta && (
+                  <div className="flex justify-between">
+                    <span className="text-[var(--color-text-tertiary)]">Expira el:</span>
+                    <span className="font-medium text-amber-600 dark:text-amber-400">
+                      {new Date(draft.disponible_hasta).toLocaleDateString()}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-[var(--color-text-tertiary)]">Estado:</span>
+                  <span className={`font-semibold ${draft.isAvailable ? 'text-emerald-600' : 'text-red-500'}`}>
+                    {draft.isAvailable ? 'Disponible' : 'No disponible'}
+                  </span>
+                </div>
+                {draft.nota_interna && (
+                  <div className="pt-2 border-t border-[var(--color-border-tertiary)]">
+                    <p className="text-[var(--color-text-tertiary)] mb-1 font-semibold flex items-center gap-1">
+                      {draft.nota_publica ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                      Nota {draft.nota_publica ? 'Pública' : 'Interna'}:
+                    </p>
+                    <p className="text-[var(--color-text-secondary)] leading-relaxed italic">{draft.nota_interna}</p>
+                  </div>
+                )}
+              </div>
+              
+              {/* Variants list */}
+              {draft.variants.length > 0 && (
+                <div className="space-y-2">
+                  <h6 className="text-[0.7rem] font-bold text-[var(--color-text-tertiary)] uppercase tracking-wider">Variantes ({draft.variants.length})</h6>
+                  <div className="max-h-[150px] overflow-y-auto border border-[var(--color-border-tertiary)] rounded-xl divide-y divide-[var(--color-border-tertiary)] bg-[var(--color-background-secondary)]">
+                    {draft.variants.map((v) => (
+                      <div key={v.id} className="p-3 flex justify-between items-center text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className={`w-2 h-2 rounded-full ${v.isAvailable ? 'bg-emerald-500' : 'bg-red-400'}`} />
+                          <span className="font-semibold text-[var(--color-text-primary)]">{v.name || 'Sin nombre'}</span>
+                        </div>
+                        <span className="font-mono font-semibold text-[var(--color-text-secondary)]">
+                          ${(v.price !== null && v.price !== undefined ? v.price : draft.basePrice).toLocaleString()} MXN
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-[var(--color-border-tertiary)] bg-[var(--color-background-secondary)] flex gap-3 shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowPreview(false)}
+                className="flex-1 px-4 py-2 bg-[var(--color-background-primary)] border border-[var(--color-border-secondary)] rounded-xl text-xs font-semibold text-[var(--color-text-secondary)] hover:bg-[var(--color-background-tertiary)] transition-colors"
+              >
+                Seguir editando
+              </button>
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={saving}
+                className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-[var(--color-text-primary)] text-[var(--color-background-primary)] rounded-xl text-xs font-bold hover:bg-[var(--color-text-primary)] transition-all disabled:opacity-50 disabled:cursor-wait"
+              >
+                {saving ? (
+                  <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Guardando...</>
+                ) : (
+                  <><Save className="w-3.5 h-3.5" /> Confirmar y guardar</>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

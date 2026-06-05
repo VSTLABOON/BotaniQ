@@ -40,11 +40,14 @@ function mapRow(row) {
     desc:       row.descripcion ?? '',
     waMsg:      '',
     category:   row.categoria ?? 'general',
+    disponibleHasta: row.disponible_hasta,
+    notaInterna: row.nota_interna ?? '',
+    notaPublica: row.nota_publica ?? false,
     variants:   (row.producto_variantes || []).map(v => ({
       id: v.id,
       name: v.nombre,
-      price: v.precio !== null && v.precio !== undefined ? parseFloat(v.precio) : null,
-      stock: v.stock ?? 0,
+      price: v.precio !== null && v.price !== undefined ? parseFloat(v.precio) : null,
+      isAvailable: v.disponible ?? true,
       sku: v.sku ?? '',
       image: v.imagen_url
     }))
@@ -109,18 +112,25 @@ export function usePublicCatalog(slug, options = {}) {
       let queryProd = supabase
         .from('productos')
         .select(`
-          id, slug, nombre, descripcion, precio, disponible, imagen_url, categoria, created_at,
+          id, slug, nombre, descripcion, precio, disponible, imagen_url, categoria, disponible_hasta, nota_interna, nota_publica, orden, created_at,
           producto_variantes (
             id,
             nombre,
             precio,
-            stock,
+            disponible,
             sku,
             imagen_url
           )
         `)
         .eq('tienda_id', tiendaData.id)
-        .eq('disponible', true)
+        .eq('disponible', true);
+
+      // Filtrar productos donde disponible_hasta sea nulo o mayor a ahora
+      queryProd = queryProd.or(`disponible_hasta.is.null,disponible_hasta.gt.${new Date().toISOString()}`);
+
+      // Ordenar por orden personalizado y fecha de creación
+      queryProd = queryProd
+        .order('orden', { ascending: true })
         .order('created_at', { ascending: false });
 
       // Filtro opcional por categoría

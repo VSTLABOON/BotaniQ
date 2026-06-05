@@ -50,6 +50,23 @@ const FRIENDLY: Record<string, string> = {
   'Password should be at least 6 characters': 'La contraseña debe tener al menos 6 caracteres.',
 };
 
+const getHost = (url: string): string => {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return '';
+  }
+};
+
+const getRelativePath = (url: string): string => {
+  try {
+    const parsed = new URL(url);
+    return parsed.pathname + parsed.search;
+  } catch {
+    return '/admin';
+  }
+};
+
 export default function LoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -77,51 +94,49 @@ export default function LoginPage() {
       const plan = searchParams.get('plan');
 
       const doRedirect = async () => {
-        if (profile?.rol === 'superadmin') {
-          navigate('/superadmin', { replace: true });
-          return;
-        }
+        if (!profile) return; // Esperar a que el perfil se resuelva
 
-        // Usuario nuevo sin tienda asignada → onboarding (solo dueño y en la plataforma central)
-        if (profile && !profile.tienda_id && profile.rol === 'dueño' && isPlatform) {
-          navigate(`/onboarding${plan ? `?plan=${plan}` : ''}`, { replace: true });
-          return;
-        }
+        const userRole = profile.rol as UserRole;
+        const hasAdminRole = ADMIN_ROLES.includes(userRole);
 
-        if (profile && ADMIN_ROLES.includes(profile.rol as UserRole)) {
-          // Si es dueño, verificar si ya completó onboarding (cambió el slug/nombre por defecto)
-          // Solo forzar onboarding si estamos en la plataforma central
-          if (profile.rol === 'dueño' && profile.tienda_id) {
-            try {
-              const { data: tienda } = await supabase
-                .from('tiendas')
-                .select('slug, nombre')
-                .eq('id', profile.tienda_id)
-                .single();
+        // 1. Si tiene tienda y tiene rol administrativo ('dueño', 'empleado', 'superadmin')
+        if (profile.tienda_id && hasAdminRole) {
+          try {
+            const { data: tienda } = await supabase
+              .from('tiendas')
+              .select('slug, nombre')
+              .eq('id', profile.tienda_id)
+              .single();
 
-              if (tienda) {
+            if (tienda) {
+              // Solo forzar onboarding para dueños en la plataforma central si no tienen slug real
+              if (userRole === 'dueño') {
                 const isDefault = tienda.slug.startsWith('tienda-') || tienda.nombre === 'Mi Nueva Florería';
                 if (isDefault && isPlatform) {
                   navigate(`/onboarding${plan ? `?plan=${plan}` : ''}`, { replace: true });
                   return;
                 }
+              }
 
-                // Redirección inteligente: si el usuario pertenece a otra tienda
-                if (profile.tienda_id !== tenant.id) {
-                  const newUrl = getSubdomainUrl(tienda.slug, '/admin');
-                  // En local, getSubdomainUrl mantiene el mismo host → navegar internamente
-                  if (newUrl.includes(window.location.hostname)) {
-                    navigate('/admin', { replace: true });
-                    return;
-                  }
-                  // En producción, redirigir al subdominio correcto
-                  window.location.href = newUrl;
+              // Redirección inteligente: si el usuario pertenece a otra tienda (subdominio o local override)
+              if (profile.tienda_id !== tenant.id) {
+                const newUrl = getSubdomainUrl(tienda.slug, '/admin');
+                const newHost = getHost(newUrl);
+
+                if (newHost === window.location.hostname) {
+                  // Local: mantener el mismo host y query param
+                  const relative = getRelativePath(newUrl);
+                  navigate(relative, { replace: true });
                   return;
                 }
+
+                // Producción: redirigir al subdominio correcto
+                window.location.href = newUrl;
+                return;
               }
-            } catch (err) {
-              console.error('Error fetching tienda for redirect:', err);
             }
+          } catch (err) {
+            console.error('Error fetching tienda for redirect:', err);
           }
 
           // Si pertenece a la tienda actual -> admin
@@ -131,7 +146,20 @@ export default function LoginPage() {
           }
         }
 
-        // Si tiene rol administrativo pero en OTRA tienda, o es un cliente normal -> vista de cliente
+        // 2. Si no tiene tienda
+        // 2a. Si es superadmin sin tienda -> superadmin
+        if (userRole === 'superadmin') {
+          navigate('/superadmin', { replace: true });
+          return;
+        }
+
+        // 2b. Si es dueño sin tienda -> onboarding (solo en la plataforma central)
+        if (userRole === 'dueño' && isPlatform) {
+          navigate(`/onboarding${plan ? `?plan=${plan}` : ''}`, { replace: true });
+          return;
+        }
+
+        // 3. Fallback: vista de cliente
         navigate('/mi-cuenta', { replace: true });
       };
 
@@ -188,7 +216,7 @@ export default function LoginPage() {
   };
 
   // ── Loading state ─────────────────────────────────────────────
-  if (authLoading || (session && profile?.rol)) {
+  if (authLoading || session) {
     return (
       <div className="login-page">
         <div className="login-page__bg" />

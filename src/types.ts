@@ -15,6 +15,12 @@ export interface Product {
   images: string[];
   variants: ProductVariant[];
   isAvailable: boolean;
+  sku?: string;
+  nota_interna?: string;
+  nota_publica?: boolean;
+  disponible_hasta?: string;
+  orden?: number;
+  categoria?: string;
 }
 
 export interface ProductVariant {
@@ -22,8 +28,8 @@ export interface ProductVariant {
   productId: string;
   name: string;            // "Estándar", "Premium"
   price: number | null;    // Precio propio absoluto de la variante (null si no está capturado)
-  stock: number;
-  sku: string;
+  isAvailable: boolean;
+  sku?: string;
   image?: string;
 }
 
