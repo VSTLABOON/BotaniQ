@@ -108,12 +108,6 @@ function isReturnUrlAllowed(                                          // [BLINDA
   }                                                                   // [BLINDADO]
 }                                                                     // [BLINDADO]
 
-// ── Inicialización de Stripe ────────────────────────────────────
-const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") as string, {
-  apiVersion: "2025-04-30.basil",
-  httpClient: Stripe.createFetchHttpClient(),
-});
-
 // ── Helper: Respuesta JSON con CORS ─────────────────────────────
 function jsonResponse(body: Record<string, unknown>, status: number, origin: string | null): Response {  // [BLINDADO] — Ahora recibe origin para CORS dinámico
   return new Response(JSON.stringify(body), {
@@ -175,6 +169,25 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
+    // Cliente Admin (Service Role) para leer precios sin restricciones RLS
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+
+    // ═════════════════════════════════════════════════════════════
+    // PASO 2: OBTENER Y VERIFICAR CONFIGURACIÓN DE LA TIENDA
+    // ═════════════════════════════════════════════════════════════
+    const { data: tienda, error: tiendaError } = await supabaseAdmin
+      .from("tiendas")
+      .select("id, subscription_level, currency, slug, custom_domain, stripe_secret_key, stripe_publishable_key, stripe_webhook_secret, preferred_gateway")
+      .eq("id", tenant_id)
+      .single();
+
+    if (tiendaError || !tienda) {
+      return jsonResponse({ error: "Tienda no encontrada." }, 404, origin);
+    }
+
     // ═════════════════════════════════════════════════════════════ // [BLINDADO]
     // VALIDACIÓN DE URLs DE RETORNO (P6)                          // [BLINDADO]
     // ═════════════════════════════════════════════════════════════ // [BLINDADO]
@@ -182,7 +195,7 @@ serve(async (req: Request): Promise<Response> => {
     // success_url: "https://phishing.com" y el cliente sería       // [BLINDADO]
     // redirigido ahí después de pagar.                             // [BLINDADO]
     // ═════════════════════════════════════════════════════════════ // [BLINDADO]
-    if (!isReturnUrlAllowed(success_url, null, origin)) {            // [BLINDADO] tienda not yet fetched, will recheck below
+    if (!isReturnUrlAllowed(success_url, tienda, origin)) {
       console.warn(`⛔ success_url rechazada: ${success_url}`);      // [BLINDADO]
       return jsonResponse(                                           // [BLINDADO]
         { error: "URL de retorno no autorizada." },                  // [BLINDADO]
@@ -190,7 +203,7 @@ serve(async (req: Request): Promise<Response> => {
         origin                                                          // [BLINDADO]
       );                                                             // [BLINDADO]
     }                                                                // [BLINDADO]
-    if (!isReturnUrlAllowed(cancel_url, null, origin)) {             // [BLINDADO] tienda not yet fetched, will recheck below
+    if (!isReturnUrlAllowed(cancel_url, tienda, origin)) {
       console.warn(`⛔ cancel_url rechazada: ${cancel_url}`);        // [BLINDADO]
       return jsonResponse(                                           // [BLINDADO]
         { error: "URL de retorno no autorizada." },                  // [BLINDADO]
@@ -211,27 +224,12 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     // ═════════════════════════════════════════════════════════════
-    // PASO 2: AUTENTICACIÓN — JWT O ANON KEY (P5 + Guest Checkout)
+    // PASO 3: AUTENTICACIÓN — JWT O ANON KEY (P5 + Guest Checkout)
     // ═════════════════════════════════════════════════════════════
-    // Soportamos dos modos:
-    //   A) JWT de usuario autenticado → user.id disponible
-    //   B) Anon key (Guest Checkout) → user_id = null
-    //
-    // En ambos casos, Price Hardening protege los precios (P2).
-    // La diferencia es que en Guest Checkout no se vincula a un
-    // usuario, pero el pedido se crea igualmente en la BD.
-    // ═════════════════════════════════════════════════════════════
-
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return jsonResponse({ error: "Acceso denegado: Falta el header Authorization." }, 401, origin);
     }
-
-    // Cliente Admin (Service Role) para leer precios sin restricciones RLS
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
 
     const token = authHeader.replace("Bearer ", "");
     let userId: string | null = null;
@@ -257,22 +255,8 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     // ═════════════════════════════════════════════════════════════
-    // PASO 3: FEATURE GATE — VERIFICAR SUSCRIPCIÓN (P4)
+    // PASO 4: FEATURE GATE & STRIPE CREDENTIALS VERIFICATION (P4)
     // ═════════════════════════════════════════════════════════════
-    // Solo tiendas con subscription_level >= 2 pueden usar pagos
-    // en línea. Nivel 1 no tiene acceso a cobros con Stripe.
-    // ═════════════════════════════════════════════════════════════
-
-    const { data: tienda, error: tiendaError } = await supabaseAdmin
-      .from("tiendas")
-      .select("id, subscription_level, currency, slug, custom_domain")
-      .eq("id", tenant_id)
-      .single();
-
-    if (tiendaError || !tienda) {
-      return jsonResponse({ error: "Tienda no encontrada." }, 404, origin);
-    }
-
     if (tienda.subscription_level < 2) {
       return jsonResponse(
         { error: "Esta tienda no tiene habilitados los cobros en línea (requiere Nivel 2+)." },
@@ -280,6 +264,20 @@ serve(async (req: Request): Promise<Response> => {
         origin
       );
     }
+
+    if (!tienda.stripe_secret_key || tienda.stripe_secret_key.trim() === "") {
+      return jsonResponse(
+        { error: "Esta tienda no tiene Stripe configurado. El florista debe ingresar sus credenciales de Stripe en el panel de configuración." },
+        400,
+        origin
+      );
+    }
+
+    // Inicializar Stripe dinámicamente con la llave del florista
+    const stripe = new Stripe(tienda.stripe_secret_key, {
+      apiVersion: "2025-04-30.basil",
+      httpClient: Stripe.createFetchHttpClient(),
+    });
 
     const currency = (tienda.currency || "mxn").toLowerCase();
 

@@ -59,6 +59,9 @@ export const TenantConfigBaseSchema = z.object({
   openpay_public_key: z.string().max(200, "La llave pública no puede exceder 200 caracteres").nullable().optional().or(z.literal('')),
   openpay_private_key: z.string().max(200, "La llave privada no puede exceder 200 caracteres").nullable().optional().or(z.literal('')),
   openpay_sandbox_mode: z.boolean().optional().default(true),
+  stripe_publishable_key: z.string().max(200, "La llave publicable no puede exceder 200 caracteres").nullable().optional().or(z.literal('')),
+  stripe_secret_key: z.string().max(200, "La llave secreta no puede exceder 200 caracteres").nullable().optional().or(z.literal('')),
+  stripe_webhook_secret: z.string().max(200, "El secreto de webhook no puede exceder 200 caracteres").nullable().optional().or(z.literal('')),
   preferred_gateway: z.enum(['stripe', 'openpay']).optional().default('openpay'),
 });
 
@@ -84,6 +87,46 @@ export const TenantConfigSchema = TenantConfigBaseSchema.superRefine((data, ctx)
         message: "La Llave Privada de OpenPay es requerida",
         path: ["openpay_private_key"]
       });
+    }
+  }
+
+  if (data.preferred_gateway === 'stripe') {
+    if (!data.stripe_publishable_key || data.stripe_publishable_key.trim() === '') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "La Llave Pública de Stripe es requerida (debe iniciar con 'pk_')",
+        path: ["stripe_publishable_key"]
+      });
+    } else if (!data.stripe_publishable_key.trim().startsWith('pk_')) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "La Llave Publicable debe comenzar con 'pk_'",
+        path: ["stripe_publishable_key"]
+      });
+    }
+
+    if (!data.stripe_secret_key || data.stripe_secret_key.trim() === '') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "La Llave Secreta de Stripe es requerida (debe iniciar con 'sk_')",
+        path: ["stripe_secret_key"]
+      });
+    } else if (!data.stripe_secret_key.trim().startsWith('sk_')) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "La Llave Secreta debe comenzar con 'sk_'",
+        path: ["stripe_secret_key"]
+      });
+    }
+
+    if (data.stripe_webhook_secret && data.stripe_webhook_secret.trim() !== '') {
+      if (!data.stripe_webhook_secret.trim().startsWith('whsec_')) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "El Secreto de Webhook debe comenzar con 'whsec_'",
+          path: ["stripe_webhook_secret"]
+        });
+      }
     }
   }
 });

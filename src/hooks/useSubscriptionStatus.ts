@@ -1,21 +1,52 @@
+import { useState, useEffect } from 'react';
 import { useTenant } from '../context/TenantContext';
 import { SubscriptionLevel } from '../types';
-
-const TRIAL_DAYS = 14;
+import { supabase } from '../lib/supabaseClient';
 
 export function useSubscriptionStatus() {
   const { tenant } = useTenant();
+  const [isTrialExpired, setIsTrialExpired] = useState(false);
+  const [diasRestantes, setDiasRestantes] = useState(14);
+  const [subscriptionEstado, setSubscriptionEstado] = useState('prueba');
+  const [loading, setLoading] = useState(true);
 
-  const isTrialExpired = (() => {
-    if (!tenant || tenant.subscription_level !== SubscriptionLevel.BASICO) return false;
-    if (tenant.has_active_subscription) return false;
-    if (!tenant.created_at) return false;
+  useEffect(() => {
+    if (!tenant || !tenant.id) {
+      setLoading(false);
+      return;
+    }
 
-    const creationDate = new Date(tenant.created_at);
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - TRIAL_DAYS);
-    return creationDate < cutoff;
-  })();
+    let active = true;
+
+    async function fetchStatus() {
+      try {
+        const { data, error } = await supabase.rpc('get_subscription_status', {
+          p_tienda_id: tenant.id,
+        });
+
+        if (error) {
+          console.error('Error al obtener estado de suscripción:', error.message);
+          return;
+        }
+
+        if (active && data) {
+          setIsTrialExpired(data.is_trial_expired === true);
+          setDiasRestantes(data.dias_restantes ?? 0);
+          setSubscriptionEstado(data.estado || 'sin_suscripcion');
+        }
+      } catch (err) {
+        console.error('Error cargando estado de suscripción:', err);
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    fetchStatus();
+
+    return () => {
+      active = false;
+    };
+  }, [tenant?.id]);
 
   const isBlocked =
     tenant?.subscription_level === SubscriptionLevel.BLOCKED || isTrialExpired;
@@ -23,6 +54,9 @@ export function useSubscriptionStatus() {
   return {
     isBlocked,
     isTrialExpired,
+    diasRestantes,
+    subscriptionEstado,
+    loading,
     subscriptionLevel: tenant?.subscription_level ?? SubscriptionLevel.BASICO,
     hasActiveSubscription: tenant?.has_active_subscription ?? false,
   };

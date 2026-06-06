@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useCartStore } from '../../store/cartStore.ts';
 import { useTenant } from '../../context/TenantContext.tsx';
 import { useAuth } from '../../context/AuthContext.tsx';
@@ -9,6 +9,7 @@ import { UI_COLORS } from '../../lib/constants.ts';
 import { toast } from '../../store/toastStore.ts';
 import { logger } from '../../lib/logger';
 import { PedidoEnvioSchema } from '../../lib/schemas.ts';
+import { loadStripe } from '@stripe/stripe-js';
 
 export default function CartDrawer() {
   const items = useCartStore((s) => s.items);
@@ -407,6 +408,10 @@ export default function CartDrawer() {
     } finally { setCheckoutLoading(false); }
   };
 
+  const stripePromise = useMemo(() => {
+    return tenant?.stripe_publishable_key ? loadStripe(tenant.stripe_publishable_key) : null;
+  }, [tenant?.stripe_publishable_key]);
+
   const itemCount = getItemCount();
   const subtotal = getSubtotal();
   const INPUT = "w-full bg-negro border border-white/10 rounded-lg px-4 py-2.5 text-[var(--color-background-primary)] text-sm focus:outline-none focus:border-verde focus:ring-1 focus:ring-verde transition-all";
@@ -414,7 +419,16 @@ export default function CartDrawer() {
 
   // Feature flags derived from subscription_level (DB source of truth)
   // Nivel 1: WhatsApp only | Nivel 2+: Stripe Checkout + WhatsApp
-  const enableCheckout = tenant.subscription_level >= 2; // Nivel 2 = PRO
+  const hasSubscriptionForCheckout = tenant.subscription_level >= 2; // Nivel 2 = PRO
+  const isPreferredStripe = tenant.preferred_gateway === 'stripe';
+  const isPreferredOpenpay = tenant.preferred_gateway === 'openpay' || !tenant.preferred_gateway;
+
+  const isStripeConfigured = !!tenant.stripe_publishable_key;
+  const isOpenpayConfigured = !!(tenant.openpay_public_key && tenant.openpay_merchant_id);
+
+  const isGatewayConfigured = isPreferredStripe ? isStripeConfigured : isOpenpayConfigured;
+
+  const enableCheckout = hasSubscriptionForCheckout && isGatewayConfigured;
   const enableWhatsApp = true; // WhatsApp is always available
   const isCheckoutMode = enableCheckout;
   const FabIcon = isCheckoutMode ? ShoppingCart : MessageCircle;
@@ -859,12 +873,18 @@ export default function CartDrawer() {
             </div>
           )}
 
-          {enableCheckout && (
+          {enableCheckout ? (
             <button type="button" disabled={!items.length || checkoutLoading} onClick={handleCheckout}
               className="w-full flex items-center justify-center gap-2.5 bg-verde hover:bg-verde-light disabled:bg-[var(--color-background-primary)]/10 disabled:text-[var(--color-background-primary)]/30 text-[var(--color-background-primary)] rounded-xl py-3.5 font-bold text-[0.85rem] tracking-[0.04em] transition-all duration-300 ease-spring hover:scale-[1.02] disabled:hover:scale-100">
               {checkoutLoading ? (<><svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="31.4" strokeLinecap="round"/></svg>Procesando...</>)
               : (<><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Pagar ahora</>)}
             </button>
+          ) : (
+            hasSubscriptionForCheckout && (
+              <div className="w-full text-center py-3.5 px-4 rounded-xl border border-white/10 bg-white/5 text-[var(--color-background-primary)]/60 text-xs font-semibold">
+                Pago con tarjeta no disponible en esta tienda.
+              </div>
+            )
           )}
 
           {enableCheckout && enableWhatsApp && (

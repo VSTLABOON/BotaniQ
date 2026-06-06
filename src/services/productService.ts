@@ -4,6 +4,7 @@
 
 import { supabase } from '../lib/supabaseClient';
 import type { Product } from '../types';
+import { TrialExpiredError, isDbTrialExpiredError } from '../lib/errors';
 
 /**
  * Obtiene todos los productos de una tienda con sus variantes de manera estructurada.
@@ -66,7 +67,7 @@ export async function fetchAdminProducts(tiendaId: string): Promise<Product[]> {
       id: v.id,
       productId: v.producto_id,
       name: v.nombre,
-      description: v.descripcion || '',
+      description: v.description || '',
       price: v.precio !== null && v.precio !== undefined ? Number(v.precio) : null,
       isAvailable: v.disponible ?? true,
       sku: v.sku || '',
@@ -84,7 +85,12 @@ export async function updateProductAvailability(productId: string, isAvailable: 
     .update({ disponible: isAvailable })
     .eq('id', productId);
 
-  if (error) throw error;
+  if (error) {
+    if (isDbTrialExpiredError(error)) {
+      throw new TrialExpiredError();
+    }
+    throw error;
+  }
 }
 
 /**
@@ -114,38 +120,56 @@ export async function saveAdminProduct(
     ultimas_unidades: product.ultimas_unidades ?? false
   };
 
-  const { error: prodError } = await supabase
-    .from('productos')
-    .upsert(productRow);
+  try {
+    const { error: prodError } = await supabase
+      .from('productos')
+      .upsert(productRow);
 
-  if (prodError) throw prodError;
+    if (prodError) {
+      if (isDbTrialExpiredError(prodError)) {
+        throw new TrialExpiredError();
+      }
+      throw prodError;
+    }
 
-  // Eliminar variantes solicitadas
-  if (toDeleteVariantIds.length > 0) {
-    const { error: delErr } = await supabase
-      .from('producto_variantes')
-      .delete()
-      .in('id', toDeleteVariantIds);
-    if (delErr) throw delErr;
-  }
+    // Eliminar variantes solicitadas
+    if (toDeleteVariantIds.length > 0) {
+      const { error: delErr } = await supabase
+        .from('producto_variantes')
+        .delete()
+        .in('id', toDeleteVariantIds);
+      if (delErr) {
+        if (isDbTrialExpiredError(delErr)) throw new TrialExpiredError();
+        throw delErr;
+      }
+    }
 
-  // Upsert variantes activas
-  if (product.variants.length > 0) {
-    const variantsRows = product.variants.map(v => ({
-      id: v.id,
-      producto_id: product.id,
-      nombre: v.name,
-      descripcion: v.description || null,
-      precio: v.price,
-      disponible: v.isAvailable,
-      sku: v.sku || null,
-      imagen_url: v.image || null
-    }));
+    // Upsert variantes activas
+    if (product.variants.length > 0) {
+      const variantsRows = product.variants.map(v => ({
+        id: v.id,
+        producto_id: product.id,
+        nombre: v.name,
+        descripcion: v.description || null,
+        precio: v.price,
+        disponible: v.isAvailable,
+        sku: v.sku || null,
+        imagen_url: v.image || null
+      }));
 
-    const { error: varError } = await supabase
-      .from('producto_variantes')
-      .upsert(variantsRows);
-    if (varError) throw varError;
+      const { error: varError } = await supabase
+        .from('producto_variantes')
+        .upsert(variantsRows);
+      if (varError) {
+        if (isDbTrialExpiredError(varError)) throw new TrialExpiredError();
+        throw varError;
+      }
+    }
+  } catch (error) {
+    if (isDbTrialExpiredError(error)) {
+      throw new TrialExpiredError();
+    }
+    throw error;
   }
 }
 
@@ -159,7 +183,10 @@ export async function deleteAdminProduct(productId: string): Promise<void> {
     .delete()
     .eq('producto_id', productId);
     
-  if (varErr) throw varErr;
+  if (varErr) {
+    if (isDbTrialExpiredError(varErr)) throw new TrialExpiredError();
+    throw varErr;
+  }
 
   // Eliminar producto
   const { error: prodErr } = await supabase
@@ -167,7 +194,10 @@ export async function deleteAdminProduct(productId: string): Promise<void> {
     .delete()
     .eq('id', productId);
     
-  if (prodErr) throw prodErr;
+  if (prodErr) {
+    if (isDbTrialExpiredError(prodErr)) throw new TrialExpiredError();
+    throw prodErr;
+  }
 }
 
 /**
@@ -184,5 +214,8 @@ export async function reorderProductos(tiendaId: string, orderedIds: string[]): 
     .from('productos')
     .upsert(updates, { onConflict: 'id' });
 
-  if (error) throw error;
+  if (error) {
+    if (isDbTrialExpiredError(error)) throw new TrialExpiredError();
+    throw error;
+  }
 }

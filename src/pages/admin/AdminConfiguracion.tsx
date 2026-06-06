@@ -150,6 +150,9 @@ export default function AdminConfiguracion() {
   const [openpayPublicKey, setOpenpayPublicKey]     = useState(tenant.openpay_public_key || '');
   const [openpayPrivateKey, setOpenpayPrivateKey]   = useState(tenant.openpay_private_key || '');
   const [openpaySandboxMode, setOpenpaySandboxMode] = useState(tenant.openpay_sandbox_mode ?? true);
+  const [stripePublishableKey, setStripePublishableKey] = useState(tenant.stripe_publishable_key || '');
+  const [stripeSecretKey, setStripeSecretKey]           = useState(tenant.stripe_secret_key || '');
+  const [stripeWebhookSecret, setStripeWebhookSecret]   = useState(tenant.stripe_webhook_secret || '');
 
   // Evento/Promoción
   const [eventoActivo, setEventoActivo] = useState(tenant.evento?.activo || false);
@@ -212,6 +215,9 @@ export default function AdminConfiguracion() {
       openpayPublicKey !== (tenant.openpay_public_key || '') ||
       openpayPrivateKey !== (tenant.openpay_private_key || '') ||
       openpaySandboxMode !== (tenant.openpay_sandbox_mode ?? true) ||
+      stripePublishableKey !== (tenant.stripe_publishable_key || '') ||
+      stripeSecretKey !== (tenant.stripe_secret_key || '') ||
+      stripeWebhookSecret !== (tenant.stripe_webhook_secret || '') ||
       mostrarDescripcionEnTarjeta !== (tenant.catalogo?.mostrar_descripcion_en_tarjeta ?? false)
     );
   }, [
@@ -223,6 +229,7 @@ export default function AdminConfiguracion() {
     horarioRegular, horarioEspecial,
     eventoActivo, eventoTitulo, eventoProducto, eventoFechaFin,
     preferredGateway, openpayMerchantId, openpayPublicKey, openpayPrivateKey, openpaySandboxMode,
+    stripePublishableKey, stripeSecretKey, stripeWebhookSecret,
     mostrarDescripcionEnTarjeta
   ]);
 
@@ -266,6 +273,9 @@ export default function AdminConfiguracion() {
     setOpenpayPublicKey(tenant.openpay_public_key || '');
     setOpenpayPrivateKey(tenant.openpay_private_key || '');
     setOpenpaySandboxMode(tenant.openpay_sandbox_mode ?? true);
+    setStripePublishableKey(tenant.stripe_publishable_key || '');
+    setStripeSecretKey(tenant.stripe_secret_key || '');
+    setStripeWebhookSecret(tenant.stripe_webhook_secret || '');
   }, [tenant]);
 
   // BeforeUnload guard
@@ -339,6 +349,9 @@ export default function AdminConfiguracion() {
       setOpenpayPublicKey(tenant.openpay_public_key || '');
       setOpenpayPrivateKey(tenant.openpay_private_key || '');
       setOpenpaySandboxMode(tenant.openpay_sandbox_mode ?? true);
+      setStripePublishableKey(tenant.stripe_publishable_key || '');
+      setStripeSecretKey(tenant.stripe_secret_key || '');
+      setStripeWebhookSecret(tenant.stripe_webhook_secret || '');
     }
   }, [loading, tenant]);
 
@@ -432,7 +445,10 @@ export default function AdminConfiguracion() {
       openpay_merchant_id: openpayMerchantId || null,
       openpay_public_key: openpayPublicKey || null,
       openpay_private_key: openpayPrivateKey || null,
-      openpay_sandbox_mode: openpaySandboxMode
+      openpay_sandbox_mode: openpaySandboxMode,
+      stripe_publishable_key: stripePublishableKey || null,
+      stripe_secret_key: stripeSecretKey || null,
+      stripe_webhook_secret: stripeWebhookSecret || null
     };
 
     const schemaToUse = activeTab === 'horarios' ? TenantConfigSchema : TenantConfigBaseSchema;
@@ -481,9 +497,9 @@ export default function AdminConfiguracion() {
         },
         whatsapp:         validatedData.whatsapp,
         custom_domain:    validatedData.custom_domain,
-        ciudad:           validatedData.ciudad,
-        estado:           validatedData.estado,
-        area_metropolitana: validatedData.area_metropolitana,
+        ciudad:           (validatedData as any).ciudad || ciudad, // Use state as fallback if not in schema
+        estado:           (validatedData as any).estado || estado,
+        area_metropolitana: (validatedData as any).area_metropolitana || areaMetropolitana,
         horarios:         validatedData.horarios,
         redes_sociales:   validatedData.redes_sociales,
         preferred_gateway: validatedData.preferred_gateway,
@@ -491,6 +507,9 @@ export default function AdminConfiguracion() {
         openpay_public_key: validatedData.openpay_public_key,
         openpay_private_key: validatedData.openpay_private_key,
         openpay_sandbox_mode: validatedData.openpay_sandbox_mode,
+        stripe_publishable_key: (validatedData as any).stripe_publishable_key,
+        stripe_secret_key: (validatedData as any).stripe_secret_key,
+        stripe_webhook_secret: (validatedData as any).stripe_webhook_secret,
         catalogo: {
           mostrar_descripcion_en_tarjeta: mostrarDescripcionEnTarjeta
         }
@@ -518,6 +537,7 @@ export default function AdminConfiguracion() {
     horarioRegular, horarioEspecial, zonasEnvio,
     eventoActivo, eventoTitulo, eventoProducto, eventoFechaFin,
     preferredGateway, openpayMerchantId, openpayPublicKey, openpayPrivateKey, openpaySandboxMode,
+    stripePublishableKey, stripeSecretKey, stripeWebhookSecret,
     mostrarDescripcionEnTarjeta
   ]);
 
@@ -692,8 +712,32 @@ export default function AdminConfiguracion() {
           {/* TAB: HORARIOS Y PAGOS */}
           {activeTab === 'horarios' && (
             <HorariosTab
-              state={{ horarioRegular, horarioEspecial, openpayMerchantId, openpayPublicKey, openpayPrivateKey, openpaySandboxMode, preferredGateway, openAccordions }}
-              actions={{ setHorarioRegular, setHorarioEspecial, setOpenpayMerchantId, setOpenpayPublicKey, setOpenpayPrivateKey, setOpenpaySandboxMode, setPreferredGateway, onToggleAccordion: handleToggleAccordion }}
+              state={{
+                horarioRegular,
+                horarioEspecial,
+                openpayMerchantId,
+                openpayPublicKey,
+                openpayPrivateKey,
+                openpaySandboxMode,
+                stripePublishableKey,
+                stripeSecretKey,
+                stripeWebhookSecret,
+                preferredGateway,
+                openAccordions
+              }}
+              actions={{
+                setHorarioRegular,
+                setHorarioEspecial,
+                setOpenpayMerchantId,
+                setOpenpayPublicKey,
+                setOpenpayPrivateKey,
+                setOpenpaySandboxMode,
+                setStripePublishableKey,
+                setStripeSecretKey,
+                setStripeWebhookSecret,
+                setPreferredGateway,
+                onToggleAccordion: handleToggleAccordion
+              }}
               tenant={tenant}
             />
           )}

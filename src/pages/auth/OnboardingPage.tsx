@@ -19,7 +19,7 @@ import {
   User, Store, Globe, ArrowRight, ArrowLeft,
   Loader2, CheckCircle2, Sparkles, AlertCircle, Flower, MapPin, LogOut
 } from 'lucide-react';
-import { createTiendaProfile, assignUserRole } from '../../services/onboardingService';
+import { createTiendaProfile, assignUserRole, createTrialSubscription } from '../../services/onboardingService';
 
 // ── Utilidades ──────────────────────────────────────────────────
 
@@ -265,6 +265,8 @@ export default function OnboardingPage() {
       });
 
       if (skipPayment || currentPlan === 'gratis') {
+        // Registrar suscripción de prueba de 14 días
+        await createTrialSubscription(tiendaId, currentPlan);
         // Redirigir directamente al panel de administración del nuevo subdominio
         const adminUrl = getSubdomainUrl(suggestedSlug, '/admin?registration=complete');
         window.location.href = adminUrl;

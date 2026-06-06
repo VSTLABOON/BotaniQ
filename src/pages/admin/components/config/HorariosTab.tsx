@@ -19,6 +19,9 @@ export function HorariosTab({
     openpayPublicKey,
     openpayPrivateKey,
     openpaySandboxMode,
+    stripePublishableKey,
+    stripeSecretKey,
+    stripeWebhookSecret,
     preferredGateway,
     openAccordions
   } = state;
@@ -30,9 +33,15 @@ export function HorariosTab({
     setOpenpayPublicKey,
     setOpenpayPrivateKey,
     setOpenpaySandboxMode,
+    setStripePublishableKey,
+    setStripeSecretKey,
+    setStripeWebhookSecret,
     setPreferredGateway,
     onToggleAccordion
   } = actions;
+
+  const [showSecret, setShowSecret] = React.useState(false);
+  const [showWebhookSecret, setShowWebhookSecret] = React.useState(false);
 
   const inputClass = "w-full px-4 py-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all";
 
@@ -326,28 +335,99 @@ export function HorariosTab({
                 </motion.div>
               ) : (
                 <motion.div
-                  key="stripe-info"
+                  key="stripe-form"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.2 }}
-                  className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-3"
+                  className="space-y-4 p-5 rounded-2xl bg-white/5 border border-white/10"
                 >
-                  <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
-                    <span className="text-xs font-bold text-[var(--color-text-primary)] uppercase tracking-wider">Configuración de Stripe</span>
+                  <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
+                      <span className="text-xs font-bold text-[var(--color-text-primary)] uppercase tracking-wider">Credenciales de Stripe</span>
+                    </div>
                   </div>
-                  <p className="text-xs text-[var(--color-text-tertiary)] leading-relaxed">
-                    Stripe funciona mediante la vinculación rápida de tu cuenta Stripe Connect. Los cobros y depósitos se configuran de manera nativa sin requerir llaves manuales.
-                  </p>
-                  <div className="pt-2">
-                    <button
-                      type="button"
-                      disabled
-                      className="px-4 py-2 bg-indigo-600/20 text-indigo-400 border border-indigo-500/20 rounded-xl text-xs font-bold"
-                    >
-                      Stripe Connect Vinculado
-                    </button>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="md:col-span-2">
+                      <label htmlFor="stripePublishableKey" className="block text-xs font-medium text-[var(--color-text-secondary)] mb-1">
+                        Llave Pública / Publicable (Publishable Key)
+                      </label>
+                      <input
+                        id="stripePublishableKey"
+                        type="text"
+                        value={stripePublishableKey}
+                        onChange={(e) => setStripePublishableKey(e.target.value)}
+                        className={inputClass}
+                        placeholder="Ej: pk_live_..."
+                        style={{ fontSize: '16px' }}
+                      />
+                      <p className="text-[10px] text-[var(--color-text-tertiary)] mt-1">
+                        Comienza con <code className="bg-white/10 px-1 rounded">pk_</code>.
+                      </p>
+                    </div>
+
+                    <div className="relative">
+                      <label htmlFor="stripeSecretKey" className="block text-xs font-medium text-[var(--color-text-secondary)] mb-1">
+                        Llave Secreta (Secret Key)
+                      </label>
+                      <div className="relative">
+                        <input
+                          id="stripeSecretKey"
+                          type={showSecret ? "text" : "password"}
+                          value={stripeSecretKey}
+                          onChange={(e) => setStripeSecretKey(e.target.value)}
+                          className={`${inputClass} pr-10`}
+                          placeholder="Ej: sk_live_..."
+                          style={{ fontSize: '16px' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowSecret(!showSecret)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] cursor-pointer bg-transparent border-0 outline-none"
+                        >
+                          <i className={showSecret ? "ti ti-eye-off" : "ti ti-eye"} />
+                        </button>
+                      </div>
+                      <p className="text-[10px] text-[var(--color-text-tertiary)] mt-1">
+                        Comienza con <code className="bg-white/10 px-1 rounded">sk_</code>. Nunca compartas esta llave.
+                      </p>
+                    </div>
+
+                    <div className="relative">
+                      <label htmlFor="stripeWebhookSecret" className="block text-xs font-medium text-[var(--color-text-secondary)] mb-1">
+                        Secreto de Webhook (Webhook Secret)
+                      </label>
+                      <div className="relative">
+                        <input
+                          id="stripeWebhookSecret"
+                          type={showWebhookSecret ? "text" : "password"}
+                          value={stripeWebhookSecret}
+                          onChange={(e) => setStripeWebhookSecret(e.target.value)}
+                          className={`${inputClass} pr-10`}
+                          placeholder="Ej: whsec_..."
+                          style={{ fontSize: '16px' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowWebhookSecret(!showWebhookSecret)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] cursor-pointer bg-transparent border-0 outline-none"
+                        >
+                          <i className={showWebhookSecret ? "ti ti-eye-off" : "ti ti-eye"} />
+                        </button>
+                      </div>
+                      <p className="text-[10px] text-[var(--color-text-tertiary)] mt-1">
+                        Comienza con <code className="bg-white/10 px-1 rounded">whsec_</code>. Opcional.
+                      </p>
+                    </div>
+
+                    <div className="md:col-span-2 flex items-start gap-2 p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-xs text-indigo-600 dark:text-indigo-400">
+                      <i className="ti ti-info-circle text-base mt-0.5" />
+                      <p className="leading-relaxed">
+                        Encuentra tus llaves en el Dashboard de Stripe &rarr; Developers &rarr; API Keys. Para el secreto de webhook, crea un endpoint en Stripe apuntando a: <code className="bg-white/15 dark:bg-black/20 px-1 py-0.5 rounded select-all">https://vivero.botaniq.com.mx/functions/v1/stripe-webhook</code>
+                      </p>
+                    </div>
                   </div>
                 </motion.div>
               )}

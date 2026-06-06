@@ -211,8 +211,21 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     // 3. Resolución de Price ID según Plan (Stripe resuelve la divisa de forma nativa)
-    const envVarName = `STRIPE_${plan.toUpperCase()}_PRICE_ID`;
-    const stripePriceId = Deno.env.get(envVarName) || `price_mock_${plan}`;
+    const PRICE_IDS: Record<string, string | undefined> = {
+      basico: Deno.env.get('STRIPE_BASICO_PRICE_ID'),
+      pro: Deno.env.get('STRIPE_PRO_PRICE_ID'),
+      premium: Deno.env.get('STRIPE_PREMIUM_PRICE_ID'),
+    };
+
+    const stripePriceId = PRICE_IDS[plan];
+    if (!stripePriceId) {
+      console.error(`[create-saas-checkout] Price ID no configurado para plan: ${plan}`);
+      return jsonResponse(
+        { error: 'Configuración de plan no disponible. Contacta al soporte.' },
+        503,
+        origin
+      );
+    }
 
     console.log(`🛒 Creando sesión SaaS Checkout: user=${user.id}, tienda=${tenant_id}, plan=${plan}, cur=${cur}, price=${stripePriceId}`);
 
@@ -231,6 +244,18 @@ serve(async (req: Request): Promise<Response> => {
           quantity: 1,
         },
       ],
+      subscription_data: {
+        trial_period_days: 14,
+        trial_settings: {
+          end_behavior: {
+            missing_payment_method: 'cancel'
+          }
+        },
+        metadata: {
+          tenant_id: tenant_id,
+          plan: plan
+        }
+      },
       locale: stripeLocale,
       automatic_tax: { enabled: true },
       tax_id_collection: { enabled: true },

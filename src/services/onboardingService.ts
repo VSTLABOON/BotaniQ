@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
+import { TrialExpiredError, isDbTrialExpiredError } from '../lib/errors';
 
 export interface OnboardingStoreData {
   slug: string;
@@ -18,6 +19,9 @@ export interface OnboardingProfileData {
  * Actualiza la información inicial de la tienda autoprovisionada.
  */
 export async function createTiendaProfile(tiendaId: string, data: OnboardingStoreData): Promise<void> {
+  // NOTA: El subscription_level se inicializa automáticamente en 1 (Básico)
+  // en la base de datos a través de los triggers/RPC de creación de tienda (Fase de trial).
+  // No se actualiza aquí desde el cliente para mantener Column-Level Security (CLS) y mitigar fugas.
   const { error } = await supabase
     .from('tiendas')
     .update({
@@ -32,7 +36,12 @@ export async function createTiendaProfile(tiendaId: string, data: OnboardingStor
     })
     .eq('id', tiendaId);
 
-  if (error) throw error;
+  if (error) {
+    if (isDbTrialExpiredError(error)) {
+      throw new TrialExpiredError();
+    }
+    throw error;
+  }
 }
 
 /**
@@ -49,4 +58,25 @@ export async function assignUserRole(userId: string, data: OnboardingProfileData
     .eq('id', userId);
 
   if (error) throw error;
+}
+
+/**
+ * Registra un registro de prueba gratuita en la tabla suscripciones.
+ */
+export async function createTrialSubscription(tiendaId: string, plan: string): Promise<void> {
+  const fechaInicio = new Date();
+  const fechaRenovacion = new Date(fechaInicio.getTime() + 14 * 24 * 60 * 60 * 1000);
+
+  const { error } = await supabase
+    .from('suscripciones')
+    .insert({
+      tenant_id: tiendaId,
+      plan: plan === 'gratis' ? 'basico' : plan,
+      estado: 'prueba',
+      fecha_inicio: fechaInicio.toISOString(),
+      fecha_renovacion: fechaRenovacion.toISOString(),
+      monto_mensual: 0.00,
+    });
+
+  if (error) throw new Error(`Error al registrar prueba gratuita: ${error.message}`);
 }

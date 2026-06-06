@@ -22,6 +22,7 @@ import ThemeToggle from '../components/ui/ThemeToggle';
 import AnimatedBackground from '../components/ui/AnimatedBackground';
 import SubscriptionExpiredScreen from '../components/SubscriptionExpiredScreen';
 import { useSubscriptionStatus } from '../hooks/useSubscriptionStatus';
+import { getLocaleAndCurrency } from '../lib/stripeHelpers';
 import { usePendingOrdersCount } from '../hooks/usePendingOrdersCount';
 import { useNotifications } from '../hooks/useNotifications';
 import {
@@ -65,6 +66,48 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 // (MOBILE_NAV removido: migrado a BottomNav.tsx)
+
+interface PlanCard {
+  id: 'basico' | 'pro' | 'premium';
+  levelLabel: string;
+  name: string;
+  desc: string;
+  prices: Record<'mxn' | 'usd' | 'eur' | 'gbp', string>;
+  features: string[];
+  buttonText: string;
+  isPopular?: boolean;
+}
+
+const PLANS: PlanCard[] = [
+  {
+    id: 'basico',
+    levelLabel: 'Nivel 1',
+    name: 'BotaniQ Esencia',
+    desc: 'Para florerías locales que desean recibir pedidos vía WhatsApp.',
+    prices: { mxn: '$400 MXN', usd: '$20 USD', eur: '20 €', gbp: '£18' },
+    features: ['Catálogo de flores', 'Pedidos directos a WhatsApp', 'Panel de control básico'],
+    buttonText: 'Activar Esencia'
+  },
+  {
+    id: 'pro',
+    levelLabel: 'Nivel 2',
+    name: 'BotaniQ Alquimia',
+    desc: 'Perfecto para cobrar anticipos con tarjeta y transferencias.',
+    prices: { mxn: '$900 MXN', usd: '$45 USD', eur: '45 €', gbp: '£40' },
+    features: ['Cobros con Tarjeta y SPEI', 'Notificaciones automáticas', 'Gestión de hasta 3 ayudantes'],
+    buttonText: 'Reactivar Alquimia',
+    isPopular: true
+  },
+  {
+    id: 'premium',
+    levelLabel: 'Nivel 3',
+    name: 'BotaniQ Edén',
+    desc: 'Para florerías con alta demanda de envíos y logística.',
+    prices: { mxn: '$1,300 MXN', usd: '$65 USD', eur: '65 €', gbp: '£58' },
+    features: ['App propia de repartidores', 'Rastreo GPS de entregas', 'Dominio propio (.com)'],
+    buttonText: 'Activar Edén'
+  }
+];
 
 // ── Componente de Avatar ─────────────────────────────────────────
 function Avatar({ name = 'Admin', size = 36 }: { name?: string; size?: number }) {
@@ -576,11 +619,80 @@ export default function AdminLayout() {
     }
   }, [handleLogout]);
 
-  const { isBlocked } = useSubscriptionStatus();
+  const { isBlocked, isTrialExpired, diasRestantes, subscriptionEstado, loading } = useSubscriptionStatus();
 
-  if (isBlocked) {
+  const [showPlansModal, setShowPlansModal] = useState(false);
+  const [loadingPlan, setLoadingPlan] = useState<'basico' | 'pro' | 'premium' | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+
+  const isOwner = profile?.rol === 'dueño' || profile?.rol === 'superadmin';
+  const isSuperadmin = profile?.rol === 'superadmin';
+
+  // Detección de locale y moneda basado en el helper centralizado
+  const { locale, currency } = getLocaleAndCurrency();
+
+  const handleReactivate = async (plan: 'basico' | 'pro' | 'premium') => {
+    if (!tenant?.id) return;
+    setLoadingPlan(plan);
+    setCheckoutError(null);
+
+    try {
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      if (!currentSession) {
+        throw new Error('Tu sesión ha expirado. Por favor, inicia sesión de nuevo.');
+      }
+
+      // Armar URLs de retorno para reactivación
+      const baseDomainUrl = window.location.origin;
+      const successUrl = `${baseDomainUrl}/admin?saas_success=true&reactivated=true`;
+      const cancelUrl = `${baseDomainUrl}/admin?saas_cancel=true`;
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-saas-checkout`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${currentSession.access_token}`,
+          },
+          body: JSON.stringify({
+            plan,
+            tenant_id: tenant.id,
+            currency,
+            locale,
+            success_url: successUrl,
+            cancel_url: cancelUrl
+          })
+        }
+      );
+
+      const resData = await response.json();
+      if (!response.ok || !resData.url) {
+        throw new Error(resData.error || 'Ocurrió un error al contactar con la pasarela de Stripe.');
+      }
+
+      // Redirigir al Checkout de Stripe
+      window.location.href = resData.url;
+    } catch (err: any) {
+      console.error('Error reactivating plan:', err);
+      setCheckoutError(err?.message || 'Error al conectar con Stripe. Intenta de nuevo.');
+    } finally {
+      setLoadingPlan(null);
+    }
+  };
+
+  if (loading) {
+    return null;
+  }
+
+  // Si el usuario está bloqueado pero por una razón distinta a la prueba (ej: suscripción cancelada),
+  // y no es superadmin, mostramos la pantalla de bloqueo total
+  if (isBlocked && !isTrialExpired && !isSuperadmin) {
     return <SubscriptionExpiredScreen />;
   }
+
+  const showRedBanner = isTrialExpired && !isSuperadmin;
+  const showYellowBanner = !isTrialExpired && subscriptionEstado === 'prueba' && diasRestantes <= 2 && !isSuperadmin;
 
   return (
     <div
@@ -623,7 +735,68 @@ export default function AdminLayout() {
 
         {/* ── Contenido (rutas hijas) ── */}
         <main className="flex-1 overflow-y-auto p-4 lg:p-8 pb-24 lg:pb-8 mobile-safe-pb">
-          <Outlet />
+          {showYellowBanner && (
+            <div className="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200 dark:bg-amber-950/20 dark:border-amber-900/40 text-amber-800 dark:text-amber-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-amber-100 dark:bg-amber-900/40 rounded-lg shrink-0">
+                  <i className="ti ti-clock text-xl" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold leading-tight">Tu prueba gratuita está por terminar</h4>
+                  <p className="text-xs opacity-90 mt-0.5">
+                    Te quedan {diasRestantes} {diasRestantes === 1 ? 'día' : 'días'} de prueba. {isOwner ? 'Activa un plan para evitar la interrupción de tus servicios.' : 'Comunícate con el dueño de la tienda para activar un plan.'}
+                  </p>
+                </div>
+              </div>
+              {isOwner && (
+                <button
+                  onClick={() => {
+                    setCheckoutError(null);
+                    setShowPlansModal(true);
+                  }}
+                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 active:scale-[0.98] text-white text-xs font-semibold rounded-lg transition-all shadow-sm shrink-0"
+                >
+                  Activar plan
+                </button>
+              )}
+            </div>
+          )}
+
+          {showRedBanner ? (
+            <div className="flex flex-col items-center justify-center py-16 px-4 max-w-2xl mx-auto text-center">
+              <div className="h-16 w-16 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-center text-red-500 mb-6 animate-pulse">
+                <i className="ti ti-alert-triangle text-3xl" />
+              </div>
+              
+              <h2 className="text-2xl font-extrabold text-[var(--color-text-primary)] tracking-tight">
+                Período de Prueba Expirado
+              </h2>
+              
+              <p className="mt-3 text-sm text-[var(--color-text-tertiary)] max-w-md leading-relaxed">
+                Tu período de prueba de 14 días ha finalizado. Para seguir administrando tu catálogo de productos, gestionar pedidos y mantener tu tienda activa, por favor selecciona uno de nuestros planes.
+              </p>
+
+              <div className="mt-8 w-full flex justify-center">
+                {isOwner ? (
+                  <button
+                    onClick={() => {
+                      setCheckoutError(null);
+                      setShowPlansModal(true);
+                    }}
+                    className="w-full sm:w-auto px-6 py-3 bg-red-600 hover:bg-red-700 active:scale-[0.98] text-white text-sm font-semibold rounded-xl transition-all shadow-md shadow-red-600/15"
+                  >
+                    Ver planes y activar
+                  </button>
+                ) : (
+                  <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs max-w-md">
+                    Tu cuenta tiene rol de {profile?.rol || 'empleado'}. Solo el dueño de la tienda puede reactivar la suscripción para restablecer los servicios.
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <Outlet />
+          )}
         </main>
       </div>
 
@@ -694,6 +867,130 @@ export default function AdminLayout() {
           <Suspense fallback={null}>
             <OnboardingBot onClose={() => setIsChatOpen(false)} />
           </Suspense>
+        )}
+      </AnimatePresence>
+
+      {/* ── Modal de Selección de Planes ── */}
+      <AnimatePresence>
+        {showPlansModal && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !loadingPlan && setShowPlansModal(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+
+            {/* Modal Box */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-4xl bg-[var(--color-background-primary)] border border-[var(--color-border-secondary)] rounded-2xl shadow-2xl overflow-hidden text-[var(--color-text-primary)] max-h-[90vh] flex flex-col"
+            >
+              {/* Close button */}
+              <button
+                onClick={() => !loadingPlan && setShowPlansModal(false)}
+                disabled={!!loadingPlan}
+                className="absolute top-4 right-4 p-2 text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] rounded-lg hover:bg-[var(--color-background-secondary)] transition-colors disabled:opacity-50"
+                aria-label="Cerrar modal"
+              >
+                <i className="ti ti-x text-xl" />
+              </button>
+
+              {/* Header */}
+              <div className="p-6 border-b border-[var(--color-border-tertiary)] text-center">
+                <h3 className="text-xl font-bold">Selecciona tu Plan</h3>
+                <p className="text-xs text-[var(--color-text-tertiary)] mt-1">
+                  Elige el plan que mejor se adapte a tu florería para continuar.
+                </p>
+              </div>
+
+              {checkoutError && (
+                <div className="mx-6 mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs text-center">
+                  {checkoutError}
+                </div>
+              )}
+
+              {/* Plans Grid */}
+              <div className="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
+                {PLANS.map((plan) => {
+                  const price = plan.prices[currency] || plan.prices.usd;
+                  const isCurrentLoading = loadingPlan === plan.id;
+
+                  return (
+                    <div
+                      key={plan.id}
+                      className={`relative flex flex-col justify-between rounded-xl border p-5 transition-all ${
+                        plan.isPopular
+                          ? 'border-emerald-500/30 bg-emerald-500/[0.02] shadow-sm'
+                          : 'border-[var(--color-border-secondary)] bg-[var(--color-background-secondary)]/50'
+                      }`}
+                    >
+                      {plan.isPopular && (
+                        <div className="absolute -top-2.5 right-4 rounded-full bg-emerald-600 text-[var(--color-background-primary)] px-2.5 py-0.5 text-[8px] font-bold uppercase tracking-wider">
+                          Recomendado
+                        </div>
+                      )}
+
+                      <div>
+                        <span className="text-[10px] font-bold text-[var(--color-text-tertiary)] tracking-wider uppercase">
+                          {plan.levelLabel}
+                        </span>
+                        <h4 className="text-base font-bold mt-0.5 text-[var(--color-text-primary)]">
+                          {plan.name}
+                        </h4>
+                        <p className="text-xs text-[var(--color-text-tertiary)] mt-1.5 min-h-[36px] leading-relaxed">
+                          {plan.desc}
+                        </p>
+                        <div className="mt-3 flex items-baseline">
+                          <span className="text-2xl font-black text-[var(--color-text-primary)]">
+                            {price}
+                          </span>
+                          <span className="text-[var(--color-text-tertiary)] text-xs ml-1">/mes</span>
+                        </div>
+
+                        <ul className="mt-4 space-y-2 text-xs text-[var(--color-text-secondary)]">
+                          {plan.features.map((feature, idx) => (
+                            <li key={idx} className="flex items-center gap-1.5">
+                              <i className={`ti ti-check text-sm ${plan.isPopular ? 'text-emerald-500' : 'text-[var(--color-text-tertiary)]'}`} />
+                              <span>{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <button
+                        onClick={() => handleReactivate(plan.id)}
+                        disabled={loadingPlan !== null}
+                        className={`mt-6 w-full py-2.5 rounded-lg active:scale-[0.98] transition-all text-xs font-semibold flex items-center justify-center gap-2 disabled:opacity-50 ${
+                          plan.isPopular
+                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm'
+                            : 'bg-[var(--color-background-tertiary)] hover:bg-[var(--color-border-secondary)] text-[var(--color-text-primary)] border border-[var(--color-border-tertiary)]'
+                        }`}
+                      >
+                        {isCurrentLoading ? (
+                          <i className="ti ti-loader text-sm animate-spin" />
+                        ) : (
+                          <>
+                            <i className="ti ti-credit-card text-sm" />
+                            {plan.buttonText}
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Footer info */}
+              <div className="p-4 bg-[var(--color-background-secondary)] border-t border-[var(--color-border-tertiary)] text-center text-[10px] text-[var(--color-text-tertiary)]">
+                Precios resueltos en {currency.toUpperCase()} ({locale})
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>
