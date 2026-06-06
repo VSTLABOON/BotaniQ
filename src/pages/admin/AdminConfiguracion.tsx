@@ -169,7 +169,6 @@ export default function AdminConfiguracion() {
   const [galeriaList, setGaleriaList] = useState(tenant.galeria || []);
 
   const [saving, setSaving] = useState(false);
-  const [previewDevice, setPreviewDevice] = useState<'mobile' | 'desktop'>('mobile');
   const [showMobilePreview, setShowMobilePreview] = useState(false);
 
   // --- Dirty State ---
@@ -344,13 +343,6 @@ export default function AdminConfiguracion() {
   }, [loading, tenant]);
 
   const previewUrl = getSubdomainUrl(tenant.slug, '/?preview=true');
-  const isSameHost = useMemo(() => {
-    try {
-      return new URL(previewUrl).hostname === window.location.hostname;
-    } catch (e) {
-      return false;
-    }
-  }, [previewUrl]);
 
   // Update root CSS vars live
   useTheming({
@@ -359,72 +351,6 @@ export default function AdminConfiguracion() {
     color_acento: colorAcento,
     font_family: fontFamily
   }, true);
-
-  // Send real-time preview updates to iframe(s)
-  useEffect(() => {
-    const iframes = document.querySelectorAll('iframe.preview-iframe') as NodeListOf<HTMLIFrameElement>;
-    if (iframes.length > 0) {
-      const payload = {
-        color_primario: colorPrimario,
-        color_secundario: colorSecundario,
-        color_acento: colorAcento,
-        font_family: fontFamily,
-        logo_url: logoPreview,
-        orden_secciones: sections,
-        texto_nosotros: textoNosotros,
-        anio_fundacion: anioFundacion,
-        firma: firma,
-        mapa_url: mapaUrl,
-        colonias: colonias.split(',').map(c => c.trim()).filter(Boolean),
-        meta_title: metaTitle,
-        evento: {
-          activo: eventoActivo,
-          titulo: eventoTitulo,
-          producto: eventoProducto,
-          fecha_fin: eventoFechaFin,
-        },
-        servicios: serviciosList,
-        beneficios: beneficiosList,
-        testimonios: testimoniosList,
-        flores: floresList,
-        galeria: galeriaList,
-        secciones: seccionesData,
-        whatsapp: whatsapp,
-        ciudad: ciudad,
-        estado: estado,
-        area_metropolitana: areaMetropolitana,
-        horarios: {
-          regular: horarioRegular,
-          especial: horarioEspecial
-        },
-        redes_sociales: {
-          instagram: instagram,
-          facebook: facebook
-        },
-        preferred_gateway: preferredGateway,
-        openpay_merchant_id: openpayMerchantId,
-        openpay_public_key: openpayPublicKey,
-        openpay_private_key: openpayPrivateKey,
-        openpay_sandbox_mode: openpaySandboxMode
-      };
-      
-      iframes.forEach(iframe => {
-        if (iframe.contentWindow) {
-          iframe.contentWindow.postMessage(
-            { type: 'UPDATE_PREVIEW', payload },
-            window.location.origin
-          );
-        }
-      });
-    }
-  }, [
-    colorPrimario, colorSecundario, colorAcento, fontFamily, logoPreview, sections,
-    textoNosotros, anioFundacion, firma, mapaUrl, colonias, metaTitle,
-    eventoActivo, eventoTitulo, eventoProducto, eventoFechaFin,
-    serviciosList, beneficiosList, testimoniosList, floresList, galeriaList, seccionesData,
-    whatsapp, ciudad, estado, areaMetropolitana, horarioRegular, horarioEspecial, instagram, facebook,
-    preferredGateway, openpayMerchantId, openpayPublicKey, openpayPrivateKey, openpaySandboxMode
-  ]);
 
   const handleDragEnd = useCallback((result: DropResult) => {
     if (!result.destination) return;
@@ -775,51 +701,50 @@ export default function AdminConfiguracion() {
         </AnimatePresence>
       </div>
 
-      {/* ── Lado Derecho: Preview Pegajoso ── */}
+      {/* ── Lado Derecho: Preview Estático ── */}
       <div className="hidden xl:flex flex-col sticky top-4 h-[calc(100vh-2rem)] backdrop-blur-xl bg-white/20 dark:bg-black/20 border border-white/30 dark:border-white/10 rounded-3xl overflow-hidden shadow-xl">
         <div className="bg-white/10 dark:bg-black/20 px-4 py-3 border-b border-white/20 dark:border-white/10 flex items-center justify-between backdrop-blur-md">
           <span className="text-xs font-bold text-[var(--color-text-primary)] uppercase tracking-wider flex items-center gap-2">
             <Eye className="w-4 h-4 text-[var(--color-text-primary)]" /> Vista Previa
           </span>
-          {isSameHost && (
-            <div className="flex items-center gap-1 bg-white/10 dark:bg-black/20 border border-white/20 dark:border-white/10 p-0.5 rounded-lg">
-              <button onClick={() => setPreviewDevice('mobile')} className={`p-1.5 rounded-md transition-colors ${previewDevice === 'mobile' ? 'bg-white/20 dark:bg-white/10 text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]'}`}>
-                <Smartphone className="w-4 h-4" />
-              </button>
-              <button onClick={() => setPreviewDevice('desktop')} className={`p-1.5 rounded-md transition-colors ${previewDevice === 'desktop' ? 'bg-white/20 dark:bg-white/10 text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]'}`}>
-                <Monitor className="w-4 h-4" />
-              </button>
-            </div>
-          )}
         </div>
-        <div className="flex-1 bg-transparent flex justify-center overflow-hidden relative">
-          {isSameHost ? (
-            <iframe
-              src={previewUrl}
-              className={`preview-iframe border-0 bg-white shadow-xl transition-all duration-300 relative z-10 ${previewDevice === 'mobile' ? 'w-[375px] h-[calc(100%-2rem)] mt-4 rounded-[2.5rem] border-[8px] border-black/80 shadow-[0_0_0_1px_rgba(255,255,255,0.2)]' : 'w-full h-full'}`}
-              title="Preview"
-            />
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center select-none animate-fade-in bg-white/5 dark:bg-black/5 rounded-3xl m-4 border border-white/10 dark:border-white/5">
-              <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 dark:bg-emerald-400/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-4 shadow-sm">
-                <ExternalLink className="w-8 h-8" />
+        <div className="flex-1 bg-transparent flex justify-center items-center overflow-hidden relative p-6">
+          <div className="w-full max-w-sm flex flex-col items-center justify-center p-8 text-center bg-[var(--color-background-secondary)] rounded-3xl border border-[var(--color-border-secondary)] shadow-lg animate-fade-in">
+            {tenant.logo_url ? (
+              <img
+                src={tenant.logo_url}
+                alt={nombre}
+                className="w-20 h-20 rounded-2xl object-cover mb-4 border border-[var(--color-border-primary)] shadow-sm"
+              />
+            ) : (
+              <div className="w-20 h-20 rounded-2xl bg-[var(--color-background-tertiary)] border border-[var(--color-border-primary)] flex items-center justify-center text-[var(--color-text-secondary)] font-bold text-2xl mb-4">
+                {nombre.slice(0, 2).toUpperCase()}
               </div>
-              <h4 className="text-sm font-bold text-[var(--color-text-primary)] mb-2">
-                Vista previa en pestaña nueva
-              </h4>
-              <p className="text-xs text-[var(--color-text-tertiary)] max-w-[280px] leading-relaxed mb-6">
-                La vista previa se abre en una pestaña independiente para garantizar que veas exactamente lo que ve tu cliente, evitando bloqueos de seguridad de tu navegador.
-              </p>
+            )}
+            <h4 className="text-base font-bold text-[var(--color-text-primary)] mb-1">
+              {nombre}
+            </h4>
+            <p className="text-xs text-[var(--color-text-tertiary)] max-w-[280px] leading-relaxed mb-6">
+              La vista previa se abre en una ventana separada para mostrarte exactamente lo que ve tu cliente.
+            </p>
+            <div className="flex flex-col gap-3 w-full max-w-[260px]">
               <a
                 href={previewUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 rounded-xl transition-all active:scale-95 shadow-lg shadow-emerald-600/15"
+                className="w-full flex items-center justify-center gap-2 px-5 py-2.5 bg-[var(--color-text-primary)] text-[var(--color-background-primary)] text-sm font-semibold hover:opacity-90 rounded-xl transition-all active:scale-95 shadow-md"
               >
-                <i className="ti ti-external-link text-base" /> Ver mi tienda
+                <i className="ti ti-external-link text-base animate-pulse" /> Abrir vista previa
               </a>
+              <button
+                type="button"
+                onClick={() => window.open(getSubdomainUrl(tenant.slug, '/?preview=true'), '_blank')}
+                className="w-full flex items-center justify-center gap-2 px-5 py-2.5 bg-[var(--color-background-secondary)] text-[var(--color-text-primary)] text-sm font-semibold hover:bg-[var(--color-background-tertiary)] border border-[var(--color-border-primary)] rounded-xl transition-all active:scale-95 shadow-sm cursor-pointer"
+              >
+                <i className="ti ti-refresh text-base" /> Actualizar
+              </button>
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>
@@ -837,7 +762,7 @@ export default function AdminConfiguracion() {
           {/* Header del Modal */}
           <div className="flex items-center justify-between px-4 py-3 bg-[var(--color-background-secondary)] border-b border-[var(--color-border-tertiary)] shrink-0">
             <span className="text-sm font-bold text-[var(--color-text-primary)] uppercase tracking-wider flex items-center gap-2">
-              <Eye className="w-4 h-4 text-emerald-500" /> Vista Previa en Vivo
+              <Eye className="w-4 h-4 text-[var(--color-text-primary)]" /> Vista Previa en Vivo
             </span>
             <button
               onClick={() => setShowMobilePreview(false)}
@@ -847,35 +772,44 @@ export default function AdminConfiguracion() {
             </button>
           </div>
           
-          {/* Iframe / Placeholder */}
-          <div className="flex-1 w-full h-full bg-[var(--color-background-tertiary)] overflow-hidden flex items-center justify-center">
-            {isSameHost ? (
-              <iframe
-                src={previewUrl}
-                className="preview-iframe w-full h-full border-0"
-                title="Mobile Preview"
-              />
-            ) : (
-              <div className="flex flex-col items-center justify-center p-6 text-center select-none animate-fade-in bg-[var(--color-background-secondary)] rounded-3xl m-4 border border-[var(--color-border-secondary)]">
-                <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 dark:bg-emerald-400/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-4">
-                  <ExternalLink className="w-7 h-7" />
+          {/* Placeholder Móvil */}
+          <div className="flex-1 w-full h-full bg-[var(--color-background-tertiary)] overflow-hidden flex items-center justify-center p-4">
+            <div className="w-full max-w-xs flex flex-col items-center justify-center p-6 text-center bg-[var(--color-background-secondary)] rounded-3xl border border-[var(--color-border-secondary)] shadow-lg">
+              {tenant.logo_url ? (
+                <img
+                  src={tenant.logo_url}
+                  alt={nombre}
+                  className="w-16 h-16 rounded-2xl object-cover mb-4 border border-[var(--color-border-primary)] shadow-sm"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-2xl bg-[var(--color-background-tertiary)] border border-[var(--color-border-primary)] flex items-center justify-center text-[var(--color-text-secondary)] font-bold text-xl mb-4">
+                  {nombre.slice(0, 2).toUpperCase()}
                 </div>
-                <h4 className="text-sm font-bold text-[var(--color-text-primary)] mb-2">
-                  Vista previa en pestaña nueva
-                </h4>
-                <p className="text-xs text-[var(--color-text-tertiary)] max-w-[240px] leading-relaxed mb-6">
-                  Tu navegador bloquea el visor embebido por seguridad de dominio cruzado. Abre tu tienda en una nueva pestaña.
-                </p>
+              )}
+              <h4 className="text-base font-bold text-[var(--color-text-primary)] mb-1">
+                {nombre}
+              </h4>
+              <p className="text-xs text-[var(--color-text-tertiary)] max-w-[240px] leading-relaxed mb-6">
+                La vista previa se abre en una ventana separada para mostrarte exactamente lo que ve tu cliente.
+              </p>
+              <div className="flex flex-col gap-3 w-full max-w-[220px]">
                 <a
                   href={previewUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 rounded-xl transition-all active:scale-95 shadow-lg shadow-emerald-600/15"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--color-text-primary)] text-[var(--color-background-primary)] text-xs font-semibold hover:opacity-90 rounded-xl transition-all active:scale-95 shadow-md"
                 >
-                  <i className="ti ti-external-link text-base" /> Ver mi tienda
+                  <i className="ti ti-external-link text-base" /> Abrir vista previa
                 </a>
+                <button
+                  type="button"
+                  onClick={() => window.open(getSubdomainUrl(tenant.slug, '/?preview=true'), '_blank')}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--color-background-secondary)] text-[var(--color-text-primary)] text-xs font-semibold hover:bg-[var(--color-background-tertiary)] border border-[var(--color-border-primary)] rounded-xl transition-all active:scale-95 shadow-sm cursor-pointer"
+                >
+                  <i className="ti ti-refresh text-base" /> Actualizar
+                </button>
               </div>
-            )}
+            </div>
           </div>
         </motion.div>
       )}

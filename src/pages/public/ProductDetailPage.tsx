@@ -49,6 +49,7 @@ export default function ProductDetailPage() {
               id,
               producto_id,
               nombre,
+              descripcion,
               precio,
               disponible,
               sku,
@@ -204,7 +205,7 @@ export default function ProductDetailPage() {
     }
     const cleanNumber = tenant.whatsapp.replace(/\D/g, '');
     const variantText = selectedVariant ? ` (${selectedVariant.name})` : '';
-    const text = encodeURIComponent(`Hola, me interesa el arreglo "${product.name}"${variantText} con un precio de $${finalPrice} ${tenant.currency}. ¿Tienen disponibilidad?`);
+    const text = encodeURIComponent(`Hola, me interesa el arreglo "${product.name}"${variantText} con un precio de $${new Intl.NumberFormat('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(finalPrice)}. ¿Tienen disponibilidad?`);
     window.open(`https://wa.me/${cleanNumber}?text=${text}`, '_blank', 'noopener');
   };
 
@@ -294,10 +295,9 @@ export default function ProductDetailPage() {
               {/* Precio y Expiración */}
               <div className="flex flex-col gap-1.5 mt-2">
                 <div className="flex items-baseline gap-2">
-                  <p className="font-display text-3xl text-verde font-bold">
-                    ${finalPrice.toLocaleString('en-US')}
+                  <p className="font-display text-3xl text-[var(--color-primary)] font-bold">
+                    ${new Intl.NumberFormat('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(finalPrice)}
                   </p>
-                  <span className="text-sm font-medium text-texto-muted uppercase tracking-wider">{tenant.currency}</span>
                 </div>
                 {disponibleHastaText && (
                   <p className="text-xs font-medium text-amber-600 dark:text-amber-400">
@@ -343,8 +343,8 @@ export default function ProductDetailPage() {
                         <h4 className="font-display font-bold text-sm sm:text-base text-texto mb-1">
                           {v.name}
                         </h4>
-                        <p className="text-xs sm:text-sm font-semibold text-verde mb-2">
-                          ${variantPrice.toLocaleString('en-US')} {tenant.currency}
+                        <p className="text-xs sm:text-sm font-semibold text-[var(--color-primary)] mb-2">
+                          ${new Intl.NumberFormat('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(variantPrice)}
                         </p>
                         {variantDesc && (
                           <p className="text-[0.7rem] sm:text-xs text-texto-muted line-clamp-2 leading-relaxed">
@@ -383,8 +383,8 @@ export default function ProductDetailPage() {
                 >
                   <ShoppingBag className="w-5 h-5" />
                   {product.variants.length > 0 && selectedVariant
-                    ? `Agregar ${selectedVariant.name} al carrito — $${finalPrice.toLocaleString()}`
-                    : `Agregar al Carrito — $${finalPrice.toLocaleString()}`}
+                    ? `Agregar ${selectedVariant.name} al carrito — $${new Intl.NumberFormat('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(finalPrice)}`
+                    : `Agregar al Carrito — $${new Intl.NumberFormat('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(finalPrice)}`}
                 </motion.button>
               ) : (
                 <motion.button
@@ -400,8 +400,8 @@ export default function ProductDetailPage() {
                     <path d="M9 10a.5 .5 0 0 0 1 0v-1a.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a.5 .5 0 0 0 0 -1h-1a.5 .5 0 0 0 0 1" />
                   </svg>
                   {product.variants.length > 0 && selectedVariant
-                    ? `Pedir ${selectedVariant.name} por WhatsApp — $${finalPrice.toLocaleString()}`
-                    : `Pedir por WhatsApp — $${finalPrice.toLocaleString()}`}
+                    ? `Pedir ${selectedVariant.name} por WhatsApp — $${new Intl.NumberFormat('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(finalPrice)}`
+                    : `Pedir por WhatsApp — $${new Intl.NumberFormat('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(finalPrice)}`}
                 </motion.button>
               )}
             </div>
@@ -421,8 +421,8 @@ export default function ProductDetailPage() {
             >
               <ShoppingBag className="w-5 h-5" />
               {product.variants.length > 0 && selectedVariant 
-                ? `Agregar ${selectedVariant.name} — $${finalPrice.toLocaleString()}`
-                : `Agregar al Carrito — $${finalPrice.toLocaleString()}`}
+                ? `Agregar ${selectedVariant.name} — $${new Intl.NumberFormat('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(finalPrice)}`
+                : `Agregar al Carrito — $${new Intl.NumberFormat('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(finalPrice)}`}
             </button>
           ) : (
             <button
@@ -436,8 +436,8 @@ export default function ProductDetailPage() {
                 <path d="M9 10a.5 .5 0 0 0 1 0v-1a.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a.5 .5 0 0 0 0 -1h-1a.5 .5 0 0 0 0 1" />
               </svg>
               {product.variants.length > 0 && selectedVariant 
-                ? `Pedir ${selectedVariant.name} por WhatsApp — $${finalPrice.toLocaleString()}`
-                : `Pedir por WhatsApp — $${finalPrice.toLocaleString()}`}
+                ? `Pedir ${selectedVariant.name} por WhatsApp — $${new Intl.NumberFormat('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(finalPrice)}`
+                : `Pedir por WhatsApp — $${new Intl.NumberFormat('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(finalPrice)}`}
             </button>
           )}
         </div>

@@ -35,6 +35,7 @@ import { ErrorBoundary } from './components/ErrorBoundary.tsx'
 import { ToastContainer } from './components/ui/ToastContainer.tsx'
 import { Loader2 } from 'lucide-react'
 import './index.css'
+import '@tabler/icons-webfont/dist/tabler-icons.min.css';
 
 // Lazy Loading de páginas para Code Splitting (Mejora de rendimiento)
 const StorefrontPage = lazy(() => import('./pages/public/StorefrontPage.tsx'))

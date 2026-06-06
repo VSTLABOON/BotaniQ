@@ -54,6 +54,7 @@
   
   --color-dorado: var(--color-acento);
   --color-dorado-light: color-mix(in srgb, var(--color-acento) 40%, white);
+  --color-primary: var(--color-primario);
 
   /* 3. Colores de Sistema (Fijos para mantener elegancia) */
   --color-negro: #0C0F0A;
@@ -184,5 +185,12 @@ iframe, img, canvas {
 @media (max-width: 1023px) {
   .mobile-safe-pb {
     padding-bottom: calc(120px + env(safe-area-inset-bottom)) !important;
+  }
+}
+
+/* Si el último elemento es único en su fila (layout impar de 2 columnas) */
+@media (max-width: 767px) {
+  .catalog-grid > *:last-child:nth-child(odd) {
+    grid-column: span 2;
   }
 }

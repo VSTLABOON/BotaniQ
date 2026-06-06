@@ -48,6 +48,7 @@ function mapRow(row) {
     variants:   (row.producto_variantes || []).map(v => ({
       id: v.id,
       name: v.nombre,
+      description: v.descripcion || '',
       price: v.precio !== null && v.price !== undefined ? parseFloat(v.precio) : null,
       isAvailable: v.disponible ?? true,
       sku: v.sku ?? '',
@@ -118,6 +119,7 @@ export function usePublicCatalog(slug, options = {}) {
           producto_variantes (
             id,
             nombre,
+            descripcion,
             precio,
             disponible,
             sku,

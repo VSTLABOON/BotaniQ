@@ -444,7 +444,7 @@ export default function CartDrawer() {
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-white/5 shrink-0">
           <div className="flex items-center gap-3 text-[var(--color-background-primary)]">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            <i className="ti ti-shopping-cart text-lg shrink-0" />
             <span className="font-display text-xl font-bold">Tu Pedido</span>
             {itemCount > 0 && <span className="text-xs bg-verde/20 text-verde-light px-2 py-0.5 rounded-full font-semibold">{itemCount}</span>}
           </div>

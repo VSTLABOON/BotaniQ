@@ -22,6 +22,7 @@
     "@hello-pangea/dnd": "^18.0.1",
     "@stripe/stripe-js": "^9.4.0",
     "@supabase/supabase-js": "^2.49.0",
+    "@tabler/icons-webfont": "^3.44.0",
     "dompurify": "^3.4.2",
     "framer-motion": "^12.38.0",
     "lucide-react": "^0.511.0",

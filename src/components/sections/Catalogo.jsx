@@ -138,16 +138,16 @@ export default function Catalogo() {
 
       {/* ── MODAL: CATÁLOGO COMPLETO ── */}
       {catalogModalOpen && (
-        <div className="fixed inset-0 z-[9999] flex flex-col bg-negro text-crema animate-fade-in">
+        <div className="fixed inset-0 z-[9999] flex flex-col bg-[var(--color-background-primary)] text-[var(--color-text-primary)] animate-fade-in">
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-negro-soft shrink-0">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border-secondary)] bg-[var(--color-background-secondary)] shrink-0">
             <div>
-              <h3 className="font-display text-xl md:text-2xl font-bold text-crema">Catálogo Completo</h3>
-              <p className="text-xs text-texto-muted mt-0.5">{productos.length} arreglos disponibles</p>
+              <h3 className="font-display text-xl md:text-2xl font-bold text-[var(--color-text-primary)]">Catálogo Completo</h3>
+              <p className="text-xs text-[var(--color-text-tertiary)] mt-0.5">{productos.length} arreglos disponibles</p>
             </div>
             <button
               onClick={() => setCatalogModalOpen(false)}
-              className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/5 text-crema/70 hover:text-crema transition-colors cursor-pointer"
+              className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-[var(--color-background-tertiary)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors cursor-pointer"
               aria-label="Cerrar catálogo"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="22" height="22">
@@ -158,7 +158,7 @@ export default function Catalogo() {
           </div>
 
           {/* Scrollable Body */}
-          <div className="flex-1 overflow-y-auto p-6 bg-negro">
+          <div className="flex-1 overflow-y-auto p-6 bg-[var(--color-background-primary)]">
             {/* Buscador y Categorías (Solo si hay más de 8 productos) */}
             {productos.length > 8 && (
               <div className="max-w-[1180px] mx-auto mb-8 space-y-4">
@@ -168,9 +168,9 @@ export default function Catalogo() {
                     placeholder="Buscar arreglo por nombre o descripción..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full h-11 pl-4 pr-10 rounded-xl border border-white/20 bg-negro-soft text-crema text-sm focus:outline-none focus:border-verde focus:ring-1 focus:ring-verde transition-all"
+                    className="w-full h-11 pl-4 pr-10 rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-background-secondary)] text-[var(--color-text-primary)] text-sm focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] transition-all"
                   />
-                  <span className="absolute right-3.5 top-3.5 text-texto-muted">
+                  <span className="absolute right-3.5 top-3.5 text-[var(--color-text-tertiary)]">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="16" height="16">
                       <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
                     </svg>
@@ -184,8 +184,8 @@ export default function Catalogo() {
                         onClick={() => setSelectedCategory(cat)}
                         className={`py-1.5 px-4 rounded-full border text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                           selectedCategory === cat
-                            ? 'bg-verde border-verde text-negro'
-                            : 'border-white/20 text-crema/70 hover:border-verde hover:text-verde'
+                            ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-[var(--color-background-primary)]'
+                            : 'border-[var(--color-border-primary)] text-[var(--color-text-secondary)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
                         }`}
                       >
                         {cat === 'todos' ? 'Ver todo' : cat}
@@ -199,7 +199,7 @@ export default function Catalogo() {
             {/* Grid de todos los productos (2 cols móvil, 3 cols desktop) */}
             <div className="max-w-[1180px] mx-auto">
               {filteredModalProducts.length > 0 ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 pb-12">
+                <div className="catalog-grid grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 pb-12">
                   {filteredModalProducts.map((prod) => (
                     <Link 
                       key={prod.id} 
@@ -212,7 +212,7 @@ export default function Catalogo() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-20 text-texto-muted">
+                <div className="text-center py-20 text-[var(--color-text-tertiary)]">
                   No se encontraron arreglos para esta búsqueda.
                 </div>
               )}

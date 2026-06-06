@@ -39,7 +39,8 @@ const emptyVariant = (productId: string): ProductVariant => ({
   name: '',
   price: null,
   isAvailable: true,
-  sku: ''
+  sku: '',
+  description: ''
 });
 
 // ═══════════════════════════════════════════════════════════════════
@@ -639,7 +640,7 @@ export function ProductModal({
                         )}
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 flex-1">
+                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 flex-1">
                         {/* Nombre de la variante */}
                         <div>
                           <label className="block text-[0.7rem] font-medium text-[var(--color-text-tertiary)] mb-1 uppercase tracking-wider">Nombre</label>
@@ -647,6 +648,18 @@ export function ProductModal({
                             type="text" value={variant.name} placeholder="Ej: Mediano, Premium"
                             onChange={e => updateVariant(variant.id, 'name', e.target.value)}
                             className="w-full h-9 px-3 bg-[var(--color-background-primary)] border border-[var(--color-border-secondary)] rounded-lg text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all"
+                          />
+                        </div>
+
+                        {/* Descripción de la variante */}
+                        <div>
+                          <label className="block text-[0.7rem] font-medium text-[var(--color-text-tertiary)] mb-1 uppercase tracking-wider">Descripción de la variante</label>
+                          <textarea
+                            rows={1}
+                            value={variant.description || ''}
+                            placeholder="Describe esta variante (opcional)"
+                            onChange={e => updateVariant(variant.id, 'description', e.target.value)}
+                            className="w-full h-9 py-1.5 px-3 bg-[var(--color-background-primary)] border border-[var(--color-border-secondary)] rounded-lg text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all resize-none"
                           />
                         </div>
 
