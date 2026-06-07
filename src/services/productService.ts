@@ -36,7 +36,6 @@ export async function fetchAdminProducts(tiendaId: string): Promise<Product[]> {
         descripcion,
         precio,
         disponible,
-        sku,
         imagen_url
       )
     `)
@@ -70,7 +69,6 @@ export async function fetchAdminProducts(tiendaId: string): Promise<Product[]> {
       description: v.description || '',
       price: v.precio !== null && v.precio !== undefined ? Number(v.precio) : null,
       isAvailable: v.disponible ?? true,
-      sku: v.sku || '',
       image: v.imagen_url || undefined
     }))
   }));
@@ -153,7 +151,6 @@ export async function saveAdminProduct(
         descripcion: v.description || null,
         precio: v.price,
         disponible: v.isAvailable,
-        sku: v.sku || null,
         imagen_url: v.image || null
       }));
 

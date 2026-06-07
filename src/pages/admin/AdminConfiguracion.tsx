@@ -41,6 +41,7 @@ function reorder<T>(list: T[], startIndex: number, endIndex: number): T[] {
 
 export default function AdminConfiguracion() {
   const { tenant, loading, updateTenantConfig } = useTenant();
+  const nombre = tenant?.nombre ?? '';
   const navigate = useNavigate();
 
   const [searchParams, setSearchParams] = useSearchParams();

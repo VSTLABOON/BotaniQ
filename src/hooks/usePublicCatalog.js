@@ -51,7 +51,6 @@ function mapRow(row) {
       description: v.descripcion || '',
       price: v.precio !== null && v.price !== undefined ? parseFloat(v.precio) : null,
       isAvailable: v.disponible ?? true,
-      sku: v.sku ?? '',
       image: v.imagen_url
     }))
   };
@@ -122,7 +121,6 @@ export function usePublicCatalog(slug, options = {}) {
             descripcion,
             precio,
             disponible,
-            sku,
             imagen_url
           )
         `)

@@ -52,7 +52,6 @@ export default function ProductDetailPage() {
               descripcion,
               precio,
               disponible,
-              sku,
               imagen_url
             )
           `)
@@ -79,7 +78,6 @@ export default function ProductDetailPage() {
             name: v.nombre,
             price: v.precio !== null && v.precio !== undefined ? Number(v.precio) : null,
             isAvailable: v.disponible ?? true,
-            sku: v.sku || '',
             image: v.imagen_url || undefined,
             description: v.descripcion || ''
           }));
