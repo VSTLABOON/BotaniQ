@@ -9,7 +9,7 @@
         { "key": "X-XSS-Protection", "value": "1; mode=block" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
         { "key": "Permissions-Policy", "value": "geolocation=(), microphone=(), camera=()" },
-        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co https://api.stripe.com wss://*.supabase.co https://*.botaniq.com.mx wss://*.botaniq.com.mx; frame-src 'self' https://js.stripe.com; media-src 'self' https://*.cloudfront.net;" }
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://js.openpay.mx https://openpay.s3.amazonaws.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co https://api.stripe.com https://sandbox-api.openpay.mx https://api.openpay.mx wss://*.supabase.co https://*.botaniq.com.mx wss://*.botaniq.com.mx; frame-src 'self' https://js.stripe.com https://www.google.com https://maps.googleapis.com https://maps.app.goo.gl; media-src 'self' https://*.cloudfront.net https://*.botaniq.com.mx;" }
       ]
     }
   ],
