@@ -1,9 +1,60 @@
+import { useState, useEffect } from 'react';
 import { useTenant } from '../../context/TenantContext.tsx';
 import { LIMITS } from '../../lib/constants.ts';
 
 export default function Cobertura() {
   const { tenant } = useTenant();
   const colonias = tenant.colonias;
+  const [embedUrl, setEmbedUrl] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    async function resolveMapsUrl() {
+      let rawUrl = tenant.mapa_url || '';
+      if (!rawUrl) return;
+
+      // 1. Si ya es una URL de embed, la usamos directo
+      if (rawUrl.includes('/embed') || rawUrl.includes('output=embed')) {
+        if (active) setEmbedUrl(rawUrl);
+        return;
+      }
+
+      // 2. Si es un enlace acortado, lo resolvemos usando un proxy CORS libre
+      if (rawUrl.includes('maps.app.goo.gl') || rawUrl.includes('goo.gl/maps')) {
+        try {
+          const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(rawUrl)}`);
+          const json = await res.json();
+          if (json.status && json.status.url) {
+            rawUrl = json.status.url;
+          }
+        } catch (err) {
+          console.error('[Cobertura] Error resolving short maps URL:', err);
+        }
+      }
+
+      // 3. Extraer el nombre del lugar / dirección de la URL larga
+      const placeMatch = rawUrl.match(/\/place\/([^/@\s]+)/);
+      if (placeMatch && active) {
+        setEmbedUrl(`https://maps.google.com/maps?q=${placeMatch[1]}&output=embed`);
+        return;
+      }
+
+      // 4. Extraer coordenadas si no hay nombre del lugar
+      const coordMatch = rawUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+      if (coordMatch && active) {
+        setEmbedUrl(`https://maps.google.com/maps?q=${coordMatch[1]},${coordMatch[2]}&output=embed`);
+        return;
+      }
+
+      // 5. Fallback general: intentar incrustar como query de búsqueda
+      if (active) {
+        setEmbedUrl(`https://maps.google.com/maps?q=${encodeURIComponent(rawUrl)}&output=embed`);
+      }
+    }
+
+    resolveMapsUrl();
+    return () => { active = false; };
+  }, [tenant.mapa_url]);
 
   return (
     <section id="cobertura" className="bg-crema pt-[7rem] px-6 pb-[7rem]">
@@ -35,10 +86,16 @@ export default function Cobertura() {
         </div>
         
         <div className="rounded-[18px] overflow-hidden shadow-[0_12px_40px_rgba(0,0,0,0.12)] h-[400px] border border-black/5 bg-crema-dark">
-          <iframe 
-            src={tenant.mapa_url}
-            width="100%" height="100%" style={{ border: 0 }} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade" title={`Mapa área de cobertura ${tenant.ciudad}`}>
-          </iframe>
+          {embedUrl ? (
+            <iframe 
+              src={embedUrl}
+              width="100%" height="100%" style={{ border: 0 }} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade" title={`Mapa área de cobertura ${tenant.ciudad}`}>
+            </iframe>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-texto-muted/50 text-xs">
+              Cargando mapa...
+            </div>
+          )}
         </div>
       </div>
     </section>

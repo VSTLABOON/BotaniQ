@@ -16,14 +16,14 @@ import {
   DndContext,
   closestCenter,
   KeyboardSensor,
-  MouseSensor as LibMouseSensor,
+  PointerSensor,
   TouchSensor,
   useSensor,
   useSensors,
   DragEndEvent
 } from '@dnd-kit/core';
 
-class MouseSensor extends LibMouseSensor {
+class CustomMouseSensor extends PointerSensor {
   static activators = [{
     eventName: 'onPointerDown' as const,
     handler: ({ nativeEvent }: { nativeEvent: PointerEvent }) => {
@@ -337,7 +337,7 @@ export default function AdminProductos() {
 
   // Configuración de sensores para dnd-kit
   const sensors = useSensors(
-    useSensor(MouseSensor, {
+    useSensor(CustomMouseSensor, {
       activationConstraint: {
         distance: 8,
       },

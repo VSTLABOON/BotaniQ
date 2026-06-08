@@ -1,6 +1,7 @@
 import React from 'react';
 import { MapPin, Truck, Plus, Trash2, Building, Globe } from 'lucide-react';
 import { Accordion } from './SharedUI';
+import { cleanGoogleMapsUrl } from '../../../../utils/formatters';
 
 export function CoberturaTab({
   state,
@@ -143,13 +144,13 @@ export function CoberturaTab({
               id="mapaUrl"
               type="text"
               value={mapaUrl}
-              onChange={(e) => setMapaUrl(e.target.value)}
+              onChange={(e) => setMapaUrl(cleanGoogleMapsUrl(e.target.value))}
               className={inputClass}
               placeholder="https://maps.app.goo.gl/..."
               style={{ fontSize: '16px' }}
             />
             <p className="text-xs text-[var(--color-text-tertiary)] mt-1">
-              Soporta enlaces cortos compartidos desde celular (`maps.app.goo.gl`) y regionales.
+              Soporta enlaces cortos compartidos desde celular (`maps.app.goo.gl`), regionales y códigos iframe directos.
             </p>
           </div>
           <div>

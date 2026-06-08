@@ -17,6 +17,7 @@ import { motion } from 'framer-motion';
 function SmoothLoopVideo({ src, fallbackImage }) {
   const videoRef = useRef(null);
   const [opacity, setOpacity] = useState(0);
+  const [hasError, setHasError] = useState(false);
   const rafRef = useRef(null);
 
   useEffect(() => {
@@ -64,8 +65,14 @@ function SmoothLoopVideo({ src, fallbackImage }) {
       rafRef.current = requestAnimationFrame(monitorPlayback);
     };
 
+    const handleError = (e) => {
+      console.error('[SmoothLoopVideo] Video failed to load:', e);
+      setHasError(true);
+    };
+
     video.addEventListener('ended', handleEnded);
     video.addEventListener('canplay', handleCanPlay);
+    video.addEventListener('error', handleError);
 
     if (video.readyState >= 3) {
       handleCanPlay();
@@ -75,10 +82,11 @@ function SmoothLoopVideo({ src, fallbackImage }) {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       video.removeEventListener('ended', handleEnded);
       video.removeEventListener('canplay', handleCanPlay);
+      video.removeEventListener('error', handleError);
     };
   }, [src]);
 
-  if (!src) {
+  if (!src || hasError) {
     return fallbackImage ? (
       <img
         src={fallbackImage}
@@ -94,6 +102,8 @@ function SmoothLoopVideo({ src, fallbackImage }) {
       src={src}
       muted
       playsInline
+      autoPlay
+      loop
       preload="auto"
       className="w-full h-full object-cover"
       style={{ opacity, transition: 'opacity 0.15s ease-out' }}
@@ -126,10 +136,7 @@ export default function HeroCinematic() {
       style={{ backgroundColor: '#FFFFFF' }}
     >
       {/* ── Video Background Layer ─────────────────────────────── */}
-      <div
-        className="absolute z-0"
-        style={{ inset: 'auto 0 0 0', top: '300px' }}
-      >
+      <div className="absolute inset-0 z-0 overflow-hidden">
         <SmoothLoopVideo
           src={hero.video_url || ''}
           fallbackImage={hero.imagen_fondo || ''}

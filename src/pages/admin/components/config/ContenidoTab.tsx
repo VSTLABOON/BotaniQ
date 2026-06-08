@@ -348,14 +348,21 @@ export function ContenidoTab({
                   <span>¿Ya tienes un enlace? Pega la URL directamente</span>
                   <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${showUrlInput ? 'rotate-180' : ''}`} />
                 </button>
-                {showUrlInput && (
-                  <input
-                    type="url"
-                    value={heroData.video_url || ''}
-                    onChange={(e) => handleHeroChange('video_url', e.target.value)}
-                    className="w-full mt-2 px-4 py-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
-                    placeholder="https://ejemplo.com/mi-video.mp4"
-                  />
+                 {showUrlInput && (
+                  <div className="space-y-1.5 mt-2 animate-fade-up">
+                    <input
+                      type="url"
+                      value={heroData.video_url || ''}
+                      onChange={(e) => handleHeroChange('video_url', e.target.value)}
+                      className="w-full px-4 py-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                      placeholder="https://ejemplo.com/mi-video.mp4"
+                    />
+                    {(heroData.video_url || '').toLowerCase().match(/(youtube\.com|youtu\.be|vimeo\.com)/) && (
+                      <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                        ⚠️ Los videos de fondo del Hero deben ser enlaces directos a archivos (ej. .mp4, .webm). Enlaces de YouTube o Vimeo no se reproducirán.
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
             </div>

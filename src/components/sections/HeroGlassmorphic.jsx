@@ -20,6 +20,7 @@ import { motion } from 'framer-motion';
 function BoomerangVideo({ src, fallbackImage }) {
   const videoRef = useRef(null);
   const [opacity, setOpacity] = useState(0);
+  const [hasError, setHasError] = useState(false);
   const rafRef = useRef(null);
 
   useEffect(() => {
@@ -55,18 +56,25 @@ function BoomerangVideo({ src, fallbackImage }) {
       rafRef.current = requestAnimationFrame(monitor);
     };
 
+    const onError = (e) => {
+      console.error('[BoomerangVideo] Video failed to load:', e);
+      setHasError(true);
+    };
+
     video.addEventListener('ended', onEnded);
     video.addEventListener('canplay', onReady);
+    video.addEventListener('error', onError);
     if (video.readyState >= 3) onReady();
 
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       video.removeEventListener('ended', onEnded);
       video.removeEventListener('canplay', onReady);
+      video.removeEventListener('error', onError);
     };
   }, [src]);
 
-  if (!src) {
+  if (!src || hasError) {
     return fallbackImage ? (
       <img src={fallbackImage} alt="" className="w-full h-full object-cover" />
     ) : (
@@ -80,6 +88,8 @@ function BoomerangVideo({ src, fallbackImage }) {
       src={src}
       muted
       playsInline
+      autoPlay
+      loop
       preload="auto"
       className="w-full h-full object-cover"
       style={{ opacity, transition: 'opacity 0.2s ease-out' }}
@@ -181,7 +191,7 @@ export default function HeroGlassmorphic() {
       {/* ── Video Background + Parallax ────────────────────────── */}
       <div
         ref={bgRef}
-        className="fixed top-0 left-0 w-full h-full z-0 origin-center"
+        className="absolute inset-0 w-full h-full z-0 origin-center overflow-hidden"
         style={{ transform: 'scale(1.08)', willChange: 'transform', transition: 'transform 0.15s ease-out' }}
       >
         <BoomerangVideo
@@ -192,7 +202,7 @@ export default function HeroGlassmorphic() {
 
       {/* ── Title (Centrado arriba) ────────────────────────────── */}
       <div
-        className={`fixed left-0 right-0 z-20 w-full px-4 transition-all duration-1000 ${
+        className={`absolute left-0 right-0 z-20 w-full px-4 transition-all duration-1000 ${
           mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
         }`}
         style={{ top: '126px' }}
@@ -211,40 +221,9 @@ export default function HeroGlassmorphic() {
         </h1>
       </div>
 
-      {/* ── Nav Pill (Glass) ───────────────────────────────────── */}
-      <nav className="fixed top-5 left-1/2 -translate-x-1/2 z-50 whitespace-nowrap">
-        <div className="liquid-glass-hero flex items-center gap-6 rounded-full px-5 py-2.5">
-          <span
-            className="text-lg font-bold text-white tracking-tight"
-            style={{ fontFamily: "'Instrument Serif', serif" }}
-          >
-            {tenant.nombre}
-          </span>
-          <div className="flex items-center gap-4">
-            {(tenant.nav_links || ['Catálogo', 'Servicios', 'Nosotros']).slice(0, 4).map((link) => (
-              <a
-                key={link}
-                href={`#${link.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')}`}
-                className="text-sm text-white/60 hover:text-white transition-colors duration-200"
-                style={{ fontFamily: "'Barlow', sans-serif", fontWeight: 300 }}
-              >
-                {link}
-              </a>
-            ))}
-          </div>
-          <a
-            href="#catalogo"
-            className="liquid-glass-cta text-sm text-white rounded-full px-4 py-1.5 ml-2"
-            style={{ fontFamily: "'Barlow', sans-serif", fontWeight: 500 }}
-          >
-            Ver arreglos
-          </a>
-        </div>
-      </nav>
-
       {/* ── Bottom Content Row ─────────────────────────────────── */}
       <div
-        className={`fixed bottom-12 left-0 right-0 px-6 md:px-10 flex flex-col md:flex-row items-end justify-between z-20 gap-6 transition-all duration-1000 delay-300 ${
+        className={`absolute bottom-12 left-0 right-0 px-6 md:px-10 flex flex-col md:flex-row items-end justify-between z-20 gap-6 transition-all duration-1000 delay-300 ${
           mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
         }`}
       >
@@ -298,7 +277,7 @@ export default function HeroGlassmorphic() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1, duration: 0.8 }}
-        className="md:hidden fixed bottom-4 left-0 right-0 z-20 text-center"
+        className="md:hidden absolute bottom-4 left-0 right-0 z-20 text-center"
       >
         <p
           className="text-xs text-white/40"

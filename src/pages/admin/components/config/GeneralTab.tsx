@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Heart, Globe, Gift, Phone, Instagram, Facebook, Loader2 } from 'lucide-react';
 import { Accordion } from './SharedUI';
 import { fetchAdminProducts } from '../../../../services/productService';
+import { cleanInstagramUsername, cleanFacebookUrl, cleanWhatsappNumber } from '../../../../utils/formatters';
 
 export function GeneralTab({ 
   state, 
@@ -193,29 +194,30 @@ export function GeneralTab({
               type="text"
               value={whatsapp}
               onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, ''))}
+              onBlur={(e) => setWhatsapp(cleanWhatsappNumber(e.target.value))}
               className={inputClass}
               style={{ fontSize: '16px' }}
               placeholder="Ej: 528112345678"
               maxLength={15}
             />
             <p className="text-xs text-[var(--color-text-tertiary)] mt-1">
-              Ingresa el número con clave de país (ej. 52 para México) sin espacios ni símbolos. Se utiliza para recibir tus pedidos de compra.
+              Ingresa el número con clave de país (ej. 52 para México) sin espacios ni símbolos. Se utiliza para recibir tus pedidos de compra. Si ingresas 10 dígitos, se le antepondrá el prefijo 52 automáticamente al salir.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label htmlFor="instagram" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1 flex items-center gap-1.5">
-                <Instagram className="w-4 h-4 text-pink-500" /> Enlace de Instagram
+                <Instagram className="w-4 h-4 text-pink-500" /> Usuario o Enlace de Instagram
               </label>
               <input
                 id="instagram"
                 type="text"
                 value={instagram}
-                onChange={(e) => setInstagram(e.target.value)}
+                onChange={(e) => setInstagram(cleanInstagramUsername(e.target.value))}
                 className={inputClass}
                 style={{ fontSize: '16px' }}
-                placeholder="https://instagram.com/tu_floreria"
+                placeholder="Ej: tu_floreria"
               />
             </div>
             <div>
@@ -227,6 +229,7 @@ export function GeneralTab({
                 type="text"
                 value={facebook}
                 onChange={(e) => setFacebook(e.target.value)}
+                onBlur={(e) => setFacebook(cleanFacebookUrl(e.target.value))}
                 className={inputClass}
                 style={{ fontSize: '16px' }}
                 placeholder="https://facebook.com/tu_floreria"

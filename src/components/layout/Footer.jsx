@@ -1,4 +1,5 @@
 import { useTenant } from '../../context/TenantContext.tsx';
+import { cleanInstagramUsername, cleanFacebookUrl } from '../../utils/formatters';
 
 export default function Footer() {
   const { tenant } = useTenant();
@@ -51,12 +52,18 @@ export default function Footer() {
                 <a href={`https://wa.me/${n}`} className="text-[0.82rem] text-[var(--color-background-primary)]/[.45] hover:text-rosa-light leading-[1.9] block transition-colors duration-200" target="_blank" rel="noopener noreferrer">WhatsApp</a>
               ) : null;
             })()}
-            {tenant.redes_sociales.instagram && (
-              <a href={tenant.redes_sociales.instagram} className="text-[0.82rem] text-[var(--color-background-primary)]/[.45] hover:text-rosa-light leading-[1.9] block transition-colors duration-200" target="_blank" rel="noopener noreferrer">Instagram</a>
-            )}
-            {tenant.redes_sociales.facebook && (
-              <a href={tenant.redes_sociales.facebook} className="text-[0.82rem] text-[var(--color-background-primary)]/[.45] hover:text-rosa-light leading-[1.9] block transition-colors duration-200" target="_blank" rel="noopener noreferrer">Facebook</a>
-            )}
+            {tenant.redes_sociales.instagram && (() => {
+              const igUser = cleanInstagramUsername(tenant.redes_sociales.instagram);
+              return igUser ? (
+                <a href={`https://instagram.com/${igUser}`} className="text-[0.82rem] text-[var(--color-background-primary)]/[.45] hover:text-rosa-light leading-[1.9] block transition-colors duration-200" target="_blank" rel="noopener noreferrer">Instagram</a>
+              ) : null;
+            })()}
+            {tenant.redes_sociales.facebook && (() => {
+              const fbUrl = cleanFacebookUrl(tenant.redes_sociales.facebook);
+              return fbUrl ? (
+                <a href={fbUrl} className="text-[0.82rem] text-[var(--color-background-primary)]/[.45] hover:text-rosa-light leading-[1.9] block transition-colors duration-200" target="_blank" rel="noopener noreferrer">Facebook</a>
+              ) : null;
+            })()}
           </div>
 
           <div className="flex flex-col">

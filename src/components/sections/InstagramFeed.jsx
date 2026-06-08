@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { logger } from '../../lib/logger';
 import { useTenant } from '../../context/TenantContext.tsx';
+import { cleanInstagramUsername } from '../../utils/formatters';
 
 /**
  * InstagramFeed — Componente que consume instagram_cache de Supabase.
@@ -18,7 +19,7 @@ import { useTenant } from '../../context/TenantContext.tsx';
  */
 export default function InstagramFeed({ tiendaId, slug, limit = 8 }) {
   const { tenant } = useTenant();
-  const igUser = tenant?.redes_sociales?.instagram || '';
+  const igUser = cleanInstagramUsername(tenant?.redes_sociales?.instagram || '');
 
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);

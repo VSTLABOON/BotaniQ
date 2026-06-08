@@ -13,7 +13,8 @@ import {
   Smartphone,
   Eye,
   MapPin,
-  Clock
+  Clock,
+  CreditCard
 } from 'lucide-react';
 import { useTenant } from '../../context/TenantContext';
 import { useTheming } from '../../hooks/useTheming';
@@ -29,6 +30,7 @@ import { GeneralTab } from './components/config/GeneralTab';
 import { ContenidoTab } from './components/config/ContenidoTab';
 import { CoberturaTab } from './components/config/CoberturaTab';
 import { HorariosTab } from './components/config/HorariosTab';
+import { PagosTab } from './components/config/PagosTab';
 
 import { FONT_OPTIONS } from '../../lib/constants.ts';
 
@@ -47,11 +49,11 @@ export default function AdminConfiguracion() {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
 
-  const activeTab = (tabParam === 'general' || tabParam === 'contenido' || tabParam === 'tema' || tabParam === 'cobertura' || tabParam === 'horarios')
+  const activeTab = (tabParam === 'general' || tabParam === 'contenido' || tabParam === 'tema' || tabParam === 'cobertura' || tabParam === 'horarios' || tabParam === 'pagos')
     ? tabParam
     : 'tema';
 
-  const setActiveTab = (tab: 'tema' | 'general' | 'contenido' | 'cobertura' | 'horarios') => {
+  const setActiveTab = (tab: 'tema' | 'general' | 'contenido' | 'cobertura' | 'horarios' | 'pagos') => {
     setSearchParams({ tab });
   };
 
@@ -75,7 +77,7 @@ export default function AdminConfiguracion() {
       return;
     }
 
-    const tabMap: Record<string, 'tema' | 'general' | 'contenido'> = {
+    const tabMap: Record<string, 'tema' | 'general' | 'contenido' | 'cobertura' | 'horarios' | 'pagos'> = {
       Hero: 'contenido',
       Servicios: 'contenido',
       Beneficios: 'contenido',
@@ -83,7 +85,7 @@ export default function AdminConfiguracion() {
       Flores: 'contenido',
       Galeria: 'contenido',
       Nosotros: 'general',
-      Cobertura: 'general',
+      Cobertura: 'cobertura',
       InstagramFeed: 'general',
     };
 
@@ -453,7 +455,7 @@ export default function AdminConfiguracion() {
       stripe_webhook_secret: stripeWebhookSecret || null
     };
 
-    const schemaToUse = activeTab === 'horarios' ? TenantConfigSchema : TenantConfigBaseSchema;
+    const schemaToUse = (activeTab === 'horarios' || activeTab === 'pagos') ? TenantConfigSchema : TenantConfigBaseSchema;
     const validation = schemaToUse.safeParse(payloadToValidate);
     if (!validation.success) {
       toast.error('Error de validación', {
@@ -638,7 +640,8 @@ export default function AdminConfiguracion() {
             { id: 'contenido', label: 'Estructura', icon: LayoutTemplate },
             { id: 'general', label: 'Identidad y SEO', icon: FileText },
             { id: 'cobertura', label: 'Cobertura', icon: MapPin },
-            { id: 'horarios', label: 'Horarios y Pagos', icon: Clock },
+            { id: 'horarios', label: 'Horarios', icon: Clock },
+            { id: 'pagos', label: 'Pagos', icon: CreditCard },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -711,12 +714,27 @@ export default function AdminConfiguracion() {
             />
           )}
 
-          {/* TAB: HORARIOS Y PAGOS */}
+          {/* TAB: HORARIOS */}
           {activeTab === 'horarios' && (
             <HorariosTab
               state={{
                 horarioRegular,
                 horarioEspecial,
+                openAccordions
+              }}
+              actions={{
+                setHorarioRegular,
+                setHorarioEspecial,
+                onToggleAccordion: handleToggleAccordion
+              }}
+              tenant={tenant}
+            />
+          )}
+
+          {/* TAB: PAGOS */}
+          {activeTab === 'pagos' && (
+            <PagosTab
+              state={{
                 openpayMerchantId,
                 openpayPublicKey,
                 openpayPrivateKey,
@@ -728,8 +746,6 @@ export default function AdminConfiguracion() {
                 openAccordions
               }}
               actions={{
-                setHorarioRegular,
-                setHorarioEspecial,
                 setOpenpayMerchantId,
                 setOpenpayPublicKey,
                 setOpenpayPrivateKey,
