@@ -27,6 +27,8 @@ export function ContenidoTab({
   const videoInputRef = useRef<HTMLInputElement>(null);
 
   const heroData = seccionesData?.hero || {};
+  const beneficiosData = seccionesData?.beneficios || {};
+  const floresData = seccionesData?.flores || {};
 
   const handleHeroChange = (field: string, value: string) => {
     setSeccionesData({
@@ -36,6 +38,44 @@ export function ContenidoTab({
         [field]: value
       }
     });
+  };
+
+  const handleBeneficiosChange = (field: string, value: string) => {
+    setSeccionesData({
+      ...seccionesData,
+      beneficios: {
+        ...beneficiosData,
+        [field]: value
+      }
+    });
+  };
+
+  const handleFloresChange = (field: string, value: string) => {
+    setSeccionesData({
+      ...seccionesData,
+      flores: {
+        ...floresData,
+        [field]: value
+      }
+    });
+  };
+
+  const handleBeneficiosImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const ext = file.name.split('.').pop() || 'jpg';
+      const fileName = `${tenant.id}/beneficios-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from('logos').upload(fileName, file, { cacheControl: '3600', upsert: true });
+      if (error) throw error;
+      const { data: { publicUrl } } = supabase.storage.from('logos').getPublicUrl(fileName);
+      handleBeneficiosChange('imagen', publicUrl);
+    } catch (err) {
+      console.error('Error uploading beneficios image', err);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleHeroImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -410,7 +450,62 @@ export function ContenidoTab({
         />
       </div>
 
-      <div id="editor-Beneficios" className="transition-all duration-300 rounded-3xl border border-transparent">
+      <div id="editor-Beneficios" className="transition-all duration-300 rounded-3xl border border-transparent space-y-4">
+        <div className="bg-white/30 dark:bg-black/30 backdrop-blur-md border border-white/20 dark:border-white/10 rounded-3xl p-6 space-y-4">
+          <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">Configuración General de Beneficios</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Valor de métrica</label>
+              <input
+                type="text"
+                value={beneficiosData.metrica_valor || ''}
+                onChange={(e) => handleBeneficiosChange('metrica_valor', e.target.value)}
+                className="w-full px-4 py-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                placeholder="Ej. +2,000"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Texto de métrica</label>
+              <input
+                type="text"
+                value={beneficiosData.metrica_texto || ''}
+                onChange={(e) => handleBeneficiosChange('metrica_texto', e.target.value)}
+                className="w-full px-4 py-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                placeholder="Ej. Entregas"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-2">Imagen Principal</label>
+            <div className="flex items-center gap-4">
+              {beneficiosData.imagen && (
+                <img src={beneficiosData.imagen} alt="Beneficios bg" className="w-20 h-20 object-cover rounded-lg border border-white/10" />
+              )}
+              <div className="relative">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleBeneficiosImageUpload}
+                  disabled={uploading}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-wait"
+                />
+                <div className="flex items-center gap-2 px-4 py-2 bg-[var(--color-background-secondary)] border border-[var(--color-border-secondary)] rounded-lg text-sm text-[var(--color-text-primary)] hover:bg-[var(--color-background-tertiary)] transition-colors">
+                  {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                  {uploading ? 'Subiendo...' : 'Subir imagen'}
+                </div>
+              </div>
+              {beneficiosData.imagen && (
+                <button 
+                  type="button" 
+                  onClick={() => handleBeneficiosChange('imagen', '')}
+                  className="text-xs text-red-500 hover:text-red-400"
+                >
+                  Remover
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
         <SectionListEditor
           title="Beneficios"
           description="Promesas de valor (Entrega express, Flores frescas, etc.)"
@@ -434,11 +529,60 @@ export function ContenidoTab({
             { key: 'nombre', label: 'Nombre del Cliente', type: 'text' },
             { key: 'texto', label: 'Testimonio', type: 'textarea' },
             { key: 'rating', label: 'Calificación (1-5)', type: 'number' },
+            { key: 'inicial', label: 'Iniciales', type: 'text' },
+            { key: 'ubicacion', label: 'Ubicación / Ciudad', type: 'text' },
           ]}
         />
       </div>
 
-      <div id="editor-Flores" className="transition-all duration-300 rounded-3xl border border-transparent">
+      <div id="editor-Flores" className="transition-all duration-300 rounded-3xl border border-transparent space-y-4">
+        <div className="bg-white/30 dark:bg-black/30 backdrop-blur-md border border-white/20 dark:border-white/10 rounded-3xl p-6 space-y-4">
+          <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">Configuración General de Flores</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Etiqueta de sección</label>
+              <input
+                type="text"
+                value={floresData.etiqueta || ''}
+                onChange={(e) => handleFloresChange('etiqueta', e.target.value)}
+                className="w-full px-4 py-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                placeholder="Ej. Nuestra selección"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Título</label>
+              <input
+                type="text"
+                value={floresData.titulo || ''}
+                onChange={(e) => handleFloresChange('titulo', e.target.value)}
+                className="w-full px-4 py-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                placeholder="Ej. La variedad"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Título destacado (cursiva)</label>
+              <input
+                type="text"
+                value={floresData.titulo_italic || ''}
+                onChange={(e) => handleFloresChange('titulo_italic', e.target.value)}
+                className="w-full px-4 py-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                placeholder="Ej. que mereces"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Cita literaria al pie</label>
+              <input
+                type="text"
+                value={floresData.cita || ''}
+                onChange={(e) => handleFloresChange('cita', e.target.value)}
+                className="w-full px-4 py-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                placeholder='Ej. "Cada flor tiene un lenguaje..."'
+              />
+            </div>
+          </div>
+        </div>
         <SectionListEditor
           title="Catálogo Rápido (Variedad de Flores)"
           description="Destaca tus tipos de flores más populares (Rosas, Girasoles, Peonías)."
@@ -461,6 +605,7 @@ export function ContenidoTab({
           fields={[
             { key: 'alt_text', label: 'Descripción (Texto Alt)', type: 'text' },
             { key: 'imagen_url', label: 'Imagen', type: 'image' },
+            { key: 'autor', label: 'Autor / Cliente', type: 'text' },
           ]}
         />
       </div>

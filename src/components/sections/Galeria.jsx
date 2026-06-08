@@ -42,8 +42,8 @@ export default function Galeria() {
             `}
           >
             <img 
-              src={img.imgUrl} 
-              alt={img.alt || 'Foto de arreglo'} 
+              src={img.imagen_url || img.imgUrl} 
+              alt={img.alt_text || img.alt || 'Foto de arreglo'} 
               loading="lazy" 
               className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
             />

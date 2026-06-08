@@ -287,14 +287,13 @@ export function TemaTab({
                         <div
                           ref={provided.innerRef}
                           {...provided.draggableProps}
-                          {...provided.dragHandleProps}
                           title={isLocked ? "Disponible en tu plan actual: actualiza para habilitar" : ""}
                           className={`rounded-xl border transition-all duration-200 select-none overflow-hidden ${
                             snapshot.isDragging
                               ? 'bg-white/90 dark:bg-black/90 backdrop-blur-sm shadow-xl scale-[1.02] z-50'
                               : isLocked
                                 ? 'bg-white/40 dark:bg-black/40 border-[var(--color-border-tertiary)] opacity-60 cursor-not-allowed'
-                                : 'bg-white/60 dark:bg-black/60 border-[var(--color-border-tertiary)] hover:border-[var(--color-border-secondary)] hover:shadow-sm cursor-grab active:cursor-grabbing'
+                                : 'bg-white/60 dark:bg-black/60 border-[var(--color-border-tertiary)] hover:border-[var(--color-border-secondary)] hover:shadow-sm'
                           }`}
                           style={snapshot.isDragging ? {
                             borderColor: colorPrimario,
@@ -308,7 +307,12 @@ export function TemaTab({
 
                           {/* Info row */}
                           <div className="flex items-center gap-3 px-4 py-2.5">
-                            <GripVertical className={`w-4 h-4 shrink-0 ${isLocked ? 'text-[var(--color-border-primary)]' : 'text-[var(--color-text-tertiary)]'}`} strokeWidth={2} />
+                            <div
+                              {...provided.dragHandleProps}
+                              className={isLocked ? '' : 'cursor-grab active:cursor-grabbing p-1 text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] select-none shrink-0'}
+                            >
+                              <GripVertical className={`w-4 h-4 shrink-0 ${isLocked ? 'text-[var(--color-border-primary)]' : ''}`} strokeWidth={2} />
+                            </div>
                             <div className="text-[var(--color-text-tertiary)]" aria-hidden="true">{meta.icon}</div>
                             <div className="flex-1 min-w-0 flex items-center gap-2">
                               <span className="text-sm font-medium text-[var(--color-text-primary)] truncate block">{meta.label}</span>

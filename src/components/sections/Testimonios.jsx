@@ -53,11 +53,11 @@ export default function Testimonios() {
             className="bg-negro p-8 rounded-[16px] border border-white/5 transition-transform duration-300 hover:-translate-y-2 hover:shadow-[0_12px_40px_rgba(0,0,0,0.3)]"
           >
             <div className="flex gap-1 text-dorado mb-6">
-              {[...Array(t.estrellas || 5)].map((_, j) => (
+              {[...Array(t.rating || t.estrellas || 5)].map((_, j) => (
                 <svg key={j} viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
               ))}
             </div>
-            <p className="text-[0.95rem] text-[var(--color-background-primary)]/80 leading-[1.7] mb-8 font-light">"{t.cita}"</p>
+            <p className="text-[0.95rem] text-[var(--color-background-primary)]/80 leading-[1.7] mb-8 font-light">"{t.texto || t.cita}"</p>
             <div className="flex items-center gap-4 mt-auto">
               <div className="w-10 h-10 rounded-full bg-verde flex items-center justify-center text-[var(--color-background-primary)] font-display font-bold text-[1.1rem]">
                 {t.inicial}

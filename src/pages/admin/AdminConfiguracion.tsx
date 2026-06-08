@@ -84,6 +84,7 @@ export default function AdminConfiguracion() {
       Galeria: 'contenido',
       Nosotros: 'general',
       Cobertura: 'general',
+      InstagramFeed: 'general',
     };
 
     const targetTab = tabMap[sectionKey];

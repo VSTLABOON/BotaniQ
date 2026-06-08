@@ -40,7 +40,9 @@ export default function Beneficios() {
           className="relative"
         >
           <div className="relative rounded-[24px] overflow-hidden aspect-[4/5] bg-verde-dark">
-            <img src={tenant.secciones?.beneficios?.imagen || 'img/minecraft.jpeg'} alt="Arreglo floral rosa" loading="lazy" className="w-full h-full object-cover" />
+            {tenant.secciones?.beneficios?.imagen && (
+              <img src={tenant.secciones.beneficios.imagen} alt="Beneficios" loading="lazy" className="w-full h-full object-cover" />
+            )}
           </div>
           <motion.div 
             initial={{ opacity: 0, y: 20 }}

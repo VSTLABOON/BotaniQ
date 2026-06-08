@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { logger } from '../../lib/logger';
+import { useTenant } from '../../context/TenantContext.tsx';
 
 /**
  * InstagramFeed — Componente que consume instagram_cache de Supabase.
@@ -16,11 +17,18 @@ import { logger } from '../../lib/logger';
  * @param {number} [limit=8]  - Cantidad de fotos a mostrar
  */
 export default function InstagramFeed({ tiendaId, slug, limit = 8 }) {
+  const { tenant } = useTenant();
+  const igUser = tenant?.redes_sociales?.instagram || '';
+
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    if (!igUser) {
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
 
     async function fetchFeed() {
@@ -82,6 +90,8 @@ export default function InstagramFeed({ tiendaId, slug, limit = 8 }) {
     return () => { cancelled = true; };
   }, [tiendaId, slug, limit]);
 
+  if (!igUser) return null;
+
   // ── Estado vacío: sin conexión o sin posts ────────────────
   if (!loading && posts.length === 0) {
     return null; // No renderizar nada si no hay feed configurado
@@ -97,7 +107,7 @@ export default function InstagramFeed({ tiendaId, slug, limit = 8 }) {
             <circle cx="12" cy="12" r="5" />
             <circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none" />
           </svg>
-          @floresdel.corazon
+          @{igUser}
         </p>
         <h2 className="font-display text-[clamp(2rem,5vw,3.4rem)] leading-[1.05] font-bold text-[var(--color-background-primary)] mb-2">
           Síguenos en <em className="italic text-rosa not-italic">Instagram</em>
@@ -192,7 +202,7 @@ export default function InstagramFeed({ tiendaId, slug, limit = 8 }) {
         {!loading && posts.length > 0 && (
           <div className="text-center mt-10 animate-fade-up">
             <a
-              href="https://instagram.com/floresdel.corazon"
+              href={`https://instagram.com/${igUser}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-3 bg-transparent border border-rosa/40 text-rosa text-[0.8rem] font-bold tracking-[0.1em] uppercase py-3 px-8 rounded-full transition-all duration-300 ease-spring hover:bg-rosa hover:text-[var(--color-background-primary)] hover:scale-105 hover:border-rosa"
