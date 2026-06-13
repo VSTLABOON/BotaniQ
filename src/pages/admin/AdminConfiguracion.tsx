@@ -32,6 +32,7 @@ import { CoberturaTab } from './components/config/CoberturaTab';
 import { HorariosTab } from './components/config/HorariosTab';
 import { PagosTab } from './components/config/PagosTab';
 
+import { cleanGoogleMapsUrl } from '../../utils/formatters';
 import { FONT_OPTIONS } from '../../lib/constants.ts';
 
 function reorder<T>(list: T[], startIndex: number, endIndex: number): T[] {
@@ -428,7 +429,7 @@ export default function AdminConfiguracion() {
       texto_nosotros:   textoNosotros,
       anio_fundacion:   anioFundacion === '' ? undefined : Number(anioFundacion),
       firma:            firma,
-      mapa_url:         mapaUrl,
+      mapa_url:         cleanGoogleMapsUrl(mapaUrl),
       direccion:        direccion,
       meta_title:       metaTitle,
       zonas_envio:      zonasEnvio,
@@ -518,6 +519,20 @@ export default function AdminConfiguracion() {
           mostrar_descripcion_en_tarjeta: mostrarDescripcionEnTarjeta
         }
       });
+
+      // Sincronizar estados locales con los datos validados y guardados
+      setMapaUrl(validatedData.mapa_url || '');
+      setWhatsapp(validatedData.whatsapp || '');
+      if (validatedData.redes_sociales) {
+        setInstagram(validatedData.redes_sociales.instagram || '');
+        setFacebook(validatedData.redes_sociales.facebook || '');
+      }
+      if (validatedData.openpay_merchant_id !== undefined) setOpenpayMerchantId(validatedData.openpay_merchant_id || '');
+      if (validatedData.openpay_public_key !== undefined) setOpenpayPublicKey(validatedData.openpay_public_key || '');
+      if (validatedData.openpay_private_key !== undefined) setOpenpayPrivateKey(validatedData.openpay_private_key || '');
+      if ((validatedData as any).stripe_publishable_key !== undefined) setStripePublishableKey((validatedData as any).stripe_publishable_key || '');
+      if ((validatedData as any).stripe_secret_key !== undefined) setStripeSecretKey((validatedData as any).stripe_secret_key || '');
+      if ((validatedData as any).stripe_webhook_secret !== undefined) setStripeWebhookSecret((validatedData as any).stripe_webhook_secret || '');
 
       toast.success('Configuración guardada', {
         message: 'Tus cambios se han guardado exitosamente.',

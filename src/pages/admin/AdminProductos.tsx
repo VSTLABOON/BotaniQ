@@ -185,6 +185,7 @@ function SortableProductRow({
         <div 
           {...attributes} 
           {...listeners} 
+          style={{ touchAction: 'none' }}
           className="cursor-grab active:cursor-grabbing p-1 text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] select-none shrink-0"
         >
           <GripVertical className="w-4 h-4" />

@@ -3,27 +3,30 @@
  */
 
 /**
- * Limpia y extrae la URL de Google Maps de una cadena de texto o código iframe.
+ * Transforma enlaces cortos de compartir (Google/Apple Maps) o direcciones en texto
+ * en una URL de incrustación segura para <iframe> con COSTO CERO.
  */
 export const cleanGoogleMapsUrl = (input: string): string => {
   if (!input) return '';
-  let cleaned = input.trim();
+  const trimmed = input.trim();
 
-  // 1. Detectar etiqueta iframe y extraer el valor del atributo src
-  if (cleaned.toLowerCase().includes('<iframe')) {
-    const srcMatch = cleaned.match(/src=["']([^"']+)["']/i);
-    if (srcMatch && srcMatch[1]) {
-      cleaned = srcMatch[1].trim();
-    }
+  // 1. Si el usuario pegó el código iframe completo de Google Maps (<iframe src="...">)
+  const srcMatch = trimmed.match(/src=["']([^"']+)["']/);
+  if (srcMatch && srcMatch[1]) {
+    return srcMatch[1];
   }
 
-  // 2. Extraer la URL real que comience con http o https
-  const urlMatch = cleaned.match(/(https?:\/\/[^\s"'<>]+)/i);
-  if (urlMatch && urlMatch[1]) {
-    cleaned = urlMatch[1].trim();
+  // 2. Si pegó una URL que ya viene en formato de incrustación pública
+  if (trimmed.includes('maps.google.com') && trimmed.includes('output=embed')) {
+    return trimmed;
   }
 
-  return cleaned;
+  // 3. Enlaces de compartir (Google/Apple) o direcciones de texto plano
+  const encodedQuery = encodeURIComponent(trimmed);
+
+  // Endpoint público y gratuito de Google Maps para búsquedas incrustadas
+  // iwloc=B fuerza a mostrar el pin de ubicación de forma clara.
+  return `https://maps.google.com/maps?q=${encodedQuery}&t=&z=16&ie=UTF8&iwloc=B&output=embed`;
 };
 
 /**

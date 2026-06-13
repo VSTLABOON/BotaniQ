@@ -144,7 +144,8 @@ export function CoberturaTab({
               id="mapaUrl"
               type="text"
               value={mapaUrl}
-              onChange={(e) => setMapaUrl(cleanGoogleMapsUrl(e.target.value))}
+              onChange={(e) => setMapaUrl(e.target.value)}
+              onBlur={(e) => setMapaUrl(cleanGoogleMapsUrl(e.target.value))}
               className={inputClass}
               placeholder="https://maps.app.goo.gl/..."
               style={{ fontSize: '16px' }}
