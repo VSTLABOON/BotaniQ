@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { toast } from '../../store/toastStore';
 import { supabase } from '../../lib/supabaseClient';
+import { getStatusBadgeClasses } from '../../lib/statusBadge';
 
 import { CARD } from './components/config/SharedUI';
 import { ManualOrderModal } from './components/ManualOrderModal';
@@ -71,13 +72,13 @@ interface Order {
 // ── Configuración visual de estados ──────────────────────────────
 
 const STATUS_CONFIG: Record<OrderStatus, { label: string; dot: string; bg: string; text: string }> = {
-  pendiente:  { label: 'Pendiente',      dot: 'bg-amber-500',   bg: 'bg-amber-50 dark:bg-amber-900/30',   text: 'text-amber-700 dark:text-amber-400' },
-  pagado:     { label: 'Pagado',         dot: 'bg-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-400' },
-  preparando: { label: 'En Preparación', dot: 'bg-blue-500',    bg: 'bg-blue-50 dark:bg-blue-900/30',    text: 'text-blue-700 dark:text-blue-400' },
-  en_ruta:    { label: 'En Ruta',        dot: 'bg-violet-500',  bg: 'bg-violet-50 dark:bg-violet-900/30',  text: 'text-violet-700 dark:text-violet-400' },
-  entregado:  { label: 'Entregado',      dot: 'bg-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-400' },
-  cancelado:  { label: 'Cancelado',      dot: 'bg-red-500',     bg: 'bg-red-50 dark:bg-red-900/30',     text: 'text-red-700 dark:text-red-400' },
-  pendiente_pago: { label: 'Carrito Abandonado', dot: 'bg-gray-400', bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-600 dark:text-gray-400' },
+  pendiente:      { label: 'Pendiente',          dot: 'bg-[var(--color-warning)]', bg: 'bg-[var(--color-warning-subtle)] border border-[var(--color-warning)]/10', text: 'text-[var(--color-warning)]' },
+  pagado:         { label: 'Pagado',             dot: 'bg-[var(--color-success)]', bg: 'bg-[var(--color-success-subtle)] border border-[var(--color-success)]/10', text: 'text-[var(--color-success)]' },
+  preparando:     { label: 'En Preparación',     dot: 'bg-[var(--color-warning)]', bg: 'bg-[var(--color-warning-subtle)] border border-[var(--color-warning)]/10', text: 'text-[var(--color-warning)]' },
+  en_ruta:        { label: 'En Ruta',            dot: 'bg-[var(--color-info)]',    bg: 'bg-[var(--color-info-subtle)] border border-[var(--color-info)]/10',    text: 'text-[var(--color-info)]' },
+  entregado:      { label: 'Entregado',          dot: 'bg-[var(--color-success)]', bg: 'bg-[var(--color-success-subtle)] border border-[var(--color-success)]/10', text: 'text-[var(--color-success)]' },
+  cancelado:      { label: 'Cancelado',          dot: 'bg-[var(--color-error)]',   bg: 'bg-[var(--color-error-subtle)] border border-[var(--color-error)]/10',   text: 'text-[var(--color-error)]' },
+  pendiente_pago: { label: 'Carrito Abandonado', dot: 'bg-[var(--color-text-tertiary)]', bg: 'bg-[var(--color-background-tertiary)] border border-[var(--color-border-secondary)]', text: 'text-[var(--color-text-secondary)]' },
 };
 
 const ALL_STATUSES: OrderStatus[] = ['pendiente_pago', 'pendiente', 'pagado', 'preparando', 'en_ruta', 'entregado', 'cancelado'];
@@ -822,7 +823,7 @@ export default function AdminPedidos() {
                 {/* ── Móvil Header (Número + Estado) ── */}
                 <div className="flex md:hidden items-center justify-between w-full border-b border-[var(--color-border-tertiary)] pb-3">
                   <span className="text-sm font-bold text-[var(--color-text-primary)] font-mono">{order.numero}</span>
-                  <span className={`inline-flex items-center gap-1.5 text-[0.65rem] font-semibold px-2 py-0.5 rounded-full ${statusConf.bg} ${statusConf.text} uppercase tracking-wider`}>
+                  <span className={`${getStatusBadgeClasses(order.estado)} gap-1.5 text-[0.65rem] uppercase tracking-wider`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${statusConf.dot}`} />
                     {statusConf.label}
                   </span>
@@ -863,7 +864,7 @@ export default function AdminPedidos() {
                 
                 {/* Estado (Desktop) */}
                 <div className="hidden md:flex justify-center">
-                  <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ${statusConf.bg} ${statusConf.text}`}>
+                  <span className={`${getStatusBadgeClasses(order.estado)} gap-1.5`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${statusConf.dot}`} />
                     {statusConf.label}
                   </span>
@@ -904,11 +905,13 @@ export default function AdminPedidos() {
             <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center">
               <ShoppingBag className="w-10 h-10 text-emerald-500" strokeWidth={1.5} />
             </div>
-            <h3 className="text-xl font-bold text-[var(--color-text-primary)] mb-2">Sin pedidos por ahora</h3>
+            <h3 className="text-xl font-bold text-[var(--color-text-primary)] mb-2">
+              {searchQuery ? 'Sin resultados' : 'Sin pedidos'}
+            </h3>
             <p className="text-sm text-[var(--color-text-tertiary)] max-w-md mx-auto leading-relaxed">
               {searchQuery 
                 ? 'No encontramos ningún pedido que coincida con tu búsqueda. Intenta con otro término.' 
-                : 'Aún no tienes pedidos registrados en esta tienda. Comparte tu link en redes sociales para atraer tus primeros clientes.'}
+                : 'Aún no tienes pedidos. Cuando un cliente realice una compra, aparecerá aquí.'}
             </p>
           </div>
         )}

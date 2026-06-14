@@ -590,9 +590,9 @@ export default function AdminProductos() {
             <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center">
               <Package className="w-10 h-10 text-emerald-500" strokeWidth={1.5} />
             </div>
-            <h3 className="text-xl font-bold text-[var(--color-text-primary)] mb-2">¡Tu vitrina está vacía!</h3>
+            <h3 className="text-xl font-bold text-[var(--color-text-primary)] mb-2">Catálogo vacío</h3>
             <p className="text-sm text-[var(--color-text-tertiary)] max-w-md mx-auto mb-8 leading-relaxed">
-              El paso más difícil ya lo diste. Ahora agrega tu primer arreglo floral. Solo necesitas una foto bonita, un nombre y el precio para empezar a recibir pedidos.
+              Tu catálogo está vacío. Agrega tu primer arreglo para que tus clientes puedan verlo.
             </p>
             <button
               onClick={() => {

@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Heart, Globe, Gift, Phone, Instagram, Facebook, Loader2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Heart, Globe, Gift, Phone, Instagram, Facebook } from 'lucide-react';
 import { Accordion } from './SharedUI';
-import { fetchAdminProducts } from '../../../../services/productService';
 import { cleanInstagramUsername, cleanFacebookUrl, cleanWhatsappNumber } from '../../../../utils/formatters';
 
 export function GeneralTab({ 
@@ -13,31 +12,6 @@ export function GeneralTab({
   actions: any,
   tenant: any
 }) {
-  const [products, setProducts] = useState<any[]>([]);
-  const [loadingProducts, setLoadingProducts] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-    async function loadProducts() {
-      if (!tenant?.id) return;
-      setLoadingProducts(true);
-      try {
-        const data = await fetchAdminProducts(tenant.id);
-        if (active) {
-          setProducts(data.filter(p => p.isAvailable));
-        }
-      } catch (err) {
-        console.error('Error fetching active products for banner select:', err);
-      } finally {
-        if (active) {
-          setLoadingProducts(false);
-        }
-      }
-    }
-    loadProducts();
-    return () => { active = false; };
-  }, [tenant?.id]);
-
   const { 
     textoNosotros, 
     anioFundacion, 
@@ -47,10 +21,6 @@ export function GeneralTab({
     whatsapp,
     instagram,
     facebook,
-    eventoActivo, 
-    eventoTitulo, 
-    eventoProducto, 
-    eventoFechaFin, 
     openAccordions,
     mostrarDescripcionEnTarjeta
   } = state;
@@ -64,10 +34,6 @@ export function GeneralTab({
     setWhatsapp,
     setInstagram,
     setFacebook,
-    setEventoActivo, 
-    setEventoTitulo, 
-    setEventoProducto, 
-    setEventoFechaFin, 
     onToggleAccordion,
     setMostrarDescripcionEnTarjeta
   } = actions;
@@ -197,7 +163,7 @@ export function GeneralTab({
               onBlur={(e) => setWhatsapp(cleanWhatsappNumber(e.target.value))}
               className={inputClass}
               style={{ fontSize: '16px' }}
-              placeholder="Ej: 528112345678"
+              placeholder="Ej. 2221234567 (sin espacios ni guiones)"
               maxLength={15}
             />
             <p className="text-xs text-[var(--color-text-tertiary)] mt-1">
@@ -233,72 +199,6 @@ export function GeneralTab({
                 className={inputClass}
                 style={{ fontSize: '16px' }}
                 placeholder="https://facebook.com/tu_floreria"
-              />
-            </div>
-          </div>
-        </div>
-      </Accordion>
-
-      {/* ── Evento / Promoción ── */}
-      <Accordion title="Evento / Promoción (Banner Superior)" icon={Gift}>
-        <div className="flex items-center justify-between mb-4 bg-emerald-500/10 dark:bg-emerald-500/15 backdrop-blur-sm p-4 rounded-xl border border-emerald-500/20 dark:border-emerald-500/15">
-          <div>
-            <h3 className="text-sm font-semibold text-emerald-800 dark:text-emerald-400">Activar Banner Promocional</h3>
-            <p className="text-xs text-emerald-600 dark:text-emerald-500 mt-1">Muestra un mensaje especial en la parte superior de tu tienda.</p>
-          </div>
-          <label htmlFor="eventoActivo" className="relative inline-flex items-center cursor-pointer">
-            <input id="eventoActivo" type="checkbox" className="sr-only peer" checked={eventoActivo} onChange={e => setEventoActivo(e.target.checked)} />
-            <div className="w-11 h-6 bg-[var(--color-background-tertiary)] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-[var(--color-background-primary)] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[var(--color-background-primary)] after:border-[var(--color-border-secondary)] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-          </label>
-        </div>
-        
-        <div className={`space-y-4 transition-all duration-300 ${!eventoActivo ? 'opacity-50 pointer-events-none filter grayscale' : ''}`}>
-          <div>
-            <label htmlFor="eventoTitulo" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Título del anuncio</label>
-            <input
-              id="eventoTitulo"
-              type="text"
-              value={eventoTitulo}
-              onChange={(e) => setEventoTitulo(e.target.value)}
-              className={inputClass}
-              style={{ fontSize: '16px' }}
-              placeholder="Ej. ¡Día de las Madres!"
-            />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="eventoProducto" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Producto Vinculado</label>
-              {loadingProducts ? (
-                <div className="text-xs text-[var(--color-text-tertiary)] py-2.5 flex items-center gap-1.5">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Cargando productos...</span>
-                </div>
-              ) : (
-                <select
-                  id="eventoProducto"
-                  value={eventoProducto}
-                  onChange={(e) => setEventoProducto(e.target.value)}
-                  className={inputClass}
-                  style={{ fontSize: '16px' }}
-                >
-                  <option value="">-- Ninguno (Sin vínculo) --</option>
-                  {products.map(p => (
-                    <option key={p.id} value={p.slug || p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-            <div>
-              <label htmlFor="eventoFechaFin" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Fecha y hora límite</label>
-              <input
-                id="eventoFechaFin"
-                type="datetime-local"
-                value={eventoFechaFin}
-                onChange={(e) => setEventoFechaFin(e.target.value)}
-                className={inputClass}
-                style={{ fontSize: '16px' }}
               />
             </div>
           </div>

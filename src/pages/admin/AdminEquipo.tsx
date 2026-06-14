@@ -396,9 +396,14 @@ export default function AdminEquipo() {
 
         {/* Empty */}
         {!loading && members.length === 0 && (
-          <div className="text-center py-16">
-            <Users className="w-12 h-12 text-[var(--color-text-tertiary)] opacity-30 mx-auto mb-3" />
-            <p className="text-sm text-[var(--color-text-tertiary)]">No hay miembros en el equipo</p>
+          <div className="text-center py-20 px-4">
+            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center">
+              <Users className="w-10 h-10 text-emerald-500" strokeWidth={1.5} />
+            </div>
+            <h3 className="text-xl font-bold text-[var(--color-text-primary)] mb-2">Sin colaboradores</h3>
+            <p className="text-sm text-[var(--color-text-tertiary)] max-w-md mx-auto leading-relaxed">
+              Aún no tienes colaboradores registrados. Agrega a tu equipo para que puedan gestionar pedidos y el catálogo.
+            </p>
           </div>
         )}
       </div>

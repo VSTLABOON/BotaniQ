@@ -458,7 +458,7 @@ export default function CartDrawer() {
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-white/5 shrink-0">
           <div className="flex items-center gap-3 text-[var(--color-background-primary)]">
-            <i className="ti ti-shopping-cart text-lg shrink-0" />
+            <ShoppingCart className="w-5 h-5 shrink-0" />
             <span className="font-display text-xl font-bold">Tu Pedido</span>
             {itemCount > 0 && <span className="text-xs bg-verde/20 text-verde-light px-2 py-0.5 rounded-full font-semibold">{itemCount}</span>}
           </div>

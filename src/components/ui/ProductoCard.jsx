@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { useCartStore } from '../../store/cartStore.ts';
 import { UI_COLORS } from '../../lib/constants.ts';
 import { useTenant } from '../../context/TenantContext.tsx';
+import { Menu, ShoppingCart } from 'lucide-react';
 
 const ProductoCard = memo(function ProductoCard({ producto, priority = false }) {
   const { tenant } = useTenant();
@@ -115,15 +116,16 @@ const ProductoCard = memo(function ProductoCard({ producto, priority = false }) 
           >
             {hasVariants ? (
               <>
-                <i className="ti ti-menu-2 text-sm shrink-0" />
+                <Menu className="w-4 h-4 shrink-0" />
                 Ver Opciones
               </>
             ) : (
               <>
                 {(tenant?.preferred_gateway === 'whatsapp' || (tenant?.subscription_level ?? 0) < 2) ? (
+                  /* EXCEPCIÓN: Se mantiene ti-brand-whatsapp por no contar con equivalente adecuado en Lucide */
                   <i className="ti ti-brand-whatsapp text-sm shrink-0" />
                 ) : (
-                  <i className="ti ti-shopping-cart text-sm shrink-0" />
+                  <ShoppingCart className="w-4 h-4 shrink-0" />
                 )}
                 Pedir
               </>

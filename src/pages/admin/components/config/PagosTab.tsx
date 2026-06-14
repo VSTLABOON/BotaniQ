@@ -1,5 +1,5 @@
 import React from 'react';
-import { CreditCard, Check, AlertCircle } from 'lucide-react';
+import { CreditCard, Check, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { Accordion } from './SharedUI';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -337,7 +337,7 @@ export function PagosTab({
                           onClick={() => setShowSecret(!showSecret)}
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] cursor-pointer bg-transparent border-0 outline-none"
                         >
-                          <span className={showSecret ? "ti ti-eye-off" : "ti ti-eye"} />
+                          {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
                       <p className="text-[10px] text-[var(--color-text-tertiary)] mt-1">
@@ -364,7 +364,7 @@ export function PagosTab({
                           onClick={() => setShowWebhookSecret(!showWebhookSecret)}
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] cursor-pointer bg-transparent border-0 outline-none"
                         >
-                          <span className={showWebhookSecret ? "ti ti-eye-off" : "ti ti-eye"} />
+                          {showWebhookSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
                       <p className="text-[10px] text-[var(--color-text-tertiary)] mt-1">

@@ -14,7 +14,8 @@ import {
   Eye,
   MapPin,
   Clock,
-  CreditCard
+  CreditCard,
+  RefreshCw
 } from 'lucide-react';
 import { useTenant } from '../../context/TenantContext';
 import { useTheming } from '../../hooks/useTheming';
@@ -140,7 +141,7 @@ export default function AdminConfiguracion() {
   const [areaMetropolitana, setAreaMetropolitana] = useState(tenant.area_metropolitana || 'área metropolitana');
 
   // Redes Sociales y Contacto
-  const [whatsapp, setWhatsapp]               = useState(tenant.whatsapp || '0000000000');
+  const [whatsapp, setWhatsapp]               = useState(tenant.whatsapp || '');
   const [instagram, setInstagram]             = useState(tenant.redes_sociales?.instagram || '');
   const [facebook, setFacebook]               = useState(tenant.redes_sociales?.facebook || '');
   const [customDomain, setCustomDomain]       = useState(tenant.custom_domain || '');
@@ -209,7 +210,7 @@ export default function AdminConfiguracion() {
       ciudad !== (tenant.ciudad || 'Monterrey') ||
       estado !== (tenant.estado || 'Nuevo León') ||
       areaMetropolitana !== (tenant.area_metropolitana || 'área metropolitana') ||
-      whatsapp !== (tenant.whatsapp || '0000000000') ||
+      whatsapp !== (tenant.whatsapp || '') ||
       instagram !== (tenant.redes_sociales?.instagram || '') ||
       facebook !== (tenant.redes_sociales?.facebook || '') ||
       customDomain !== (tenant.custom_domain || '') ||
@@ -267,7 +268,7 @@ export default function AdminConfiguracion() {
     setCiudad(tenant.ciudad || 'Monterrey');
     setEstado(tenant.estado || 'Nuevo León');
     setAreaMetropolitana(tenant.area_metropolitana || 'área metropolitana');
-    setWhatsapp(tenant.whatsapp || '0000000000');
+    setWhatsapp(tenant.whatsapp || '');
     setInstagram(tenant.redes_sociales?.instagram || '');
     setFacebook(tenant.redes_sociales?.facebook || '');
     setCustomDomain(tenant.custom_domain || '');
@@ -343,7 +344,7 @@ export default function AdminConfiguracion() {
       setCiudad(tenant.ciudad || 'Monterrey');
       setEstado(tenant.estado || 'Nuevo León');
       setAreaMetropolitana(tenant.area_metropolitana || 'área metropolitana');
-      setWhatsapp(tenant.whatsapp || '0000000000');
+      setWhatsapp(tenant.whatsapp || '');
       setInstagram(tenant.redes_sociales?.instagram || '');
       setFacebook(tenant.redes_sociales?.facebook || '');
       setCustomDomain(tenant.custom_domain || '');
@@ -705,8 +706,32 @@ export default function AdminConfiguracion() {
           {/* TAB: ESTRUCTURA */}
           {activeTab === 'contenido' && (
             <ContenidoTab
-              state={{ serviciosList, beneficiosList, testimoniosList, floresList, galeriaList, seccionesData, openAccordions }}
-              actions={{ setServiciosList, setBeneficiosList, setTestimoniosList, setFloresList, setGaleriaList, setSeccionesData, onToggleAccordion: handleToggleAccordion }}
+              state={{ 
+                serviciosList, 
+                beneficiosList, 
+                testimoniosList, 
+                floresList, 
+                galeriaList, 
+                seccionesData, 
+                openAccordions,
+                eventoActivo,
+                eventoTitulo,
+                eventoProducto,
+                eventoFechaFin
+              }}
+              actions={{ 
+                setServiciosList, 
+                setBeneficiosList, 
+                setTestimoniosList, 
+                setFloresList, 
+                setGaleriaList, 
+                setSeccionesData, 
+                onToggleAccordion: handleToggleAccordion,
+                setEventoActivo,
+                setEventoTitulo,
+                setEventoProducto,
+                setEventoFechaFin
+              }}
               tenant={tenant}
             />
           )}
@@ -714,8 +739,8 @@ export default function AdminConfiguracion() {
           {/* TAB: IDENTIDAD Y SEO */}
           {activeTab === 'general' && (
             <GeneralTab
-              state={{ textoNosotros, anioFundacion, firma, metaTitle, customDomain, whatsapp, instagram, facebook, eventoActivo, eventoTitulo, eventoProducto, eventoFechaFin, openAccordions, mostrarDescripcionEnTarjeta }}
-              actions={{ setTextoNosotros, setAnioFundacion, setFirma, setMetaTitle, setCustomDomain, setWhatsapp, setInstagram, setFacebook, setEventoActivo, setEventoTitulo, setEventoProducto, setEventoFechaFin, onToggleAccordion: handleToggleAccordion, setMostrarDescripcionEnTarjeta }}
+              state={{ textoNosotros, anioFundacion, firma, metaTitle, customDomain, whatsapp, instagram, facebook, openAccordions, mostrarDescripcionEnTarjeta }}
+              actions={{ setTextoNosotros, setAnioFundacion, setFirma, setMetaTitle, setCustomDomain, setWhatsapp, setInstagram, setFacebook, onToggleAccordion: handleToggleAccordion, setMostrarDescripcionEnTarjeta }}
               tenant={tenant}
             />
           )}
@@ -811,14 +836,14 @@ export default function AdminConfiguracion() {
                 rel="noopener noreferrer"
                 className="w-full flex items-center justify-center gap-2 px-5 py-2.5 bg-[var(--color-text-primary)] text-[var(--color-background-primary)] text-sm font-semibold hover:opacity-90 rounded-xl transition-all active:scale-95 shadow-md"
               >
-                <i className="ti ti-external-link text-base animate-pulse" /> Abrir vista previa
+                <ExternalLink className="w-4 h-4 animate-pulse" /> Abrir vista previa
               </a>
               <button
                 type="button"
                 onClick={() => window.open(getSubdomainUrl(tenant.slug, '/?preview=true'), '_blank')}
                 className="w-full flex items-center justify-center gap-2 px-5 py-2.5 bg-[var(--color-background-secondary)] text-[var(--color-text-primary)] text-sm font-semibold hover:bg-[var(--color-background-tertiary)] border border-[var(--color-border-primary)] rounded-xl transition-all active:scale-95 shadow-sm cursor-pointer"
               >
-                <i className="ti ti-refresh text-base" /> Actualizar
+                <RefreshCw className="w-4 h-4" /> Actualizar
               </button>
             </div>
           </div>
@@ -876,14 +901,14 @@ export default function AdminConfiguracion() {
                   rel="noopener noreferrer"
                   className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--color-text-primary)] text-[var(--color-background-primary)] text-xs font-semibold hover:opacity-90 rounded-xl transition-all active:scale-95 shadow-md"
                 >
-                  <i className="ti ti-external-link text-base" /> Abrir vista previa
+                  <ExternalLink className="w-4 h-4" /> Abrir vista previa
                 </a>
                 <button
                   type="button"
                   onClick={() => window.open(getSubdomainUrl(tenant.slug, '/?preview=true'), '_blank')}
                   className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--color-background-secondary)] text-[var(--color-text-primary)] text-xs font-semibold hover:bg-[var(--color-background-tertiary)] border border-[var(--color-border-primary)] rounded-xl transition-all active:scale-95 shadow-sm cursor-pointer"
                 >
-                  <i className="ti ti-refresh text-base" /> Actualizar
+                  <RefreshCw className="w-4 h-4" /> Actualizar
                 </button>
               </div>
             </div>

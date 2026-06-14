@@ -31,6 +31,7 @@ import { ThemeProvider } from './context/ThemeContext.tsx'
 import { isPlatformDomain } from './lib/domain.ts'
 import FeatureGate from './components/FeatureGate.tsx'
 import RoleProtectedRoute from './components/auth/RoleProtectedRoute.tsx'
+import { RoleGuard } from './components/auth/RoleGuard.tsx'
 import { ErrorBoundary } from './components/ErrorBoundary.tsx'
 import { ToastContainer } from './components/ui/ToastContainer.tsx'
 import { Loader2 } from 'lucide-react'
@@ -162,16 +163,32 @@ createRoot(document.getElementById('root')).render(
                       path="equipo" 
                       element={
                         <FeatureGate requiredLevel={2} fallback={<Navigate to="/admin" replace />}>
-                          <AdminEquipo />
+                          <RoleGuard allowedRoles={['dueño', 'superadmin']}>
+                            <AdminEquipo />
+                          </RoleGuard>
                         </FeatureGate>
                       } 
                     />
 
                     {/* NIVEL 1: Configuración / Store Builder. */}
-                    <Route path="ajustes" element={<AdminConfiguracion />} />
+                    <Route 
+                      path="ajustes" 
+                      element={
+                        <RoleGuard allowedRoles={['dueño', 'superadmin']}>
+                          <AdminConfiguracion />
+                        </RoleGuard>
+                      } 
+                    />
 
                     {/* NIVEL 1: Reportes */}
-                    <Route path="reportes" element={<AdminReportes />} />
+                    <Route 
+                      path="reportes" 
+                      element={
+                        <RoleGuard allowedRoles={['dueño', 'superadmin']}>
+                          <AdminReportes />
+                        </RoleGuard>
+                      } 
+                    />
 
                     {/* NIVEL 1: Notificaciones */}
                     <Route path="notificaciones" element={<AdminNotificaciones />} />

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Navigate } from 'react-router-dom';
 import {
   Truck,
   Plus,
@@ -26,7 +27,13 @@ interface Repartidor {
   pedidosActivos: number;
 }
 
+const REPARTIDORES_MODULE_ENABLED = false;
+
 export default function AdminRepartidores() {
+  if (!REPARTIDORES_MODULE_ENABLED) {
+    return <Navigate to="/admin" replace />;
+  }
+
   const { tenant } = useTenant();
   const tenantColor = tenant.color_primario || '#1a7f5a';
 

@@ -117,6 +117,16 @@
   --color-border-primary:       #d1d5db;
   --color-border-secondary:     #e5e7eb;
   --color-border-tertiary:      #f3f4f6;
+
+  /* Status Colors (Light Theme) */
+  --color-success:              #16a34a; /* emerald-600 */
+  --color-success-subtle:       #f0fdf4; /* emerald-50 */
+  --color-warning:              #d97706; /* amber-600 */
+  --color-warning-subtle:       #fefbeb; /* amber-50 */
+  --color-error:                #dc2626; /* red-600 */
+  --color-error-subtle:         #fef2f2; /* red-50 */
+  --color-info:                 #2563eb; /* blue-600 */
+  --color-info-subtle:          #eff6ff; /* blue-50 */
 }
 
 .dark {
@@ -129,6 +139,16 @@
   --color-border-primary:       #4b5563;
   --color-border-secondary:     #27272a;
   --color-border-tertiary:      #1f1f23;
+
+  /* Status Colors (Dark Theme) */
+  --color-success:              #4ade80; /* emerald-400 */
+  --color-success-subtle:       rgba(16, 185, 129, 0.15); /* emerald-500/15 */
+  --color-warning:              #fbbf24; /* amber-400 */
+  --color-warning-subtle:       rgba(245, 158, 11, 0.15); /* amber-500/15 */
+  --color-error:                #f87171; /* red-400 */
+  --color-error-subtle:         rgba(239, 68, 68, 0.15); /* red-500/15 */
+  --color-info:                 #60a5fa; /* blue-400 */
+  --color-info-subtle:          rgba(59, 130, 246, 0.15); /* blue-500/15 */
 }
 
 /* ── 7. Transición de Tema Optimizada (Evitar Lag) ────── */

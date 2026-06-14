@@ -60,7 +60,17 @@ export async function fetchDashboardMetrics(
       .limit(6),
     supabase
       .from('pedido_items')
-      .select('nombre_producto, precio_unitario, cantidad, pedidos!inner(tienda_id, created_at)')
+      .select(`
+        nombre_producto,
+        precio_unitario,
+        cantidad,
+        pedidos!inner(tienda_id, created_at),
+        productos (
+          id,
+          nombre,
+          imagen_url
+        )
+      `)
       .eq('pedidos.tienda_id', tiendaId)
       .gte('pedidos.created_at', dates.startOfMonth)
   ]);

@@ -5,6 +5,7 @@ import {
   Store,
   Settings2,
   Grid,
+  Bell,
   type LucideIcon
 } from 'lucide-react';
 
@@ -13,6 +14,7 @@ interface BottomNavProps {
   tenantColor: string;
   activeSheet: 'tienda' | 'mas' | null;
   onOpenSheet: (sheet: 'tienda' | 'mas') => void;
+  isOwnerOrSuper: boolean;
 }
 
 interface NavItem {
@@ -23,20 +25,23 @@ interface NavItem {
   sheet?: 'tienda' | 'mas';
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { id: 'inicio',   label: 'Inicio',    icon: Home,        path: '/admin' },
-  { id: 'pedidos',  label: 'Pedidos',   icon: ShoppingBag, path: '/admin/pedidos' },
-  { id: 'vitrina',  label: 'Vitrina',   icon: Store,       path: '/admin/catalogo' },
-  { id: 'tienda',   label: 'Mi Tienda', icon: Settings2,   sheet: 'tienda' },
-  { id: 'mas',      label: 'Más',       icon: Grid,        sheet: 'mas' },
-];
-
 export default function BottomNav({
   currentPath,
   tenantColor,
   activeSheet,
-  onOpenSheet
+  onOpenSheet,
+  isOwnerOrSuper
 }: BottomNavProps) {
+  const navItems: NavItem[] = [
+    { id: 'inicio',   label: 'Inicio',    icon: Home,        path: '/admin' },
+    { id: 'pedidos',  label: 'Pedidos',   icon: ShoppingBag, path: '/admin/pedidos' },
+    { id: 'vitrina',  label: 'Vitrina',   icon: Store,       path: '/admin/catalogo' },
+    ...(isOwnerOrSuper 
+      ? [{ id: 'tienda',   label: 'Mi Tienda', icon: Settings2,   sheet: 'tienda' as const }] 
+      : [{ id: 'notificaciones', label: 'Notificaciones', icon: Bell, path: '/admin/notificaciones' }]
+    ),
+    { id: 'mas',      label: 'Más',       icon: Grid,        sheet: 'mas' as const },
+  ];
   return (
     <nav
       style={{
@@ -53,7 +58,7 @@ export default function BottomNav({
       }}
       className="flex items-center justify-around px-2 text-white/40"
     >
-      {NAV_ITEMS.map((item) => {
+      {navItems.map((item) => {
         const isPathActive = item.path ? currentPath === item.path : false;
         const isSheetActive = item.sheet ? activeSheet === item.sheet : false;
         const isActive = isPathActive || isSheetActive;

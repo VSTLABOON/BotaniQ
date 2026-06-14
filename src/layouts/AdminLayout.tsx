@@ -47,6 +47,10 @@ import {
   CheckCircle2,
   XCircle,
   Check,
+  Clock,
+  AlertTriangle,
+  Loader2,
+  CreditCard,
 } from 'lucide-react';
 
 const OnboardingBot = lazy(() => import('../components/ui/OnboardingBot').then(m => ({ default: m.OnboardingBot })));
@@ -140,6 +144,7 @@ function Sidebar({
   pendingOrders,
   displayName,
   displayRole,
+  onOpenRepartidores,
 }: {
   tenantName: string;
   tenantColor: string;
@@ -150,12 +155,17 @@ function Sidebar({
   pendingOrders: number;
   displayName: string;
   displayRole: string;
+  onOpenRepartidores: () => void;
 }) {
   const { tenant } = useTenant();
+  const { profile } = useAuth();
   const level = tenant?.subscription_level ?? 1;
+  const isOwnerOrSuper = profile?.rol === 'dueño' || profile?.rol === 'superadmin';
 
   const filteredNavItems: NavItem[] = NAV_ITEMS.filter(item => {
-    if (item.to === '/admin/equipo' && level < 2) return false;
+    if (item.to === '/admin/equipo' && (!isOwnerOrSuper || level < 2)) return false;
+    if (item.to === '/admin/ajustes' && !isOwnerOrSuper) return false;
+    if (item.to === '/admin/reportes' && !isOwnerOrSuper) return false;
     if (item.to === '/admin/repartidores' && level < 3) return false;
     return true;
   });
@@ -227,6 +237,29 @@ function Sidebar({
         <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-1" aria-label="Navegación del panel">
           {filteredNavItems.map((item) => {
             const badge = item.badge === 'pedidos' && pendingOrders > 0 ? pendingOrders : null;
+            const isRepartidores = item.to === '/admin/repartidores';
+
+            if (isRepartidores) {
+              return (
+                <button
+                  key={item.to}
+                  onClick={() => {
+                    handleLinkClick();
+                    onOpenRepartidores();
+                  }}
+                  className="w-full flex items-center gap-3 py-2.5 text-[0.82rem] font-medium transition-all duration-200 group text-[var(--color-text-tertiary)] hover:bg-[var(--color-background-secondary)] hover:text-[var(--color-text-secondary)] px-3 rounded-xl focus:outline-none"
+                >
+                  <item.icon className="w-[18px] h-[18px] shrink-0" strokeWidth={1.8} />
+                  <div className="flex flex-col min-w-0 flex-1 text-left">
+                    <span className="leading-tight">{item.label}</span>
+                    <span className="text-[0.65rem] leading-tight text-[var(--color-text-tertiary)] opacity-70 group-hover:opacity-100">
+                      {item.desc}
+                    </span>
+                  </div>
+                </button>
+              );
+            }
+
             return (
               <NavLink
                 key={item.to}
@@ -544,6 +577,7 @@ function capitalizeRole(rol: string): string {
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 1024);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [showRepartidoresModal, setShowRepartidoresModal] = useState(false);
   const navigate = useNavigate();
 
   // FIX DT-08: Hooks llamados incondicionalmente a nivel superior.
@@ -552,10 +586,22 @@ export default function AdminLayout() {
   const { profile } = useAuth();
   
   const level = tenant?.subscription_level ?? 1;
+  const isOwnerOrSuper = profile?.rol === 'dueño' || profile?.rol === 'superadmin';
 
   const filteredTiendaSheetItems = TIENDA_SHEET_ITEMS.filter(item => {
-    if (item.id === 'equipo' && level < 2) return false;
+    if (item.id === 'equipo' && (!isOwnerOrSuper || level < 2)) return false;
     if (item.id === 'repartidores' && level < 3) return false;
+    
+    // Todos los demás ítems (builder, tema, dominio, pagos, horarios) son ajustes sensibles
+    const isAjusteItem = ['builder', 'tema', 'dominio', 'pagos', 'horarios'].includes(item.id);
+    if (isAjusteItem && !isOwnerOrSuper) return false;
+    
+    return true;
+  });
+
+  const filteredMasSheetItems = MAS_SHEET_ITEMS.filter(item => {
+    if (item.id === 'reportes' && !isOwnerOrSuper) return false;
+    if (item.id === 'configuracion' && !isOwnerOrSuper) return false;
     return true;
   });
 
@@ -601,6 +647,12 @@ export default function AdminLayout() {
   const location = useLocation();
 
   const handleSheetItemClick = useCallback((item: BottomSheetItem) => {
+    if (item.id === 'repartidores') {
+      setActiveSheet(null);
+      setShowRepartidoresModal(true);
+      return;
+    }
+
     if (item.path) {
       setActiveSheet(null);
       return;
@@ -717,6 +769,7 @@ export default function AdminLayout() {
           pendingOrders={pendingOrders}
           displayName={displayName}
           displayRole={displayRole}
+          onOpenRepartidores={() => setShowRepartidoresModal(true)}
         />
       </div>
 
@@ -739,7 +792,7 @@ export default function AdminLayout() {
             <div className="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200 dark:bg-amber-950/20 dark:border-amber-900/40 text-amber-800 dark:text-amber-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-amber-100 dark:bg-amber-900/40 rounded-lg shrink-0">
-                  <i className="ti ti-clock text-xl" />
+                  <Clock className="w-5 h-5" />
                 </div>
                 <div>
                   <h4 className="text-sm font-bold leading-tight">Tu prueba gratuita está por terminar</h4>
@@ -765,7 +818,7 @@ export default function AdminLayout() {
           {showRedBanner ? (
             <div className="flex flex-col items-center justify-center py-16 px-4 max-w-2xl mx-auto text-center">
               <div className="h-16 w-16 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-center text-red-500 mb-6 animate-pulse">
-                <i className="ti ti-alert-triangle text-3xl" />
+                <AlertTriangle className="w-8 h-8" />
               </div>
               
               <h2 className="text-2xl font-extrabold text-[var(--color-text-primary)] tracking-tight">
@@ -807,13 +860,14 @@ export default function AdminLayout() {
           tenantColor={tenantColor}
           activeSheet={activeSheet}
           onOpenSheet={(sheet) => setActiveSheet(sheet)}
+          isOwnerOrSuper={isOwnerOrSuper}
         />
         <Suspense fallback={null}>
           <BottomSheet
             isOpen={activeSheet !== null}
             onClose={() => setActiveSheet(null)}
             title={activeSheet === 'tienda' ? 'Mi Tienda' : 'Más'}
-            items={activeSheet === 'tienda' ? filteredTiendaSheetItems : MAS_SHEET_ITEMS}
+            items={activeSheet === 'tienda' ? filteredTiendaSheetItems : filteredMasSheetItems}
             tenantColor={tenantColor}
             onItemClick={handleSheetItemClick}
           />
@@ -894,10 +948,10 @@ export default function AdminLayout() {
               <button
                 onClick={() => !loadingPlan && setShowPlansModal(false)}
                 disabled={!!loadingPlan}
-                className="absolute top-4 right-4 p-2 text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] rounded-lg hover:bg-[var(--color-background-secondary)] transition-colors disabled:opacity-50"
+                className="absolute top-4 right-4 p-2 text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] rounded-lg hover:bg-[var(--color-background-secondary)] transition-colors disabled:opacity-50 flex items-center justify-center"
                 aria-label="Cerrar modal"
               >
-                <i className="ti ti-x text-xl" />
+                <X className="w-5 h-5" />
               </button>
 
               {/* Header */}
@@ -953,12 +1007,20 @@ export default function AdminLayout() {
                         </div>
 
                         <ul className="mt-4 space-y-2 text-xs text-[var(--color-text-secondary)]">
-                          {plan.features.map((feature, idx) => (
-                            <li key={idx} className="flex items-center gap-1.5">
-                              <i className={`ti ti-check text-sm ${plan.isPopular ? 'text-emerald-500' : 'text-[var(--color-text-tertiary)]'}`} />
-                              <span>{feature}</span>
-                            </li>
-                          ))}
+                          {plan.features.map((feature, idx) => {
+                            const isRepartidoresFeature = feature.toLowerCase().includes('repartidores');
+                            return (
+                              <li key={idx} className="flex items-center gap-1.5 flex-wrap">
+                                <Check className={`w-4 h-4 shrink-0 ${plan.isPopular ? 'text-emerald-500' : 'text-[var(--color-text-tertiary)]'}`} />
+                                <span>{feature}</span>
+                                {isRepartidoresFeature && (
+                                  <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                                    Próximamente
+                                  </span>
+                                )}
+                              </li>
+                            );
+                          })}
                         </ul>
                       </div>
 
@@ -972,10 +1034,10 @@ export default function AdminLayout() {
                         }`}
                       >
                         {isCurrentLoading ? (
-                          <i className="ti ti-loader text-sm animate-spin" />
+                          <Loader2 className="w-4 h-4 animate-spin" />
                         ) : (
                           <>
-                            <i className="ti ti-credit-card text-sm" />
+                            <CreditCard className="w-4 h-4" />
                             {plan.buttonText}
                           </>
                         )}
@@ -991,6 +1053,42 @@ export default function AdminLayout() {
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal Próximamente Repartidores */}
+      <AnimatePresence>
+        {showRepartidoresModal && (
+          <>
+            <div 
+              className="fixed inset-0 z-[1000] bg-black/40 backdrop-blur-[3px]" 
+              onClick={() => setShowRepartidoresModal(false)} 
+            />
+            <div className="fixed inset-x-4 bottom-4 sm:bottom-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-[480px] bg-[var(--color-background-primary)] border border-[var(--color-border-tertiary)] rounded-2xl shadow-2xl p-6 z-[1001] flex flex-col items-center text-center animate-in fade-in zoom-in-95 duration-200">
+              <div 
+                className="w-12 h-12 rounded-xl flex items-center justify-center mb-4"
+                style={{ backgroundColor: `${tenantColor}12`, color: tenantColor }}
+              >
+                <Truck className="w-6 h-6" />
+              </div>
+              <div className="flex items-center gap-2 mb-2">
+                <h3 className="text-lg font-bold text-[var(--color-text-primary)]">Módulo de Repartidores</h3>
+                <span className="text-[0.65rem] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                  Próximamente
+                </span>
+              </div>
+              <p className="text-sm text-[var(--color-text-tertiary)] leading-relaxed mb-6">
+                Estamos construyendo un sistema de logística de entregas para tu florería. Podrás gestionar tu flota, asignar pedidos y rastrear entregas en tiempo real. Te notificaremos cuando esté disponible.
+              </p>
+              <button
+                onClick={() => setShowRepartidoresModal(false)}
+                className="w-full py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer"
+                style={{ backgroundColor: tenantColor }}
+              >
+                Entendido
+              </button>
+            </div>
+          </>
         )}
       </AnimatePresence>
     </div>

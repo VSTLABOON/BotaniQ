@@ -8,7 +8,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   TrendingUp, TrendingDown,
-  ShoppingBag, Truck, Clock, MapPin, Heart, Package, Loader2, Bell, AlertCircle
+  ShoppingBag, Truck, Clock, MapPin, Heart, Package, Loader2, Bell, AlertCircle, Sliders
 } from 'lucide-react';
 import {
   ResponsiveContainer, Area, AreaChart,
@@ -59,10 +59,10 @@ interface TopProduct {
 
 // ── Status config ────────────────────────────────────────────────
 const STATUS_CONFIG: Record<string, { label: string; dot: string; text: string }> = {
-  entregado:  { label: 'Entregado',  dot: 'bg-emerald-500', text: 'text-emerald-700' },
-  en_ruta:    { label: 'En camino',  dot: 'bg-blue-500',    text: 'text-blue-700' },
-  preparando: { label: 'Preparando', dot: 'bg-amber-500',   text: 'text-amber-700' },
-  pendiente:  { label: 'Pendiente',  dot: 'bg-[var(--color-border-primary)]',    text: 'text-[var(--color-text-secondary)]' },
+  entregado:  { label: 'Entregado',  dot: 'bg-[var(--color-success)]', text: 'text-[var(--color-success)]' },
+  en_ruta:    { label: 'En camino',  dot: 'bg-[var(--color-info)]',    text: 'text-[var(--color-info)]' },
+  preparando: { label: 'Preparando', dot: 'bg-[var(--color-warning)]', text: 'text-[var(--color-warning)]' },
+  pendiente:  { label: 'Pendiente',  dot: 'bg-[var(--color-text-tertiary)]', text: 'text-[var(--color-text-secondary)]' },
 };
 
 // ── Tooltip personalizado ────────────────────────────────────────
@@ -232,10 +232,16 @@ export default function AdminDashboardPage() {
         // ── Procesar 4. Top productos (más vendidos del mes) ──────
         if (topItems) {
           // Agrupar por nombre de producto
-          const productMap: Record<string, { units: number; price: number }> = {};
+          const productMap: Record<string, { units: number; price: number; img: string }> = {};
           topItems.forEach((item: any) => {
             const name = item.nombre_producto || 'Producto';
-            if (!productMap[name]) productMap[name] = { units: 0, price: item.precio_unitario || 0 };
+            if (!productMap[name]) {
+              productMap[name] = {
+                units: 0,
+                price: item.precio_unitario || 0,
+                img: item.productos?.imagen_url || '',
+              };
+            }
             productMap[name].units += item.cantidad || 1;
           });
 
@@ -246,7 +252,7 @@ export default function AdminDashboardPage() {
               name,
               units: data.units,
               price: `$${data.price.toLocaleString()}`,
-              img: '', // No tenemos la imagen desde pedido_items
+              img: data.img,
             }));
 
           setTopProducts(sortedProducts);
@@ -309,6 +315,24 @@ export default function AdminDashboardPage() {
     );
   }
 
+  const chartGridColor = typeof window !== 'undefined'
+    ? getComputedStyle(document.documentElement).getPropertyValue('--color-border-secondary').trim() || '#e5e7eb'
+    : '#e5e7eb';
+
+  const maxWeeklySale = Math.max(...weeklySales.map(d => d.ventas), 0);
+
+  const formatTick = (value: number, maxValue: number) => {
+    if (maxValue >= 10000) {
+      return `$${(value / 1000).toFixed(0)}k`;
+    }
+    if (maxValue >= 1000) {
+      return `$${(value / 1000).toFixed(1)}k`;
+    }
+    return `$${value.toLocaleString('es-MX')}`;
+  };
+
+  const isBrandNewTenant = weeklySales.every(d => d.ventas === 0) && deliveries.length === 0 && topProducts.length === 0;
+
   return (
     <div className="max-w-7xl mx-auto space-y-6 font-sans">
       {/* ── Encabezado ── */}
@@ -336,6 +360,22 @@ export default function AdminDashboardPage() {
           Activar Notificaciones
         </button>
       </div>
+
+      {/* ── Onboarding Banner for brand new tenant ── */}
+      {isBrandNewTenant && !isEmployee && (
+        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm font-medium">
+          <div className="flex items-center gap-3 font-sans">
+            <Sliders className="w-5 h-5 text-amber-500" />
+            <div>
+              <h4 className="text-sm font-bold leading-tight">Configura tu tienda</h4>
+              <p className="text-xs opacity-95 mt-0.5">Comienza agregando productos y configurando tus métodos de pago.</p>
+            </div>
+          </div>
+          <Link to="/admin/ajustes" className="px-4 py-2 bg-amber-600 hover:bg-amber-700 active:scale-[0.98] text-white text-xs font-semibold rounded-lg transition-all shadow-sm shrink-0 w-fit text-center">
+            Configurar ajustes
+          </Link>
+        </div>
+      )}
 
       {/* ═══ KPIs ═══ */}
       <div className={`grid grid-cols-1 gap-4 ${isEmployee ? 'sm:grid-cols-2' : 'sm:grid-cols-3'}`}>
@@ -377,16 +417,13 @@ export default function AdminDashboardPage() {
             </div>
           </div>
           <div className="h-[280px] -ml-2">
-            {weeklySales.every(d => d.ventas === 0) ? (
+             {weeklySales.every(d => d.ventas === 0) ? (
               <div className="h-full flex flex-col items-center justify-center text-[var(--color-text-tertiary)]">
                 <Package className="w-10 h-10 mb-3 text-[var(--color-text-tertiary)]" strokeWidth={1.5} />
                 <p className="text-sm font-medium text-[var(--color-text-secondary)]">Aún no hay ventas registradas</p>
-                <p className="text-xs text-[var(--color-text-tertiary)] mt-1 mb-4 text-center max-w-[250px]">
+                <p className="text-xs text-[var(--color-text-tertiary)] mt-1 text-center max-w-[250px]">
                   Configura tu catálogo para empezar a recibir pedidos.
                 </p>
-                <Link to="/admin/catalogo" className="text-xs font-semibold bg-emerald-505/10 text-emerald-500 px-4 py-2 rounded-lg hover:bg-emerald-500/20 transition-colors">
-                  Ir al catálogo
-                </Link>
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
@@ -397,9 +434,9 @@ export default function AdminDashboardPage() {
                       <stop offset="95%" stopColor="var(--color-primario)" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke={UI_COLORS.CHART_GRID} vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartGridColor} vertical={false} />
                   <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: UI_COLORS.CHART_TICK, fontSize: 12 }} dy={8} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fill: UI_COLORS.CHART_TICK, fontSize: 12 }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} width={45} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: UI_COLORS.CHART_TICK, fontSize: 12 }} tickFormatter={(v) => formatTick(v, maxWeeklySale)} width={45} />
                   <Tooltip content={<ChartTooltip />} />
                   <Area type="monotone" dataKey="ventas" stroke="var(--color-primario)" strokeWidth={2.5} fill="url(#salesGradient)" dot={false}
                     activeDot={{ r: 5, fill: 'var(--color-primario)', stroke: '#fff', strokeWidth: 2 }} />
@@ -419,16 +456,13 @@ export default function AdminDashboardPage() {
             </span>
           </div>
 
-          {deliveries.length === 0 ? (
+           {deliveries.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center py-10">
               <Truck className="w-10 h-10 mb-3 text-[var(--color-text-tertiary)]" strokeWidth={1.5} />
               <p className="text-sm font-medium text-[var(--color-text-secondary)]">No hay entregas para hoy</p>
-              <p className="text-xs text-[var(--color-text-tertiary)] mt-1 mb-4 text-center max-w-[200px]">
+              <p className="text-xs text-[var(--color-text-tertiary)] mt-1 text-center max-w-[200px]">
                 Puedes revisar el historial de pedidos pasados.
               </p>
-              <Link to="/admin/pedidos" className="text-xs font-semibold bg-blue-500/10 text-blue-500 px-4 py-2 rounded-lg hover:bg-blue-500/20 transition-colors">
-                Ver historial
-              </Link>
             </div>
           ) : (
             <div className="flex-1 overflow-y-auto -mr-2 pr-2 space-y-0">
@@ -475,26 +509,19 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* ═══ TOP PRODUCTOS ═══ */}
       <div className={CARD}>
         <div className="flex items-center justify-between mb-5">
           <div>
             <h2 className="text-sm font-semibold text-[var(--color-text-primary)]">Productos Top del Mes</h2>
             <p className="text-xs text-[var(--color-text-tertiary)] mt-0.5">Los más vendidos este periodo</p>
           </div>
-          <Link to="/admin/catalogo" className="text-xs text-emerald-600 font-semibold hover:underline">
-            Ver catálogo completo →
-          </Link>
         </div>
 
         {topProducts.length === 0 ? (
           <div className="text-center py-12 flex flex-col items-center">
             <Package className="w-10 h-10 text-[var(--color-text-tertiary)] mb-3" strokeWidth={1.5} />
             <p className="text-sm font-medium text-[var(--color-text-secondary)]">Sin datos de ventas este mes</p>
-            <p className="text-xs text-[var(--color-text-tertiary)] mt-1 mb-4">Los productos top aparecerán aquí cuando recibas pedidos.</p>
-            <Link to="/admin/catalogo" className="text-xs font-semibold bg-emerald-50 text-emerald-700 px-4 py-2 rounded-lg hover:bg-emerald-105 transition-colors">
-              Agregar productos
-            </Link>
+            <p className="text-xs text-[var(--color-text-tertiary)] mt-1">Los productos top aparecerán aquí cuando recibas pedidos.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -505,7 +532,9 @@ export default function AdminDashboardPage() {
                     {item.img ? (
                       <img src={item.img} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                     ) : (
-                      <Package className="w-6 h-6 text-[var(--color-text-tertiary)]" />
+                      <div className="w-full h-full flex items-center justify-center bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-sm">
+                        {item.name.slice(0, 2).toUpperCase()}
+                      </div>
                     )}
                   </div>
                   <span className="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full bg-[var(--color-text-primary)] text-[var(--color-background-primary)] text-[0.6rem] font-bold flex items-center justify-center">

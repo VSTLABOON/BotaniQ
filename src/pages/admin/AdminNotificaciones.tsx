@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { subscribeToPushNotifications } from '../../lib/pushNotifications';
 import { toast } from '../../store/toastStore';
 import { CARD } from './components/config/SharedUI';
+import { fetchAdminNotifications, markNotificationAsRead, markAllAsRead } from '../../services/notificacionesService';
 
 export default function AdminNotificaciones() {
   const { tenant } = useTenant();
@@ -19,6 +20,33 @@ export default function AdminNotificaciones() {
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushStatus, setPushStatus] = useState<NotificationPermission>('default');
   const [subscribing, setSubscribing] = useState(false);
+
+  // Historial de notificaciones
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [loadingNotifications, setLoadingNotifications] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    async function loadNotifications() {
+      if (!tenant?.id) return;
+      try {
+        const data = await fetchAdminNotifications(tenant.id);
+        if (active) {
+          setNotifications(data);
+        }
+      } catch (err) {
+        console.error('Error fetching notifications:', err);
+      } finally {
+        if (active) {
+          setLoadingNotifications(false);
+        }
+      }
+    }
+    loadNotifications();
+    return () => {
+      active = false;
+    };
+  }, [tenant?.id]);
 
   useEffect(() => {
     if ('Notification' in window) {
@@ -167,6 +195,95 @@ export default function AdminNotificaciones() {
             </label>
           </div>
         </div>
+      </div>
+
+      {/* Alertas Recientes */}
+      <div className={`${CARD} p-6 space-y-6`}>
+        <div className="flex items-center justify-between pb-4 border-b border-[var(--color-border-tertiary)]">
+          <div className="flex items-center gap-3">
+            <Bell className="w-5 h-5" style={{ color: tenantColor }} />
+            <h2 className="text-base font-bold text-[var(--color-text-primary)]">Alertas Recientes</h2>
+          </div>
+          {notifications.length > 0 && (
+            <button
+              onClick={async () => {
+                try {
+                  await markAllAsRead(tenant.id);
+                  setNotifications(prev => prev.map(n => ({ ...n, leida: true })));
+                  toast.success('Todas marcadas como leídas');
+                } catch (e) {
+                  console.error(e);
+                }
+              }}
+              className="text-xs text-emerald-600 font-semibold hover:underline"
+            >
+              Marcar todas como leídas
+            </button>
+          )}
+        </div>
+
+        {loadingNotifications ? (
+          <div className="py-12 flex items-center justify-center">
+            <div className="w-6 h-6 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+          </div>
+        ) : notifications.length === 0 ? (
+          <div className="text-center py-16 px-4">
+            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center">
+              <Bell className="w-10 h-10 text-emerald-500" strokeWidth={1.5} />
+            </div>
+            <h3 className="text-xl font-bold text-[var(--color-text-primary)] mb-2">Todo al día</h3>
+            <p className="text-sm text-[var(--color-text-tertiary)] max-w-md mx-auto leading-relaxed">
+              Aquí aparecerán alertas de nuevos pedidos y pagos.
+            </p>
+          </div>
+        ) : (
+          <div className="divide-y divide-[var(--color-border-tertiary)]/50 max-h-96 overflow-y-auto pr-2">
+            {notifications.map((n) => {
+              const date = new Date(n.created_at).toLocaleDateString(undefined, {
+                day: 'numeric',
+                month: 'short',
+                hour: '2-digit',
+                minute: '2-digit'
+              });
+              return (
+                <div
+                  key={n.id}
+                  className={`py-3 flex items-start justify-between gap-3 ${!n.leida ? 'bg-emerald-50/5 -mx-6 px-6' : ''}`}
+                >
+                  <div className="space-y-1">
+                    <p className={`text-sm ${!n.leida ? 'font-semibold text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)]'}`}>
+                      {n.titulo}
+                    </p>
+                    {n.mensaje && (
+                      <p className="text-xs text-[var(--color-text-tertiary)]">
+                        {n.mensaje}
+                      </p>
+                    )}
+                    <span className="text-[10px] text-[var(--color-text-tertiary)] block">
+                      {date}
+                    </span>
+                  </div>
+                  {!n.leida && (
+                    <button
+                      onClick={async () => {
+                        try {
+                          await markNotificationAsRead(n.id);
+                          setNotifications(prev => prev.map(item => item.id === n.id ? { ...item, leida: true } : item));
+                        } catch (e) {
+                          console.error(e);
+                        }
+                      }}
+                      className="p-1 rounded-lg text-[var(--color-text-tertiary)] hover:text-emerald-600 hover:bg-[var(--color-background-tertiary)] transition-colors shrink-0"
+                      title="Marcar como leída"
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Nota Explicativa */}

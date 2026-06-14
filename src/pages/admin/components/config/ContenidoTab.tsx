@@ -1,8 +1,9 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { SectionListEditor } from '../SectionListEditor';
 import { Accordion } from './SharedUI';
-import { LayoutTemplate, Upload, Loader2, Film, X, Link2, ChevronDown, Flower2, Gem } from 'lucide-react';
+import { LayoutTemplate, Upload, Loader2, Film, X, Link2, ChevronDown, Flower2, Gem, Gift } from 'lucide-react';
 import { supabase } from '../../../../lib/supabaseClient';
+import { fetchAdminProducts } from '../../../../services/productService';
 
 const MAX_VIDEO_SIZE_MB = 30;
 const MAX_VIDEO_SIZE_BYTES = MAX_VIDEO_SIZE_MB * 1024 * 1024;
@@ -16,8 +17,59 @@ export function ContenidoTab({
   actions: any,
   tenant: any
 }) {
-  const { serviciosList, beneficiosList, testimoniosList, floresList, galeriaList, seccionesData, openAccordions } = state;
-  const { setServiciosList, setBeneficiosList, setTestimoniosList, setFloresList, setGaleriaList, setSeccionesData, onToggleAccordion } = actions;
+  const { 
+    serviciosList, 
+    beneficiosList, 
+    testimoniosList, 
+    floresList, 
+    galeriaList, 
+    seccionesData, 
+    openAccordions,
+    eventoActivo,
+    eventoTitulo,
+    eventoProducto,
+    eventoFechaFin
+  } = state;
+
+  const { 
+    setServiciosList, 
+    setBeneficiosList, 
+    setTestimoniosList, 
+    setFloresList, 
+    setGaleriaList, 
+    setSeccionesData, 
+    onToggleAccordion,
+    setEventoActivo,
+    setEventoTitulo,
+    setEventoProducto,
+    setEventoFechaFin
+  } = actions;
+
+  const [products, setProducts] = useState<any[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    async function loadProducts() {
+      if (!tenant?.id) return;
+      setLoadingProducts(true);
+      try {
+        const data = await fetchAdminProducts(tenant.id);
+        if (active) {
+          setProducts(data.filter(p => p.isAvailable));
+        }
+      } catch (err) {
+        console.error('Error fetching active products for banner select:', err);
+      } finally {
+        if (active) {
+          setLoadingProducts(false);
+        }
+      }
+    }
+    loadProducts();
+    return () => { active = false; };
+  }, [tenant?.id]);
+
   const [uploading, setUploading] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [videoProgress, setVideoProgress] = useState(0);
@@ -615,6 +667,79 @@ export function ContenidoTab({
             { key: 'autor', label: 'Autor / Cliente', type: 'text' },
           ]}
         />
+      </div>
+
+      {/* ── Evento / Promoción ── */}
+      <div id="editor-EventoPromocional" className="transition-all duration-300 rounded-3xl border border-transparent">
+        <Accordion 
+          title="Evento / Promoción (Banner Superior)" 
+          icon={Gift}
+          isOpen={openAccordions.EventoPromocional}
+          onToggle={(open) => onToggleAccordion('EventoPromocional', open)}
+        >
+          <div className="flex items-center justify-between mb-4 bg-emerald-500/10 dark:bg-emerald-500/15 backdrop-blur-sm p-4 rounded-xl border border-emerald-500/20 dark:border-emerald-500/15">
+            <div>
+              <h3 className="text-sm font-semibold text-emerald-800 dark:text-emerald-400 font-sans">Activar Banner Promocional</h3>
+              <p className="text-xs text-emerald-600 dark:text-emerald-500 mt-1 font-sans">Muestra un mensaje especial en la parte superior de tu tienda.</p>
+            </div>
+            <label htmlFor="eventoActivo" className="relative inline-flex items-center cursor-pointer select-none">
+              <input id="eventoActivo" type="checkbox" className="sr-only peer" checked={eventoActivo} onChange={e => setEventoActivo(e.target.checked)} />
+              <div className="w-11 h-6 bg-[var(--color-background-tertiary)] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-[var(--color-background-primary)] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[var(--color-background-primary)] after:border-[var(--color-border-secondary)] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+            </label>
+          </div>
+          
+          <div className={`space-y-4 transition-all duration-300 ${!eventoActivo ? 'opacity-50 pointer-events-none filter grayscale' : ''}`}>
+            <div>
+              <label htmlFor="eventoTitulo" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1 font-sans">Título del anuncio</label>
+              <input
+                id="eventoTitulo"
+                type="text"
+                value={eventoTitulo || ''}
+                onChange={(e) => setEventoTitulo(e.target.value)}
+                className="w-full px-4 py-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                style={{ fontSize: '16px' }}
+                placeholder="Ej. ¡Día de las Madres!"
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="eventoProducto" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1 font-sans">Producto Vinculado</label>
+                {loadingProducts ? (
+                  <div className="text-xs text-[var(--color-text-tertiary)] py-2.5 flex items-center gap-1.5 font-sans">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Cargando productos...</span>
+                  </div>
+                ) : (
+                  <select
+                    id="eventoProducto"
+                    value={eventoProducto || ''}
+                    onChange={(e) => setEventoProducto(e.target.value)}
+                    className="w-full px-4 py-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                    style={{ fontSize: '16px' }}
+                  >
+                    <option value="">-- Ninguno (Sin vínculo) --</option>
+                    {products.map(p => (
+                      <option key={p.id} value={p.slug || p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+              <div>
+                <label htmlFor="eventoFechaFin" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1 font-sans">Fecha y hora límite</label>
+                <input
+                  id="eventoFechaFin"
+                  type="datetime-local"
+                  value={eventoFechaFin || ''}
+                  onChange={(e) => setEventoFechaFin(e.target.value)}
+                  className="w-full px-4 py-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                  style={{ fontSize: '16px' }}
+                />
+              </div>
+            </div>
+          </div>
+        </Accordion>
       </div>
     </div>
   );
