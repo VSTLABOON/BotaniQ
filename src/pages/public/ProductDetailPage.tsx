@@ -240,7 +240,7 @@ export default function ProductDetailPage() {
                 alt={product.name} 
                 className="w-full h-full object-cover"
                 loading="eager"
-                fetchpriority="high"
+                fetchPriority="high"
               />
               {!product.isAvailable && (
                 <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center">

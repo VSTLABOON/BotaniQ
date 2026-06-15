@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabaseClient';
 
 export interface SubscriptionUpdate {
-  plan?: 'basico' | 'pro' | 'premium' | 'enterprise';
+  plan?: 'basico' | 'pro' | 'premium';
   estado?: 'activo' | 'vencido' | 'prueba' | 'cancelado' | 'past_due' | 'unpaid' | 'pago_fallido';
   fecha_inicio?: string;
   fecha_renovacion?: string | null;

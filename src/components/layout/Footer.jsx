@@ -1,5 +1,7 @@
 import { useTenant } from '../../context/TenantContext.tsx';
 import { cleanInstagramUsername, cleanFacebookUrl } from '../../utils/formatters';
+import { useLocation } from 'react-router-dom';
+import { getNavLinksFromSecciones } from '../../lib/navLinks.js';
 
 export default function Footer() {
   const { tenant } = useTenant();
@@ -10,7 +12,9 @@ export default function Footer() {
   const brandRest = nameParts.slice(1).join(' ') || '';
 
   const currentYear = new Date().getFullYear();
-  const navLinks = tenant.nav_links;
+  const location = useLocation();
+  const isHome = location.pathname === '/' || location.pathname === '';
+  const navLinks = getNavLinksFromSecciones(tenant?.config_ui?.orden_secciones, tenant?.nav_links);
 
   return (
     <footer id="footer" className="bg-negro-soft border-t border-white/[.04]">
@@ -68,15 +72,18 @@ export default function Footer() {
 
           <div className="flex flex-col">
             <h4 className="text-[0.64rem] tracking-[0.2em] uppercase text-[var(--color-background-primary)]/[.25] mb-[0.9rem]">Navegación</h4>
-            {navLinks.map((item) => (
-              <a
-                key={item}
-                href={`#${item.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')}`}
-                className="text-[0.82rem] text-[var(--color-background-primary)]/[.45] hover:text-rosa-light leading-[1.9] block transition-colors duration-200"
-              >
-                {item}
-              </a>
-            ))}
+            {navLinks.map((link) => {
+              const href = isHome ? link.href : `/${location.search}${link.href}`;
+              return (
+                <a
+                  key={link.label}
+                  href={href}
+                  className="text-[0.82rem] text-[var(--color-background-primary)]/[.45] hover:text-rosa-light leading-[1.9] block transition-colors duration-200"
+                >
+                  {link.label}
+                </a>
+              );
+            })}
           </div>
         </div>
       </div>

@@ -9,6 +9,8 @@ export function Cursor() {
   const ringRef = useRef(null);
 
   useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (mediaQuery.matches) return;
     if (window.matchMedia("(pointer: coarse)").matches) return;
 
     let mouseX = 0, mouseY = 0;
@@ -239,10 +241,12 @@ export function CountdownBanner() {
 }
 
 export default function GlobalFeatures() {
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
   return (
     <>
       <ScrollProgress />
-      <Cursor />
+      {!prefersReducedMotion && <Cursor />}
       <CountdownBanner />
     </>
   );

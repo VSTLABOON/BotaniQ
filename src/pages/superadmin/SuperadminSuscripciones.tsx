@@ -13,7 +13,7 @@ import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { CARD } from '../admin/components/config/SharedUI';
 import { updateSubscription } from '../../services/superadminService';
 
-type PlanSaaS = 'basico' | 'pro' | 'enterprise';
+type PlanSaaS = 'basico' | 'pro' | 'premium';
 type EstadoSuscripcion = 'activo' | 'vencido' | 'prueba' | 'cancelado';
 
 interface TenantInfo {
@@ -37,7 +37,7 @@ interface Suscripcion {
 const PLAN_COLORS = {
   basico: 'bg-[var(--color-background-tertiary)] text-[var(--color-text-primary)]',
   pro: 'bg-indigo-100 text-indigo-800',
-  enterprise: 'bg-amber-100 text-amber-800'
+  premium: 'bg-amber-100 text-amber-800'
 };
 
 const ESTADO_COLORS = {
@@ -217,7 +217,7 @@ export default function SuperadminSuscripciones() {
           <option value="todos">Todos los Planes</option>
           <option value="basico">BotaniQ Esencia</option>
           <option value="pro">BotaniQ Alquimia</option>
-          <option value="enterprise">BotaniQ Edén</option>
+          <option value="premium">BotaniQ Edén</option>
         </select>
         <select 
           className="py-2 px-3 bg-[var(--color-background-secondary)] dark:bg-[var(--color-text-primary)] border border-[var(--color-border-secondary)] dark:border-gray-700 rounded-lg text-sm text-[var(--color-text-primary)] dark:text-gray-100"
@@ -344,7 +344,7 @@ export default function SuperadminSuscripciones() {
                       >
                         <option value="basico">BotaniQ Esencia</option>
                         <option value="pro">BotaniQ Alquimia</option>
-                        <option value="enterprise">BotaniQ Edén</option>
+                        <option value="premium">BotaniQ Edén</option>
                       </select>
                     </div>
 

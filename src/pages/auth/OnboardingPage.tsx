@@ -17,7 +17,7 @@ import { getLocaleAndCurrency } from '../../lib/stripeHelpers';
 import { getSubdomainUrl, getPlatformDomain } from '../../lib/domain';
 import {
   User, Store, Globe, ArrowRight, ArrowLeft,
-  Loader2, CheckCircle2, Sparkles, AlertCircle, Flower, MapPin, LogOut
+  Loader2, CheckCircle2, Sparkles, AlertCircle, Flower, MapPin, LogOut, XCircle
 } from 'lucide-react';
 import { createTiendaProfile, assignUserRole, createTrialSubscription } from '../../services/onboardingService';
 
@@ -160,14 +160,30 @@ export default function OnboardingPage() {
   const [whatsapp, setWhatsapp] = useState('');
   const [direccion, setDireccion] = useState('');
 
-  // Derived
-  const suggestedSlug = useMemo(() => slugify(nombreFloreria), [nombreFloreria]);
+  // Derived / Editable Slug
+  const [slugManual, setSlugManual] = useState('');
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
   const [checkingSlug, setCheckingSlug] = useState(false);
 
-  // UI
+  // validation state
+  const [triedStep1, setTriedStep1] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+
+  // UI / Guard
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [checkingConfig, setCheckingConfig] = useState(true);
+  const [isDesktop, setIsDesktop] = useState(() => typeof window !== 'undefined' ? window.innerWidth >= 1024 : true);
+
+  // Handle mobile resize
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 1024);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Pre-fill name from auth metadata
   useEffect(() => {
@@ -185,6 +201,38 @@ export default function OnboardingPage() {
     }
   }, [session, user, navigate]);
 
+  // Guard contra re-onboarding de tienda ya configurada
+  useEffect(() => {
+    if (!profile) return;
+
+    if (!profile.tienda_id) {
+      setCheckingConfig(false);
+      return;
+    }
+
+    const checkTiendaConfigurada = async () => {
+      try {
+        const { data: tienda } = await supabase
+          .from('tiendas')
+          .select('slug, nombre')
+          .eq('id', profile.tienda_id)
+          .single();
+
+        if (tienda && tienda.nombre && tienda.nombre !== 'Mi Nueva Florería' && !tienda.slug.startsWith('tienda-')) {
+          // Tienda ya configurada — redirigir al panel
+          const adminUrl = getSubdomainUrl(tienda.slug, '/admin');
+          window.location.href = adminUrl;
+          return; // Mantener checkingConfig en true para evitar flash visual
+        }
+      } catch (err) {
+        console.error('Error checking tienda configurada:', err);
+      }
+      setCheckingConfig(false);
+    };
+
+    checkTiendaConfigurada();
+  }, [profile]);
+
   const handleLogout = async () => {
     try {
       setLoading(true);
@@ -197,9 +245,14 @@ export default function OnboardingPage() {
     }
   };
 
+  // Sync manual slug with floreria name changes
+  useEffect(() => {
+    setSlugManual(slugify(nombreFloreria));
+  }, [nombreFloreria]);
+
   // Check slug availability with debounce
   useEffect(() => {
-    if (!suggestedSlug || suggestedSlug.length < 3) {
+    if (!slugManual || slugManual.length < 3) {
       setSlugAvailable(null);
       return;
     }
@@ -209,7 +262,7 @@ export default function OnboardingPage() {
       const { data } = await supabase
         .from('tiendas')
         .select('id')
-        .eq('slug', suggestedSlug)
+        .eq('slug', slugManual)
         .maybeSingle();
 
       setSlugAvailable(!data);
@@ -217,7 +270,7 @@ export default function OnboardingPage() {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [suggestedSlug]);
+  }, [slugManual]);
 
   // ── Validación por paso ───────────────────────────────────────
   const isStep1Valid = nombreCompleto.trim().length >= 2
@@ -226,7 +279,7 @@ export default function OnboardingPage() {
     && whatsapp.trim().length >= 10
     && direccion.trim().length >= 5;
 
-  const isStep2Valid = suggestedSlug.length >= 3 && slugAvailable === true;
+  const isStep2Valid = slugManual.length >= 3 && slugAvailable === true;
 
   // ── Submit final ──────────────────────────────────────────────
   const handleFinish = async (skipPayment = false) => {
@@ -247,10 +300,12 @@ export default function OnboardingPage() {
         tiendaId = newTiendaId;
       }
 
+      const finalTiendaId = tiendaId as string;
+
       // 1. Actualizar la tienda existente en Supabase (auto-provisionada por el trigger o la RPC)
       // La seguridad se preserva al NO permitir la actualización del subscription_level desde el cliente (Fuga 1 Mitigada).
-      await createTiendaProfile(tiendaId, {
-        slug: suggestedSlug,
+      await createTiendaProfile(finalTiendaId, {
+        slug: slugManual,
         nombre: nombreFloreria.trim(),
         ciudad: ciudad,
         whatsapp: whatsapp.trim(),
@@ -266,17 +321,21 @@ export default function OnboardingPage() {
 
       if (skipPayment || currentPlan === 'gratis') {
         // Registrar suscripción de prueba de 14 días
-        await createTrialSubscription(tiendaId, currentPlan);
+        await createTrialSubscription(finalTiendaId, currentPlan);
         // Redirigir directamente al panel de administración del nuevo subdominio
-        const adminUrl = getSubdomainUrl(suggestedSlug, '/admin?registration=complete');
-        window.location.href = adminUrl;
+        const adminUrl = getSubdomainUrl(slugManual, '/admin?registration=complete');
+        
+        setShowConfirmation(true);
+        setTimeout(() => {
+          window.location.href = adminUrl;
+        }, 3000);
         return;
       }
 
       // 3. Redirigir al Checkout de Stripe
       const { locale, currency } = getLocaleAndCurrency();
-      const successUrl = getSubdomainUrl(suggestedSlug, `/admin?session_id={CHECKOUT_SESSION_ID}&saas_success=true`);
-      const cancelUrl = getSubdomainUrl(suggestedSlug, `/onboarding?plan=${currentPlan}&saas_cancel=true`);
+      const successUrl = getSubdomainUrl(slugManual, `/admin?session_id={CHECKOUT_SESSION_ID}&saas_success=true`);
+      const cancelUrl = getSubdomainUrl(slugManual, `/onboarding?plan=${currentPlan}&saas_cancel=true`);
 
       const { data: { session: currentSession } } = await supabase.auth.getSession();
       if (!currentSession) {
@@ -293,7 +352,7 @@ export default function OnboardingPage() {
           },
           body: JSON.stringify({
             plan: currentPlan,
-            tenant_id: tiendaId,
+            tenant_id: finalTiendaId,
             currency,
             locale,
             success_url: successUrl,
@@ -320,12 +379,56 @@ export default function OnboardingPage() {
 
   // ── Render ────────────────────────────────────────────────────
 
+  if (!session || !profile || checkingConfig) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#09090b] gap-4">
+        <Loader2 className="w-8 h-8 text-[#D94F6E] animate-spin" />
+        <p className="text-white/60 text-sm">Verificando configuración...</p>
+      </div>
+    );
+  }
+
+  if (showConfirmation) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#09090b] text-white px-6 text-center">
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+          className="flex flex-col items-center max-w-md gap-6"
+        >
+          <div className="p-4 rounded-full bg-[#D94F6E]/10 text-[#D94F6E] border border-[#D94F6E]/20">
+            <CheckCircle2 className="w-16 h-16" />
+          </div>
+          
+          <h1 className="text-3xl font-bold tracking-tight">¡Tu tienda está lista!</h1>
+          
+          <p className="text-sm text-white/70 leading-relaxed">
+            Hemos activado tus 14 días de prueba gratuita. En un momento te llevamos a tu panel.
+          </p>
+          
+          {/* Progress bar container */}
+          <div className="w-64 h-1.5 bg-white/10 rounded-full overflow-hidden mt-4">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: '100%' }}
+              transition={{ duration: 3, ease: 'linear' }}
+              className="h-full bg-[#D94F6E] rounded-full"
+            />
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
     <div className="onb-split-container">
       {/* Lado Izquierdo: Hero/Video/Branding */}
       <div className="onb-hero-side">
         <div className="absolute inset-0 z-0 overflow-hidden">
-          <CrossfadeVideo src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260405_074625_a81f018a-956b-43fb-9aee-4d1508e30e6a.mp4" />
+          {isDesktop && (
+            <CrossfadeVideo src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260405_074625_a81f018a-956b-43fb-9aee-4d1508e30e6a.mp4" />
+          )}
           <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent z-10 pointer-events-none" />
         </div>
 
@@ -418,7 +521,9 @@ export default function OnboardingPage() {
 
         {/* Mobile Background Video (Visible solo cuando no está el Hero) */}
         <div className="onb-mobile-bg">
-          <CrossfadeVideo src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260405_074625_a81f018a-956b-43fb-9aee-4d1508e30e6a.mp4" />
+          {!isDesktop && (
+            <CrossfadeVideo src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260405_074625_a81f018a-956b-43fb-9aee-4d1508e30e6a.mp4" />
+          )}
           <div className="absolute inset-0 bg-black/85 z-10 pointer-events-none" />
         </div>
 
@@ -475,6 +580,17 @@ export default function OnboardingPage() {
                   transition={{ duration: 0.3 }}
                   className="onb-form"
                 >
+                  {/* Banner de prueba gratuita */}
+                  <div className="p-4 rounded-xl bg-[#ffd7db]/5 border border-[#ffd7db]/10 flex flex-col gap-1 mb-6">
+                    <div className="flex items-center gap-2 text-[#D94F6E] text-xs font-bold uppercase tracking-widest">
+                      <Sparkles className="w-4 h-4" />
+                      Estás configurando tu prueba gratuita de 14 días de BotaniQ
+                    </div>
+                    <p className="text-[11px] text-white/50 pl-6">
+                      Sin tarjeta de crédito. Cancela cuando quieras.
+                    </p>
+                  </div>
+
                   {/* Nombre completo */}
                   <div className="onb-field">
                     <label className="onb-label">Tu nombre completo</label>
@@ -488,6 +604,11 @@ export default function OnboardingPage() {
                         className="onb-input"
                       />
                     </div>
+                    {triedStep1 && nombreCompleto.trim().length === 0 && (
+                      <span className="text-xs text-rose-400 mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" /> Ingresa tu nombre completo
+                      </span>
+                    )}
                   </div>
 
                   {/* Nombre de la florería */}
@@ -503,6 +624,11 @@ export default function OnboardingPage() {
                         className="onb-input"
                       />
                     </div>
+                    {triedStep1 && nombreFloreria.trim().length < 2 && (
+                      <span className="text-xs text-rose-400 mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" /> El nombre de tu florería debe tener al menos 2 caracteres
+                      </span>
+                    )}
                   </div>
 
                   {/* Ciudad */}
@@ -519,6 +645,11 @@ export default function OnboardingPage() {
                         {CIUDADES.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                     </div>
+                    {triedStep1 && ciudad.trim().length === 0 && (
+                      <span className="text-xs text-rose-400 mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" /> Selecciona tu ciudad
+                      </span>
+                    )}
                   </div>
 
                   {/* WhatsApp */}
@@ -535,6 +666,11 @@ export default function OnboardingPage() {
                         className="onb-input"
                       />
                     </div>
+                    {triedStep1 && whatsapp.trim().length < 10 && (
+                      <span className="text-xs text-rose-400 mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" /> Ingresa un número de WhatsApp válido con 10 dígitos
+                      </span>
+                    )}
                   </div>
 
                   {/* Dirección */}
@@ -550,6 +686,11 @@ export default function OnboardingPage() {
                         className="onb-input"
                       />
                     </div>
+                    {triedStep1 && direccion.trim().length < 5 && (
+                      <span className="text-xs text-rose-400 mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" /> Ingresa la dirección de tu tienda
+                      </span>
+                    )}
                   </div>
 
                   {/* Plan Seleccionado */}
@@ -573,8 +714,14 @@ export default function OnboardingPage() {
 
                   <button
                     type="button"
-                    disabled={!isStep1Valid}
-                    onClick={() => { setStep(2); setError(null); }}
+                    disabled={loading}
+                    onClick={() => {
+                      setTriedStep1(true);
+                      if (isStep1Valid) {
+                        setStep(2);
+                        setError(null);
+                      }
+                    }}
                     className="onb-btn onb-btn--primary"
                   >
                     Siguiente <ArrowRight style={{ width: 16, height: 16 }} />
@@ -591,22 +738,38 @@ export default function OnboardingPage() {
                   transition={{ duration: 0.3 }}
                   className="onb-form"
                 >
-                  {/* Subdominio preview */}
+                  {/* Subdominio editable */}
                   <div className="onb-field">
-                    <label className="onb-label">Tu dirección web será:</label>
-                    <div className="onb-subdomain-preview">
-                      <Globe style={{ width: 16, height: 16, color: 'rgba(255,255,255,0.4)' }} />
-                      <span className="onb-subdomain-slug">{suggestedSlug || '...'}</span>
-                      <span className="onb-subdomain-base">.{getPlatformDomain()}</span>
+                    <label className="onb-label">Subdominio deseado</label>
+                    <div className="onb-input-wrap">
+                      <Globe className="onb-input-icon" />
+                      <input
+                        type="text"
+                        value={slugManual}
+                        onChange={e => setSlugManual(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 40))}
+                        placeholder="ej-mi-floreria"
+                        className="onb-input"
+                      />
                     </div>
                     <div className="onb-slug-status">
-                      {checkingSlug && <Loader2 style={{ width: 12, height: 12 }} className="animate-spin" />}
+                      {checkingSlug && (
+                        <span className="flex items-center gap-1 text-xs text-white/50">
+                          <Loader2 style={{ width: 12, height: 12 }} className="animate-spin" /> Verificando...
+                        </span>
+                      )}
                       {!checkingSlug && slugAvailable === true && (
-                        <span className="onb-slug-ok"><CheckCircle2 style={{ width: 12, height: 12 }} /> Disponible</span>
+                        <span className="onb-slug-ok"><CheckCircle2 style={{ width: 12, height: 12 }} /> ¡Disponible!</span>
                       )}
                       {!checkingSlug && slugAvailable === false && (
-                        <span className="onb-slug-taken"><AlertCircle style={{ width: 12, height: 12 }} /> Ya está en uso, cambia el nombre</span>
+                        <span className="onb-slug-taken"><XCircle style={{ width: 12, height: 12 }} /> Este subdominio ya está en uso. Elige otro.</span>
                       )}
+                    </div>
+
+                    <label className="onb-label mt-2">Tu dirección web será:</label>
+                    <div className="onb-subdomain-preview">
+                      <Globe style={{ width: 16, height: 16, color: 'rgba(255,255,255,0.4)' }} />
+                      <span className="onb-subdomain-slug">{slugManual || '...'}</span>
+                      <span className="onb-subdomain-base">.botaniq.com.mx</span>
                     </div>
                   </div>
 
@@ -646,14 +809,19 @@ export default function OnboardingPage() {
                   </div>
 
                   {currentPlan !== 'gratis' && (
-                    <button
-                      type="button"
-                      disabled={!isStep2Valid || loading}
-                      onClick={() => handleFinish(true)}
-                      className="onb-btn-skip"
-                    >
-                      Omitir por ahora y comenzar prueba de 14 días
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        disabled={!isStep2Valid || loading}
+                        onClick={() => handleFinish(true)}
+                        className="onb-btn-secondary w-full py-3 px-4 border border-[var(--color-border-secondary)] hover:border-[var(--color-text-secondary)] text-[var(--color-text-secondary)] hover:text-white rounded-xl text-sm font-semibold transition-all mt-4"
+                      >
+                        Comenzar prueba gratuita de 14 días
+                      </button>
+                      <p className="text-[10px] text-center text-white/40 mt-1.5">
+                        Sin tarjeta de crédito. Cancela cuando quieras.
+                      </p>
+                    </>
                   )}
                 </motion.div>
               )}
@@ -888,6 +1056,32 @@ export default function OnboardingPage() {
           cursor: not-allowed;
         }
 
+        .onb-btn-secondary {
+          width: 100%;
+          margin-top: 1rem;
+          padding: 0.75rem 1rem;
+          background: rgba(255, 255, 255, 0.04);
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          border-radius: 12px;
+          color: rgba(255, 255, 255, 0.85);
+          font-size: 0.875rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .onb-btn-secondary:hover:not(:disabled) {
+          background: rgba(255, 255, 255, 0.08);
+          border-color: rgba(255, 255, 255, 0.3);
+          color: white;
+        }
+        .onb-btn-secondary:disabled {
+          opacity: 0.35;
+          cursor: not-allowed;
+        }
+
         @media (max-width: 768px) {
           .onb-input {
             font-size: 16px !important;
@@ -898,12 +1092,18 @@ export default function OnboardingPage() {
         @keyframes spin { to { transform: rotate(360deg); } }
 
         @media (max-width: 1024px) {
+          .onb-hero-side {
+            display: none !important;
+          }
           .onb-split-container {
             flex-direction: column;
+            height: auto;
+            overflow-y: auto;
           }
           .onb-form-side {
+            min-height: 100vh;
             width: 100%;
-            padding: 2.5rem 1.5rem;
+            padding: 2.5rem 1.5rem 8rem;
             background: transparent;
           }
           .onb-mobile-bg {

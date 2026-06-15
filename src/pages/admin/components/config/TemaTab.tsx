@@ -1,6 +1,6 @@
 import React from 'react';
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
-import { Palette, Type, Upload, GripVertical, Eye, EyeOff, Image, AlertCircle, Home, ShoppingBag, Gift, MessageSquare, Sparkles, Flower2, MapPin, Heart, Camera, Smartphone, Check, Edit } from 'lucide-react';
+import { Palette, Type, Upload, GripVertical, Eye, EyeOff, Image, AlertCircle, Home, ShoppingBag, Gift, MessageSquare, Sparkles, Flower2, MapPin, Heart, Camera, Smartphone, Check, Edit, Edit2, AlertTriangle } from 'lucide-react';
 import { Accordion, ColorPickerField } from './SharedUI';
 
 import { FONT_OPTIONS } from '../../../../lib/constants.ts';
@@ -178,19 +178,48 @@ function SectionMiniature({ sectionKey, colorPrimario, colorAcento }: { sectionK
   }
 }
 
+function getContrastRatio(hex1: string, hex2: string): number {
+  const normalizeHex = (hex: string) => {
+    let clean = (hex || '').replace('#', '');
+    if (clean.length === 3) {
+      clean = clean.split('').map(c => c + c).join('');
+    }
+    if (clean.length !== 6) {
+      return '000000'; // fallback
+    }
+    return clean;
+  };
+
+  const lum = (hex: string) => {
+    const clean = normalizeHex(hex);
+    const rgb = parseInt(clean, 16) || 0;
+    const r = ((rgb >> 16) & 0xff) / 255;
+    const g = ((rgb >> 8) & 0xff) / 255;
+    const b = (rgb & 0xff) / 255;
+    const toLinear = (c: number) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    const L = 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+    return L;
+  };
+  const L1 = lum(hex1);
+  const L2 = lum(hex2);
+  return (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05);
+}
+
 // ── Main Component ───────────────────────────────────────────────
 export function TemaTab({ 
   state, 
   actions, 
   tenant, 
   listLengths,
-  onEditSection
+  onEditSection,
+  onNavigateToContent
 }: { 
   state: any, 
   actions: any, 
   tenant: any,
   listLengths: Record<string, number>,
-  onEditSection: (sectionKey: string) => void
+  onEditSection: (sectionKey: string) => void,
+  onNavigateToContent: (sectionKey: string) => void
 }) {
   const { colorPrimario, colorSecundario, colorAcento, fontFamily, logoPreview, logoError, sections } = state;
   const { setColorPrimario, setColorSecundario, setColorAcento, setFontFamily, handleLogoChange, handleDragEnd } = actions;
@@ -230,8 +259,26 @@ export function TemaTab({
       <Accordion title="Paleta de Colores" icon={Palette}>
         <div className="space-y-4">
           <ColorPickerField label="Color Primario" value={colorPrimario} onChange={setColorPrimario} />
-          <ColorPickerField label="Color Secundario" value={colorSecundario} onChange={setColorSecundario} />
-          <ColorPickerField label="Color Acento" value={colorAcento} onChange={setColorAcento} />
+          
+          <div>
+            <ColorPickerField label="Color Secundario" value={colorSecundario} onChange={setColorSecundario} />
+            {getContrastRatio(colorSecundario, '#ffffff') < 4.5 && getContrastRatio(colorSecundario, '#000000') < 4.5 && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 font-medium mt-1 flex items-center gap-1.5 animate-fade-in pl-1">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-amber-500" />
+                Este color puede dificultar la lectura del texto
+              </p>
+            )}
+          </div>
+          
+          <div>
+            <ColorPickerField label="Color Acento" value={colorAcento} onChange={setColorAcento} />
+            {getContrastRatio(colorAcento, '#ffffff') < 4.5 && getContrastRatio(colorAcento, '#000000') < 4.5 && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 font-medium mt-1 flex items-center gap-1.5 animate-fade-in pl-1">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-amber-500" />
+                Este color puede dificultar la lectura del texto
+              </p>
+            )}
+          </div>
         </div>
         <div className="mt-5 flex gap-2">
           <div className="flex-1 h-10 rounded-lg transition-colors duration-300" style={{ backgroundColor: colorPrimario }} title="Primario" />
@@ -324,17 +371,31 @@ export function TemaTab({
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
                               {!isLocked && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    onEditSection(sectionKey);
-                                  }}
-                                  className="p-1 rounded-md text-[var(--color-text-tertiary)] hover:text-emerald-600 hover:bg-emerald-500/10 transition-colors"
-                                  title="Editar contenido de la sección"
-                                >
-                                  <Edit className="w-4 h-4" />
-                                </button>
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onNavigateToContent(sectionKey);
+                                    }}
+                                    className="text-xs flex items-center gap-1 text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] transition-colors px-1 py-0.5 rounded-md"
+                                    title="Editar contenido"
+                                  >
+                                    <Edit2 className="w-3 h-3" />
+                                    Editar contenido
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onEditSection(sectionKey);
+                                    }}
+                                    className="p-1 rounded-md text-[var(--color-text-tertiary)] hover:text-emerald-600 hover:bg-emerald-500/10 transition-colors"
+                                    title="Editar configuración de la sección"
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </button>
+                                </>
                               )}
                               {isLocked ? <EyeOff className="w-4 h-4 text-[var(--color-border-primary)]" /> : <Eye className="w-4 h-4 text-emerald-500" />}
                             </div>

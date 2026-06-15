@@ -387,9 +387,14 @@ export default function SaasLandingPage() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6 }}
-            className="mb-8 px-4 py-1.5 bg-[#ffd7db]/60 border border-[#526243]/20 rounded-full text-[10px] md:text-xs font-bold tracking-widest uppercase text-[#526243] shadow-sm"
+            className="mb-8 flex flex-wrap gap-2 justify-center"
           >
-            {HERO.badge}
+            <span className="px-4 py-1.5 bg-[#ffd7db]/60 border border-[#526243]/20 rounded-full text-[10px] md:text-xs font-bold tracking-widest uppercase text-[#526243] shadow-sm">
+              Prueba 14 días gratis
+            </span>
+            <span className="px-4 py-1.5 bg-white/60 border border-[#526243]/20 rounded-full text-[10px] md:text-xs font-bold tracking-widest uppercase text-[#526243] shadow-sm">
+              {HERO.badge}
+            </span>
           </motion.div>
 
           <motion.h1 
@@ -407,7 +412,7 @@ export default function SaasLandingPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.25 }}
-            className="max-w-md w-full bg-white/90 border border-[#526243]/25 rounded-full pl-6 pr-2 py-2 flex items-center gap-3 mb-6 shadow-md focus-within:border-[#526243]"
+            className="max-w-md w-full bg-white/90 border border-[#526243]/25 rounded-full pl-6 pr-2 py-2 flex items-center gap-3 mb-4 shadow-md focus-within:border-[#526243]"
           >
             <input 
               type="email" 
@@ -423,6 +428,15 @@ export default function SaasLandingPage() {
               <ArrowRight className="w-4 h-4" />
             </Link>
           </motion.div>
+
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.3 }}
+            className="text-xs md:text-sm text-[#526243]/70 mb-6 font-medium"
+          >
+            14 días gratis  ·  Sin tarjeta de crédito  ·  Cancela cuando quieras
+          </motion.p>
 
           <motion.p 
             initial={{ opacity: 0 }}
@@ -621,12 +635,23 @@ export default function SaasLandingPage() {
                   <p className="text-xs text-[#1F241C]/85 font-medium mb-8 leading-relaxed min-h-[48px]">{plan.desc}</p>
                   
                   <div className="space-y-3 mb-8">
-                    {plan.features.map((feat, j) => (
-                      <div key={j} className="flex items-start gap-2">
-                        <Check className="w-3.5 h-3.5 text-[#526243] shrink-0 mt-0.5" />
-                        <span className="text-xs text-[#1F241C]/85 font-medium">{feat}</span>
-                      </div>
-                    ))}
+                    {plan.features.map((feat, j) => {
+                      const isProximamente = typeof feat === 'object' && feat !== null && 'proximamente' in feat && feat.proximamente;
+                      const texto = typeof feat === 'object' && feat !== null && 'texto' in feat ? feat.texto : String(feat);
+                      return (
+                        <div key={j} className={`flex items-start gap-2 ${isProximamente ? 'opacity-50' : ''}`}>
+                          <Check className="w-3.5 h-3.5 text-[#526243] shrink-0 mt-0.5" />
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="text-xs text-[#1F241C]/85 font-medium">{texto}</span>
+                            {isProximamente && (
+                              <span className="bg-[#ffd7db]/60 border border-[#526243]/20 text-[#526243] text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-widest">
+                                Próximamente
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -638,8 +663,11 @@ export default function SaasLandingPage() {
                       : 'bg-white hover:bg-[#ffd7db]/20 text-[#526243] border border-[#526243]/20 shadow-sm'
                   }`}
                 >
-                  Adquirir {plan.name}
+                  Comenzar gratis — 14 días
                 </Link>
+                <p className="text-[10px] text-center text-[#526243]/70 mt-2 font-medium">
+                  Después, desde {isAnnual ? plan.yearPrice : plan.price}/{isAnnual ? 'año' : 'mes'}. Cancela cuando quieras.
+                </p>
               </GlassCard>
             ))}
           </div>

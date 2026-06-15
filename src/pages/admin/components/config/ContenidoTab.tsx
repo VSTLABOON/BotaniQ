@@ -236,7 +236,7 @@ export function ContenidoTab({
   return (
     <div className="space-y-6">
       <Accordion 
-        id="editor-Hero"
+        id="seccion-Hero"
         title="Sección Principal (Hero)" 
         icon={LayoutTemplate} 
         isOpen={openAccordions.Hero}
@@ -493,7 +493,7 @@ export function ContenidoTab({
         </div>
       </Accordion>
 
-      <div id="editor-Servicios" className="transition-all duration-300 rounded-3xl border border-transparent">
+      <div id="seccion-Servicios" className="transition-all duration-300 rounded-3xl border border-transparent">
         <SectionListEditor
           title="Servicios / Ocasiones"
           description="Listado de eventos y ocasiones que cubren (Bodas, Cumpleaños, etc.)"
@@ -509,7 +509,7 @@ export function ContenidoTab({
         />
       </div>
 
-      <div id="editor-Beneficios" className="transition-all duration-300 rounded-3xl border border-transparent space-y-4">
+      <div id="seccion-Beneficios" className="transition-all duration-300 rounded-3xl border border-transparent space-y-4">
         <div className="bg-white/30 dark:bg-black/30 backdrop-blur-md border border-white/20 dark:border-white/10 rounded-3xl p-6 space-y-4">
           <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">Configuración General de Beneficios</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -578,7 +578,7 @@ export function ContenidoTab({
         />
       </div>
 
-      <div id="editor-Testimonios" className="transition-all duration-300 rounded-3xl border border-transparent">
+      <div id="seccion-Testimonios" className="transition-all duration-300 rounded-3xl border border-transparent">
         <SectionListEditor
           title="Testimonios"
           description="Gestiona las reseñas y testimonios de tus clientes."
@@ -594,7 +594,7 @@ export function ContenidoTab({
         />
       </div>
 
-      <div id="editor-Flores" className="transition-all duration-300 rounded-3xl border border-transparent space-y-4">
+      <div id="seccion-Flores" className="transition-all duration-300 rounded-3xl border border-transparent space-y-4">
         <div className="bg-white/30 dark:bg-black/30 backdrop-blur-md border border-white/20 dark:border-white/10 rounded-3xl p-6 space-y-4">
           <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">Configuración General de Flores</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -655,7 +655,7 @@ export function ContenidoTab({
         />
       </div>
 
-      <div id="editor-Galeria" className="transition-all duration-300 rounded-3xl border border-transparent">
+      <div id="seccion-Galeria" className="transition-all duration-300 rounded-3xl border border-transparent">
         <SectionListEditor
           title="Galería"
           description="Fotos de los mejores arreglos que has entregado."
@@ -670,7 +670,7 @@ export function ContenidoTab({
       </div>
 
       {/* ── Evento / Promoción ── */}
-      <div id="editor-EventoPromocional" className="transition-all duration-300 rounded-3xl border border-transparent">
+      <div id="seccion-EventoPromocional" className="transition-all duration-300 rounded-3xl border border-transparent">
         <Accordion 
           title="Evento / Promoción (Banner Superior)" 
           icon={Gift}

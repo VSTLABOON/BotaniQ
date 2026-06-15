@@ -44,17 +44,31 @@ export function useTheming(themeData: ThemeData, isLivePreview = false) {
     const root = document.documentElement;
 
     // 1. Inyectar Colores
-    root.style.setProperty('--color-primario', themeData.color_primario);
-    root.style.setProperty('--color-secundario', themeData.color_secundario || '#3A6B34');
-    root.style.setProperty('--color-acento', themeData.color_acento || '#C49A3C');
+    let colorPrimario = themeData.color_primario;
+    let colorSecundario = themeData.color_secundario || '#3A6B34';
+    let colorAcento = themeData.color_acento || '#C49A3C';
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('preview') === 'true') {
+      const pColor = params.get('color_primario');
+      if (pColor) colorPrimario = pColor;
+      const sColor = params.get('color_secundario');
+      if (sColor) colorSecundario = sColor;
+      const aColor = params.get('color_acento');
+      if (aColor) colorAcento = aColor;
+    }
+
+    root.style.setProperty('--color-primario', colorPrimario);
+    root.style.setProperty('--color-secundario', colorSecundario);
+    root.style.setProperty('--color-acento', colorAcento);
     
     // Variaciones para Tailwind y efectos glassmorphism
-    root.style.setProperty('--color-primario-rgb', hexToRgbValues(themeData.color_primario));
-    root.style.setProperty('--color-primario-alpha-10', `rgba(${hexToRgbValues(themeData.color_primario)}, 0.1)`);
-    root.style.setProperty('--color-primario-alpha-20', `rgba(${hexToRgbValues(themeData.color_primario)}, 0.2)`);
+    root.style.setProperty('--color-primario-rgb', hexToRgbValues(colorPrimario));
+    root.style.setProperty('--color-primario-alpha-10', `rgba(${hexToRgbValues(colorPrimario)}, 0.1)`);
+    root.style.setProperty('--color-primario-alpha-20', `rgba(${hexToRgbValues(colorPrimario)}, 0.2)`);
     
     // Cálculo de Contraste WCAG para el texto sobre el color primario
-    const lum = getLuminance(themeData.color_primario);
+    const lum = getLuminance(colorPrimario);
     const lumWhite = 1; 
     const contrastRatio = getContrastRatio(lum, lumWhite);
     const textColor = contrastRatio < 4.5 ? '#1A1A1A' : '#FFFFFF';

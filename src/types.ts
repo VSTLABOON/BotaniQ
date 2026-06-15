@@ -87,7 +87,7 @@ export interface TenantConfig {
   wa_base: string;
   horarios: {
     regular: string;
-    especial?: string;
+    especial?: string | null;
   };
   redes_sociales: {
     instagram?: string;
@@ -123,6 +123,9 @@ export interface TenantConfig {
   openpay_private_key?: string | null;
   openpay_sandbox_mode?: boolean;
   preferred_gateway?: 'stripe' | 'openpay';
+  stripe_publishable_key?: string | null;
+  stripe_secret_key?: string | null;
+  stripe_webhook_secret?: string | null;
 
   // Secciones Dinámicas desde config_ui
   servicios: any[];

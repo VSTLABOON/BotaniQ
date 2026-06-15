@@ -26,7 +26,6 @@ import { lazy, Suspense } from 'react';
 import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
 import HeroRouter from '../../components/sections/HeroRouter';
-import CartDrawer from '../../components/ui/CartDrawer';
 import CheckoutReturnHandler from '../../components/ui/CheckoutReturnHandler';
 import GlobalFeatures from '../../components/ui/GlobalFeatures';
 
@@ -146,7 +145,6 @@ export default function StorefrontPage() {
 
       <Footer />
       <CheckoutReturnHandler />
-      <CartDrawer />
     </>
   );
 }

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useTenant } from '../../context/TenantContext.tsx';
 import { useAuth } from '../../context/AuthContext.tsx';
+import { useLocation } from 'react-router-dom';
+import { getNavLinksFromSecciones } from '../../lib/navLinks.js';
 
 // ── Roles que acceden al panel de administración ────────────────
 const ADMIN_ROLES = ['superadmin', 'dueño', 'empleado'];
@@ -38,7 +40,10 @@ export default function Header() {
   const brandFirst = nameParts[0] || '';
   const brandRest = nameParts.slice(1).join(' ') || '';
 
-  const navLinks = tenant.nav_links;
+  const location = useLocation();
+  const isHome = location.pathname === '/' || location.pathname === '';
+
+  const navLinks = getNavLinksFromSecciones(tenant?.config_ui?.orden_secciones, tenant?.nav_links);
 
   return (
     <header 
@@ -57,15 +62,18 @@ export default function Header() {
         </a>
         
         <nav className="hidden md:flex items-center gap-8" aria-label="Navegación principal">
-          {navLinks.map((item) => (
-            <a 
-              key={item}
-              href={`#${item.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')}`}
-              className="text-[0.8rem] tracking-[0.12em] uppercase text-[var(--color-background-primary)]/[.55] hover:text-blanco transition-colors duration-200"
-            >
-              {item}
-            </a>
-          ))}
+          {navLinks.map((link) => {
+            const href = isHome ? link.href : `/${location.search}${link.href}`;
+            return (
+              <a 
+                key={link.label}
+                href={href}
+                className="text-[0.8rem] tracking-[0.12em] uppercase text-[var(--color-background-primary)]/[.55] hover:text-blanco transition-colors duration-200"
+              >
+                {link.label}
+              </a>
+            );
+          })}
 
           {/* ── CTA Auth — Desktop ────────────────────────────── */}
           <a
@@ -100,16 +108,19 @@ export default function Header() {
         aria-label="Menú móvil" 
         aria-hidden={!isMenuOpen}
       >
-        {navLinks.map((item) => (
-          <a 
-            key={item}
-            href={`#${item.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')}`}
-            onClick={() => setIsMenuOpen(false)}
-            className="py-[0.85rem] px-6 text-[0.9rem] tracking-[0.06em] text-[var(--color-background-primary)]/[.65] hover:text-[var(--color-background-primary)] hover:bg-[var(--color-background-primary)]/[.04] transition-colors duration-200"
-          >
-            {item}
-          </a>
-        ))}
+        {navLinks.map((link) => {
+          const href = isHome ? link.href : `/${location.search}${link.href}`;
+          return (
+            <a 
+              key={link.label}
+              href={href}
+              onClick={() => setIsMenuOpen(false)}
+              className="py-[0.85rem] px-6 text-[0.9rem] tracking-[0.06em] text-[var(--color-background-primary)]/[.65] hover:text-[var(--color-background-primary)] hover:bg-[var(--color-background-primary)]/[.04] transition-colors duration-200"
+            >
+              {link.label}
+            </a>
+          );
+        })}
 
         {/* ── CTA Auth — Móvil ──────────────────────────────── */}
         <div className="px-4 pt-3 mt-1 border-t border-white/[.06]">

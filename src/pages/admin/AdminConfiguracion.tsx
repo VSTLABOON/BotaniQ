@@ -105,7 +105,7 @@ export default function AdminConfiguracion() {
 
     // Desplazamiento suave y efecto destello (glow)
     setTimeout(() => {
-      const element = document.getElementById(`editor-${sectionKey}`);
+      const element = document.getElementById(`seccion-${sectionKey}`) || document.getElementById(`editor-${sectionKey}`);
       if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'center' });
         element.classList.add('ring-4', 'ring-emerald-500/30', 'border-emerald-500');
@@ -362,6 +362,26 @@ export default function AdminConfiguracion() {
   }, [loading, tenant]);
 
   const previewUrl = getSubdomainUrl(tenant.slug, '/?preview=true');
+
+  const handlePreviewChanges = useCallback(() => {
+    const previewParams = new URLSearchParams({
+      preview: 'true',
+      color_primario: colorPrimario,
+      color_secundario: colorSecundario,
+      color_acento: colorAcento,
+    });
+    const url = `${getSubdomainUrl(tenant.slug, '/')}?${previewParams.toString()}`;
+    window.open(url, '_blank');
+  }, [tenant.slug, colorPrimario, colorSecundario, colorAcento]);
+
+  const handleNavigateToContent = useCallback((seccionKey: string) => {
+    setActiveTab('contenido');
+    // Dar tiempo al tab a renderizarse antes de hacer scroll
+    setTimeout(() => {
+      const el = document.getElementById(`seccion-${seccionKey}`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  }, []);
 
   // Update root CSS vars live
   useTheming({
@@ -700,6 +720,7 @@ export default function AdminConfiguracion() {
                 Galeria: galeriaList.length,
               }}
               onEditSection={handleEditSection}
+              onNavigateToContent={handleNavigateToContent}
             />
           )}
 
@@ -840,10 +861,10 @@ export default function AdminConfiguracion() {
               </a>
               <button
                 type="button"
-                onClick={() => window.open(getSubdomainUrl(tenant.slug, '/?preview=true'), '_blank')}
+                onClick={handlePreviewChanges}
                 className="w-full flex items-center justify-center gap-2 px-5 py-2.5 bg-[var(--color-background-secondary)] text-[var(--color-text-primary)] text-sm font-semibold hover:bg-[var(--color-background-tertiary)] border border-[var(--color-border-primary)] rounded-xl transition-all active:scale-95 shadow-sm cursor-pointer"
               >
-                <RefreshCw className="w-4 h-4" /> Actualizar
+                <RefreshCw className="w-4 h-4" /> Previsualizar cambios
               </button>
             </div>
           </div>
@@ -905,10 +926,10 @@ export default function AdminConfiguracion() {
                 </a>
                 <button
                   type="button"
-                  onClick={() => window.open(getSubdomainUrl(tenant.slug, '/?preview=true'), '_blank')}
+                  onClick={handlePreviewChanges}
                   className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--color-background-secondary)] text-[var(--color-text-primary)] text-xs font-semibold hover:bg-[var(--color-background-tertiary)] border border-[var(--color-border-primary)] rounded-xl transition-all active:scale-95 shadow-sm cursor-pointer"
                 >
-                  <RefreshCw className="w-4 h-4" /> Actualizar
+                  <RefreshCw className="w-4 h-4" /> Previsualizar cambios
                 </button>
               </div>
             </div>

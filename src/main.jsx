@@ -59,6 +59,7 @@ const SuperadminDashboard = lazy(() => import('./pages/superadmin/SuperadminDash
 const SuperadminSuscripciones = lazy(() => import('./pages/superadmin/SuperadminSuscripciones.tsx'))
 const AdminLayout = lazy(() => import('./layouts/AdminLayout.tsx'))
 const SuperadminLayout = lazy(() => import('./layouts/SuperadminLayout.tsx'))
+const StorefrontLayout = lazy(() => import('./layouts/StorefrontLayout.tsx'))
 
 const LoadingScreen = () => (
   <div className="min-h-screen bg-[var(--color-background-secondary)] flex items-center justify-center">
@@ -112,11 +113,13 @@ createRoot(document.getElementById('root')).render(
                 {/* 🌐 Ruta Raíz — Resolución dinámica por hostname
                     RootRouter evalúa TenantContext.status para decidir
                     entre SaasLandingPage, StorefrontPage o StoreNotFoundPage. */}
-                <Route path="/" element={<RootRouter />} />
-                <Route path="/demo" element={<StorefrontPage />} />
-                <Route path="/producto/:slug" element={<ProductDetailPage />} />
+                <Route element={<StorefrontLayout />}>
+                  <Route path="/" element={<RootRouter />} />
+                  <Route path="/demo" element={<StorefrontPage />} />
+                  <Route path="/producto/:slug" element={<ProductDetailPage />} />
+                  <Route path="/rastreo" element={<GuestTrackingPage />} />
+                </Route>
                 <Route path="/plataforma" element={<SaasLandingPage />} />
-                <Route path="/rastreo" element={<GuestTrackingPage />} />
 
                 {/* 🔑 Login Universal — redirige por rol
                     Clientes → /mi-cuenta, Dueños/Staff → /admin */}
