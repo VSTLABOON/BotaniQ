@@ -110,6 +110,7 @@ export function ProductModal({
   const [dragOver, setDragOver] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showPreview, setShowPreview] = useState(false);
+  const [activeFormTab, setActiveFormTab] = useState<'general' | 'variants' | 'advanced'>('general');
 
   /** Subir imagen a Supabase Storage */
   const handleImageUpload = async (file: File) => {
@@ -281,6 +282,7 @@ export function ProductModal({
         fieldErrors[path] = issue.message;
       });
       setErrors(fieldErrors);
+      setActiveFormTab('general');
       toast.error('Corrige los campos obligatorios en el formulario.');
       return false;
     }
@@ -289,10 +291,12 @@ export function ProductModal({
     for (let i = 0; i < draft.variants.length; i++) {
       const v = draft.variants[i];
       if (!v.name.trim()) {
+        setActiveFormTab('variants');
         toast.error(`La variante ${i + 1} requiere un nombre.`);
         return false;
       }
       if (v.price === null || v.price === undefined || v.price < 0) {
+        setActiveFormTab('variants');
         toast.error(`La variante ${i + 1} requiere un precio válido.`);
         return false;
       }
@@ -343,376 +347,422 @@ export function ProductModal({
 
         {/* Body (scrollable) */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* ── Datos básicos ── */}
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1.5">
-                Nombre del producto <span className="text-red-500 font-bold">*</span>
-              </label>
-              <input
-                type="text" value={draft.name}
-                onChange={e => updateField('name', e.target.value)}
-                className={`w-full h-10 px-4 bg-[var(--color-background-secondary)] border rounded-xl text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all ${
-                  errors.name ? 'border-red-500 focus:border-red-500 focus:ring-red-500/10' : 'border-[var(--color-border-secondary)]'
+          {/* Tabs del Formulario */}
+          <div className="flex border-b border-[var(--color-border-secondary)] mb-6 shrink-0 gap-2">
+            {[
+              { id: 'general', label: 'Básico' },
+              { id: 'variants', label: 'Variantes', count: draft.variants.length },
+              { id: 'advanced', label: 'Avanzado' }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveFormTab(tab.id as any)}
+                className={`pb-3 text-sm font-semibold border-b-2 transition-all px-4 flex items-center gap-1.5 focus:outline-none cursor-pointer ${
+                  activeFormTab === tab.id
+                    ? 'text-[var(--color-text-primary)]'
+                    : 'border-transparent text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]'
                 }`}
-                style={{ fontSize: '16px' }}
-                placeholder="Ej: Ramo de 24 Rosas Rojas"
-              />
-              {errors.name && <p className="text-xs text-red-500 mt-1 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" /> {errors.name}</p>}
-            </div>
+                style={activeFormTab === tab.id ? { borderColor: tenant.color_primario || '#10b981', color: tenant.color_primario || '#10b981' } : {}}
+              >
+                {tab.label}
+                {tab.count !== undefined && tab.count > 0 && (
+                  <span 
+                    className="px-1.5 py-0.5 text-[0.65rem] font-bold rounded-full transition-colors"
+                    style={{ backgroundColor: `${tenant.color_primario || '#10b981'}18`, color: tenant.color_primario || '#10b981' }}
+                  >
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
 
-            <div>
-              <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1.5">Descripción</label>
-              <textarea
-                value={draft.description}
-                onChange={e => updateField('description', e.target.value)}
-                rows={3}
-                placeholder="Escribe la descripción pública del arreglo..."
-                className="w-full px-4 py-3 bg-[var(--color-background-secondary)] border border-[var(--color-border-secondary)] rounded-xl text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all resize-none"
-                style={{ fontSize: '16px' }}
-              />
-            </div>
-
-            {/* ── Imagen del producto ── */}
-            <div>
-              <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1.5">
-                Imagen del producto <span className="text-red-500 font-bold">*</span>
-              </label>
-              {draft.images[0] ? (
-                <div className="relative group w-full aspect-[16/9] max-w-[320px] rounded-xl overflow-hidden bg-[var(--color-background-secondary)] border border-[var(--color-border-secondary)]">
-                  <img
-                    src={draft.images[0]}
-                    alt={draft.name}
-                    className="w-full h-full object-cover"
+          {activeFormTab === 'general' && (
+            <div className="space-y-6 animate-in fade-in duration-200">
+              {/* ── Datos básicos ── */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1.5">
+                    Nombre del producto <span className="text-red-500 font-bold">*</span>
+                  </label>
+                  <input
+                    type="text" value={draft.name}
+                    onChange={e => updateField('name', e.target.value)}
+                    className={`w-full h-10 px-4 bg-[var(--color-background-secondary)] border rounded-xl text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all ${
+                      errors.name ? 'border-red-500 focus:border-red-500 focus:ring-red-500/10' : 'border-[var(--color-border-secondary)]'
+                    }`}
+                    style={{ fontSize: '16px' }}
+                    placeholder="Ej: Ramo de 24 Rosas Rojas"
                   />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <label className="p-2 rounded-lg bg-[var(--color-background-primary)]/90 text-[var(--color-text-secondary)] cursor-pointer hover:bg-[var(--color-background-primary)] transition-colors shadow-sm">
-                        <Upload className="w-4 h-4" />
+                  {errors.name && <p className="text-xs text-red-500 mt-1 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" /> {errors.name}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1.5">Descripción</label>
+                  <textarea
+                    value={draft.description}
+                    onChange={e => updateField('description', e.target.value)}
+                    rows={3}
+                    placeholder="Escribe la descripción pública del arreglo..."
+                    className="w-full px-4 py-3 bg-[var(--color-background-secondary)] border border-[var(--color-border-secondary)] rounded-xl text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all resize-none"
+                    style={{ fontSize: '16px' }}
+                  />
+                </div>
+
+                {/* ── Imagen del producto ── */}
+                <div>
+                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1.5">
+                    Imagen del producto <span className="text-red-500 font-bold">*</span>
+                  </label>
+                  {draft.images[0] ? (
+                    <div className="relative group w-full aspect-[16/9] max-w-[320px] rounded-xl overflow-hidden bg-[var(--color-background-secondary)] border border-[var(--color-border-secondary)]">
+                      <img
+                        src={draft.images[0]}
+                        alt={draft.name}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <label className="p-2 rounded-lg bg-[var(--color-background-primary)]/90 text-[var(--color-text-secondary)] cursor-pointer hover:bg-[var(--color-background-primary)] transition-colors shadow-sm">
+                            <Upload className="w-4 h-4" />
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleImageUpload(file);
+                              }}
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            onClick={handleImageRemove}
+                            className="p-2 rounded-lg bg-red-500/90 text-[var(--color-background-primary)] hover:bg-red-600 transition-colors shadow-sm"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                      {uploading && (
+                        <div className="absolute inset-0 bg-[var(--color-background-primary)]/80 flex items-center justify-center">
+                          <Loader2 className="w-6 h-6 text-emerald-500 animate-spin" />
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div
+                      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                      onDragLeave={() => setDragOver(false)}
+                      onDrop={handleDrop}
+                      className={`relative w-full max-w-[320px] aspect-[16/9] rounded-xl border-2 border-dashed transition-all flex flex-col items-center justify-center cursor-pointer ${
+                        dragOver
+                          ? 'border-emerald-400 bg-emerald-50'
+                          : errors.images
+                            ? 'border-red-500 bg-red-50/50'
+                            : 'border-[var(--color-border-secondary)] bg-[var(--color-background-secondary)] hover:border-[var(--color-border-primary)] hover:bg-[var(--color-background-tertiary)]'
+                      }`}
+                    >
+                      <label className="flex flex-col items-center gap-2 cursor-pointer w-full h-full justify-center">
+                        {uploading ? (
+                          <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+                        ) : (
+                          <>
+                            <ImagePlus className={`w-8 h-8 ${dragOver ? 'text-emerald-500' : 'text-[var(--color-text-tertiary)]'}`} />
+                            <span className="text-xs text-[var(--color-text-tertiary)] text-center px-4">
+                              Arrastra una imagen o haz clic para seleccionar
+                            </span>
+                            <span className="text-[0.65rem] text-[var(--color-text-tertiary)]">JPG, PNG, WebP — Max 5 MB</span>
+                          </>
+                        )}
                         <input
                           type="file"
                           accept="image/*"
                           className="hidden"
+                          disabled={uploading}
                           onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) handleImageUpload(file);
                           }}
                         />
                       </label>
-                      <button
-                        type="button"
-                        onClick={handleImageRemove}
-                        className="p-2 rounded-lg bg-red-500/90 text-[var(--color-background-primary)] hover:bg-red-600 transition-colors shadow-sm"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                  {uploading && (
-                    <div className="absolute inset-0 bg-[var(--color-background-primary)]/80 flex items-center justify-center">
-                      <Loader2 className="w-6 h-6 text-emerald-500 animate-spin" />
                     </div>
                   )}
+                  {errors.images && <p className="text-xs text-red-500 mt-1 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" /> {errors.images}</p>}
                 </div>
-              ) : (
-                <div
-                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                  onDragLeave={() => setDragOver(false)}
-                  onDrop={handleDrop}
-                  className={`relative w-full max-w-[320px] aspect-[16/9] rounded-xl border-2 border-dashed transition-all flex flex-col items-center justify-center cursor-pointer ${
-                    dragOver
-                      ? 'border-emerald-400 bg-emerald-50'
-                      : errors.images
-                        ? 'border-red-500 bg-red-50/50'
-                        : 'border-[var(--color-border-secondary)] bg-[var(--color-background-secondary)] hover:border-[var(--color-border-primary)] hover:bg-[var(--color-background-tertiary)]'
-                  }`}
-                >
-                  <label className="flex flex-col items-center gap-2 cursor-pointer w-full h-full justify-center">
-                    {uploading ? (
-                      <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
-                    ) : (
-                      <>
-                        <ImagePlus className={`w-8 h-8 ${dragOver ? 'text-emerald-500' : 'text-[var(--color-text-tertiary)]'}`} />
-                        <span className="text-xs text-[var(--color-text-tertiary)] text-center px-4">
-                          Arrastra una imagen o haz clic para seleccionar
-                        </span>
-                        <span className="text-[0.65rem] text-[var(--color-text-tertiary)]">JPG, PNG, WebP — Max 5 MB</span>
-                      </>
-                    )}
+
+                {/* Precio Base y Disponible */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1.5">
+                      Precio Base (MXN) <span className="text-red-500 font-bold">*</span>
+                    </label>
                     <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      disabled={uploading}
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleImageUpload(file);
-                      }}
+                      type="number" min={0} step={10} 
+                      value={draft.basePrice || ''}
+                      placeholder="0"
+                      onChange={e => updateField('basePrice', Number(e.target.value))}
+                      onFocus={(e) => e.target.select()}
+                      className={`w-full h-10 px-4 bg-[var(--color-background-secondary)] border rounded-xl text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all ${
+                        errors.basePrice ? 'border-red-500 focus:border-red-500 focus:ring-red-500/10' : 'border-[var(--color-border-secondary)]'
+                      }`}
                     />
-                  </label>
+                    {errors.basePrice && <p className="text-xs text-red-500 mt-1 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" /> {errors.basePrice}</p>}
+                  </div>
+                  <div className="flex flex-col justify-end">
+                    <label className="flex items-center justify-between sm:justify-start gap-3 text-sm font-medium text-[var(--color-text-secondary)] h-10">
+                      <span>Disponible en tienda</span>
+                      <AvailabilityToggle
+                        checked={draft.isAvailable}
+                        onChange={val => updateField('isAvailable', val)}
+                      />
+                    </label>
+                  </div>
                 </div>
-              )}
-              {errors.images && <p className="text-xs text-red-500 mt-1 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" /> {errors.images}</p>}
-            </div>
 
-            {/* Precio Base y Disponible */}
-            <div className="grid grid-cols-2 gap-4">
+                {/* SKU y Categoría Opcionales */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1.5">SKU (Opcional)</label>
+                    <input
+                      type="text"
+                      value={draft.sku || ''}
+                      onChange={e => updateField('sku', e.target.value)}
+                      placeholder="Ej: ROS-ROJ-01"
+                      className="w-full h-10 px-4 bg-[var(--color-background-secondary)] border border-[var(--color-border-secondary)] rounded-xl text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1.5">Categoría (Opcional)</label>
+                    <input
+                      type="text"
+                      value={draft.categoria || ''}
+                      onChange={e => updateField('categoria', e.target.value)}
+                      placeholder="Ej: Ramos, Cajas, Bodas"
+                      className="w-full h-10 px-4 bg-[var(--color-background-secondary)] border border-[var(--color-border-secondary)] rounded-xl text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeFormTab === 'variants' && (
+            <div className="space-y-6 animate-in fade-in duration-200">
+              {/* ── Sub-sección: Variantes ── */}
               <div>
-                <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1.5">
-                  Precio Base (MXN) <span className="text-red-500 font-bold">*</span>
-                </label>
-                <input
-                  type="number" min={0} step={10} 
-                  value={draft.basePrice || ''}
-                  placeholder="0"
-                  onChange={e => updateField('basePrice', Number(e.target.value))}
-                  onFocus={(e) => e.target.select()}
-                  className={`w-full h-10 px-4 bg-[var(--color-background-secondary)] border rounded-xl text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all ${
-                    errors.basePrice ? 'border-red-500 focus:border-red-500 focus:ring-red-500/10' : 'border-[var(--color-border-secondary)]'
-                  }`}
-                />
-                {errors.basePrice && <p className="text-xs text-red-500 mt-1 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" /> {errors.basePrice}</p>}
-              </div>
-              <div className="flex flex-col justify-end">
-                <label className="flex items-center justify-between sm:justify-start gap-3 text-sm font-medium text-[var(--color-text-secondary)] h-10">
-                  <span>Disponible en tienda</span>
-                  <AvailabilityToggle
-                    checked={draft.isAvailable}
-                    onChange={val => updateField('isAvailable', val)}
-                  />
-                </label>
-              </div>
-            </div>
-
-            {/* Badges de Catálogo (Por encargo y Últimas unidades) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-[var(--color-background-secondary)] p-4 rounded-xl border border-[var(--color-border-secondary)]">
-              <label className="flex items-center justify-between gap-3 text-sm font-medium text-[var(--color-text-secondary)] cursor-pointer">
-                <div>
-                  <span className="block font-semibold">Por encargo</span>
-                  <span className="block text-xs text-[var(--color-text-tertiary)] font-normal">Indica que el arreglo se hace bajo pedido</span>
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-sm font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
+                    <Package className="w-4 h-4 text-[var(--color-text-tertiary)]" />
+                    Variantes del producto
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={addVariant}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-semibold hover:bg-emerald-100 transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
+                    Agregar variante
+                  </button>
                 </div>
-                <AvailabilityToggle
-                  checked={draft.por_encargo ?? false}
-                  onChange={val => updateField('por_encargo', val)}
-                />
-              </label>
 
-              <label className="flex items-center justify-between gap-3 text-sm font-medium text-[var(--color-text-secondary)] cursor-pointer">
-                <div>
-                  <span className="block font-semibold">Últimas unidades</span>
-                  <span className="block text-xs text-[var(--color-text-tertiary)] font-normal">Muestra una etiqueta de urgencia en la tarjeta</span>
-                </div>
-                <AvailabilityToggle
-                  checked={draft.ultimas_unidades ?? false}
-                  onChange={val => updateField('ultimas_unidades', val)}
-                />
-              </label>
-            </div>
+                {draft.variants.length === 0 ? (
+                  <div className="text-center py-12 bg-[var(--color-background-secondary)] rounded-xl border border-dashed border-[var(--color-border-secondary)]">
+                    <Package className="w-8 h-8 text-[var(--color-text-tertiary)] opacity-50 mx-auto mb-2" />
+                    <p className="text-sm text-[var(--color-text-tertiary)]">Sin variantes — el producto usará el precio base</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {draft.variants.map((variant, idx) => (
+                      <div key={variant.id} className="relative bg-[var(--color-background-secondary)] rounded-xl border border-[var(--color-border-tertiary)] p-4 shadow-sm animate-in fade-in duration-200">
+                        {/* Número de variante */}
+                        <span 
+                          className="absolute -top-2 -left-2 w-5 h-5 rounded-full text-[var(--color-background-primary)] text-[0.6rem] font-bold flex items-center justify-center"
+                          style={{ backgroundColor: tenant.color_primario || '#10b981' }}
+                        >
+                          {idx + 1}
+                        </span>
 
-            {/* SKU y Categoría Opcionales */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1.5">SKU (Opcional)</label>
-                <input
-                  type="text"
-                  value={draft.sku || ''}
-                  onChange={e => updateField('sku', e.target.value)}
-                  placeholder="Ej: ROS-ROJ-01"
-                  className="w-full h-10 px-4 bg-[var(--color-background-secondary)] border border-[var(--color-border-secondary)] rounded-xl text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1.5">Categoría (Opcional)</label>
-                <input
-                  type="text"
-                  value={draft.categoria || ''}
-                  onChange={e => updateField('categoria', e.target.value)}
-                  placeholder="Ej: Ramos, Cajas, Bodas"
-                  className="w-full h-10 px-4 bg-[var(--color-background-secondary)] border border-[var(--color-border-secondary)] rounded-xl text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all"
-                />
-              </div>
-            </div>
-
-            {/* Disponible hasta */}
-            <div>
-              <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1.5">Disponible hasta (Opcional)</label>
-              <input
-                type="date"
-                value={draft.disponible_hasta ? draft.disponible_hasta.split('T')[0] : ''}
-                onChange={e => {
-                  const val = e.target.value;
-                  updateField('disponible_hasta', val ? new Date(val).toISOString() : null);
-                }}
-                className="w-full h-10 px-4 bg-[var(--color-background-secondary)] border border-[var(--color-border-secondary)] rounded-xl text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all"
-              />
-            </div>
-
-            {/* Notas / Condiciones */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="block text-sm font-medium text-[var(--color-text-secondary)]">Nota / Condiciones (Opcional)</label>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-[var(--color-text-tertiary)] flex items-center gap-1 font-semibold">
-                    {draft.nota_publica ? <><Eye className="w-3.5 h-3.5" /> Visible para clientes</> : <><EyeOff className="w-3.5 h-3.5" /> Solo interna</>}
-                  </span>
-                  <AvailabilityToggle
-                    checked={draft.nota_publica ?? false}
-                    onChange={val => updateField('nota_publica', val)}
-                  />
-                </div>
-              </div>
-              <textarea
-                value={draft.nota_interna || ''}
-                onChange={e => updateField('nota_interna', e.target.value)}
-                rows={2}
-                placeholder="Escribe notas internas o políticas especiales (ej: 'No incluye base de vidrio')"
-                className="w-full px-4 py-3 bg-[var(--color-background-secondary)] border border-[var(--color-border-secondary)] rounded-xl text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all resize-none"
-                style={{ fontSize: '16px' }}
-              />
-            </div>
-          </div>
-
-          {/* ── Sub-sección: Variantes ── */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
-                <Package className="w-4 h-4 text-[var(--color-text-tertiary)]" />
-                Variantes del producto
-              </h4>
-              <button
-                type="button"
-                onClick={addVariant}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-semibold hover:bg-emerald-100 transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
-                Agregar variante
-              </button>
-            </div>
-
-            {draft.variants.length === 0 ? (
-              <div className="text-center py-8 bg-[var(--color-background-secondary)] rounded-xl border border-dashed border-[var(--color-border-secondary)]">
-                <Package className="w-8 h-8 text-[var(--color-text-tertiary)] opacity-50 mx-auto mb-2" />
-                <p className="text-sm text-[var(--color-text-tertiary)]">Sin variantes — el producto usará el precio base</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {draft.variants.map((variant, idx) => (
-                  <div key={variant.id} className="relative bg-[var(--color-background-secondary)] rounded-xl border border-[var(--color-border-tertiary)] p-4">
-                    {/* Número de variante */}
-                    <span className="absolute -top-2 -left-2 w-5 h-5 rounded-full bg-[var(--color-text-primary)] text-[var(--color-background-primary)] text-[0.6rem] font-bold flex items-center justify-center">
-                      {idx + 1}
-                    </span>
-
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      {/* Imagen de la variante */}
-                      <div className="shrink-0">
-                        <label className="block text-[0.7rem] font-medium text-[var(--color-text-tertiary)] mb-1 uppercase tracking-wider">Foto</label>
-                        {variant.image ? (
-                          <div className="relative w-12 h-12 rounded-lg bg-[var(--color-background-primary)] border border-[var(--color-border-secondary)] overflow-hidden flex items-center justify-center group">
-                            <img src={variant.image} alt={variant.name} className="w-full h-full object-cover" />
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                handleVariantImageRemove(variant.id, variant.image!);
-                              }}
-                              className="absolute inset-0 bg-red-500/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white cursor-pointer"
-                              title="Eliminar imagen de variante"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                        <div className="flex flex-col sm:flex-row gap-3">
+                          {/* Imagen de la variante */}
+                          <div className="shrink-0">
+                            <label className="block text-[0.7rem] font-medium text-[var(--color-text-tertiary)] mb-1 uppercase tracking-wider">Foto</label>
+                            {variant.image ? (
+                              <div className="relative w-12 h-12 rounded-lg bg-[var(--color-background-primary)] border border-[var(--color-border-secondary)] overflow-hidden flex items-center justify-center group">
+                                <img src={variant.image} alt={variant.name} className="w-full h-full object-cover" />
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    handleVariantImageRemove(variant.id, variant.image!);
+                                  }}
+                                  className="absolute inset-0 bg-red-500/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white cursor-pointer"
+                                  title="Eliminar imagen de variante"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ) : (
+                              <label className="relative w-12 h-12 rounded-lg bg-[var(--color-background-primary)] border border-[var(--color-border-secondary)] overflow-hidden flex items-center justify-center group cursor-pointer hover:border-emerald-400 transition-colors">
+                                <ImagePlus className="w-4 h-4 text-[var(--color-text-tertiary)] group-hover:text-emerald-500 transition-colors" />
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="sr-only"
+                                  disabled={uploading}
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) handleVariantImageUpload(variant.id, file);
+                                  }}
+                                />
+                              </label>
+                            )}
                           </div>
-                        ) : (
-                          <label className="relative w-12 h-12 rounded-lg bg-[var(--color-background-primary)] border border-[var(--color-border-secondary)] overflow-hidden flex items-center justify-center group cursor-pointer hover:border-emerald-400 transition-colors">
-                            <ImagePlus className="w-4 h-4 text-[var(--color-text-tertiary)] group-hover:text-emerald-500 transition-colors" />
-                            <input
-                              type="file"
-                              accept="image/*"
-                              className="sr-only"
-                              disabled={uploading}
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) handleVariantImageUpload(variant.id, file);
-                              }}
-                            />
-                          </label>
-                        )}
-                      </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 flex-1">
-                        {/* Nombre de la variante */}
-                        <div>
-                          <label className="block text-[0.7rem] font-medium text-[var(--color-text-tertiary)] mb-1 uppercase tracking-wider">Nombre</label>
-                          <input
-                            type="text" value={variant.name} placeholder="Ej: Mediano, Premium"
-                            onChange={e => updateVariant(variant.id, 'name', e.target.value)}
-                            className="w-full h-9 px-3 bg-[var(--color-background-primary)] border border-[var(--color-border-secondary)] rounded-lg text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all"
-                          />
-                        </div>
-
-                        {/* Descripción de la variante */}
-                        <div>
-                          <label className="block text-[0.7rem] font-medium text-[var(--color-text-tertiary)] mb-1 uppercase tracking-wider">Descripción de la variante</label>
-                          <textarea
-                            rows={1}
-                            value={variant.description || ''}
-                            placeholder="Describe esta variante (opcional)"
-                            onChange={e => updateVariant(variant.id, 'description', e.target.value)}
-                            className="w-full h-9 py-1.5 px-3 bg-[var(--color-background-primary)] border border-[var(--color-border-secondary)] rounded-lg text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all resize-none"
-                          />
-                        </div>
-
-                        {/* Precio absolute */}
-                        <div>
-                          <label className="block text-[0.7rem] font-medium text-[var(--color-text-tertiary)] mb-1 uppercase tracking-wider">Precio</label>
-                          <input
-                            type="number" step={10} min={0}
-                            value={variant.price !== null && variant.price !== undefined ? variant.price : ''}
-                            placeholder="Ej: 250"
-                            onChange={e => {
-                              const val = e.target.value === '' ? null : Number(e.target.value);
-                              updateVariant(variant.id, 'price', val);
-                            }}
-                            onFocus={(e) => e.target.select()}
-                            className="w-full h-9 px-3 bg-[var(--color-background-primary)] border border-[var(--color-border-secondary)] rounded-lg text-sm text-[var(--color-text-primary)] font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all"
-                          />
-                        </div>
-
-                        {/* Disponible + Eliminar */}
-                        <div className="flex items-end justify-between gap-2">
-                          <div className="flex-1">
-                            <label className="block text-[0.7rem] font-medium text-[var(--color-text-tertiary)] mb-1.5 uppercase tracking-wider">Disponible</label>
-                            <div className="h-9 flex items-center">
-                              <AvailabilityToggle
-                                checked={variant.isAvailable}
-                                onChange={val => updateVariant(variant.id, 'isAvailable', val)}
+                          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 flex-1">
+                            {/* Nombre de la variante */}
+                            <div>
+                              <label className="block text-[0.7rem] font-medium text-[var(--color-text-tertiary)] mb-1 uppercase tracking-wider">Nombre</label>
+                              <input
+                                type="text" value={variant.name} placeholder="Ej: Mediano, Premium"
+                                onChange={e => updateVariant(variant.id, 'name', e.target.value)}
+                                className="w-full h-9 px-3 bg-[var(--color-background-primary)] border border-[var(--color-border-secondary)] rounded-lg text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all"
                               />
                             </div>
+
+                            {/* Descripción de la variante */}
+                            <div>
+                              <label className="block text-[0.7rem] font-medium text-[var(--color-text-tertiary)] mb-1 uppercase tracking-wider">Descripción</label>
+                              <textarea
+                                rows={1}
+                                value={variant.description || ''}
+                                placeholder="Detalles (opcional)"
+                                onChange={e => updateVariant(variant.id, 'description', e.target.value)}
+                                className="w-full h-9 py-1.5 px-3 bg-[var(--color-background-primary)] border border-[var(--color-border-secondary)] rounded-lg text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all resize-none"
+                              />
+                            </div>
+
+                            {/* Precio absolute */}
+                            <div>
+                              <label className="block text-[0.7rem] font-medium text-[var(--color-text-tertiary)] mb-1 uppercase tracking-wider">Precio</label>
+                              <input
+                                type="number" step={10} min={0}
+                                value={variant.price !== null && variant.price !== undefined ? variant.price : ''}
+                                placeholder="Ej: 250"
+                                onChange={e => {
+                                  const val = e.target.value === '' ? null : Number(e.target.value);
+                                  updateVariant(variant.id, 'price', val);
+                                }}
+                                onFocus={(e) => e.target.select()}
+                                className="w-full h-9 px-3 bg-[var(--color-background-primary)] border border-[var(--color-border-secondary)] rounded-lg text-sm text-[var(--color-text-primary)] font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all"
+                              />
+                            </div>
+
+                            {/* Disponible + Eliminar */}
+                            <div className="flex items-end justify-between gap-2">
+                              <div className="flex-1">
+                                <label className="block text-[0.7rem] font-medium text-[var(--color-text-tertiary)] mb-1.5 uppercase tracking-wider">Disponible</label>
+                                <div className="h-9 flex items-center">
+                                  <AvailabilityToggle
+                                    checked={variant.isAvailable}
+                                    onChange={val => updateVariant(variant.id, 'isAvailable', val)}
+                                  />
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => removeVariant(variant.id)}
+                                className="h-9 w-9 shrink-0 flex items-center justify-center rounded-lg text-[var(--color-text-tertiary)] hover:text-red-600 hover:bg-red-50 transition-colors"
+                                title="Eliminar variante"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => removeVariant(variant.id)}
-                            className="h-9 w-9 shrink-0 flex items-center justify-center rounded-lg text-[var(--color-text-tertiary)] hover:text-red-600 hover:bg-red-50 transition-colors"
-                            title="Eliminar variante"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                        </div>
+
+                        {/* Preview de precio de variante */}
+                        <div className="mt-2 text-right text-xs text-[var(--color-text-tertiary)]">
+                          Precio de la variante: <span className="font-semibold text-[var(--color-text-secondary)]">
+                            {variant.price !== null && variant.price !== undefined ? `$${variant.price.toLocaleString()} MXN` : 'Sin precio (se usará precio base)'}
+                          </span>
                         </div>
                       </div>
-                    </div>
-
-                    {/* Preview de precio de variante */}
-                    <div className="mt-2 text-right text-xs text-[var(--color-text-tertiary)]">
-                      Precio de la variante: <span className="font-semibold text-[var(--color-text-secondary)]">
-                        {variant.price !== null && variant.price !== undefined ? `$${variant.price.toLocaleString()} MXN` : 'Sin precio (se usará precio base)'}
-                      </span>
-                    </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
-            )}
-          </div>
+            </div>
+          )}
+
+          {activeFormTab === 'advanced' && (
+            <div className="space-y-6 animate-in fade-in duration-200">
+              {/* Badges de Catálogo (Por encargo y Últimas unidades) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-[var(--color-background-secondary)] p-4 rounded-xl border border-[var(--color-border-secondary)]">
+                <label className="flex items-center justify-between gap-3 text-sm font-medium text-[var(--color-text-secondary)] cursor-pointer">
+                  <div>
+                    <span className="block font-semibold">Por encargo</span>
+                    <span className="block text-xs text-[var(--color-text-tertiary)] font-normal">Indica que el arreglo se hace bajo pedido</span>
+                  </div>
+                  <AvailabilityToggle
+                    checked={draft.por_encargo ?? false}
+                    onChange={val => updateField('por_encargo', val)}
+                  />
+                </label>
+
+                <label className="flex items-center justify-between gap-3 text-sm font-medium text-[var(--color-text-secondary)] cursor-pointer">
+                  <div>
+                    <span className="block font-semibold">Últimas unidades</span>
+                    <span className="block text-xs text-[var(--color-text-tertiary)] font-normal">Muestra una etiqueta de urgencia en la tarjeta</span>
+                  </div>
+                  <AvailabilityToggle
+                    checked={draft.ultimas_unidades ?? false}
+                    onChange={val => updateField('ultimas_unidades', val)}
+                  />
+                </label>
+              </div>
+
+              {/* Disponible hasta */}
+              <div>
+                <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1.5">Disponible hasta (Opcional)</label>
+                <input
+                  type="date"
+                  value={draft.disponible_hasta ? draft.disponible_hasta.split('T')[0] : ''}
+                  onChange={e => {
+                    const val = e.target.value;
+                    updateField('disponible_hasta', val ? new Date(val).toISOString() : null);
+                  }}
+                  className="w-full h-10 px-4 bg-[var(--color-background-secondary)] border border-[var(--color-border-secondary)] rounded-xl text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all"
+                />
+              </div>
+
+              {/* Notas / Condiciones */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-sm font-medium text-[var(--color-text-secondary)]">Nota / Condiciones (Opcional)</label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-[var(--color-text-tertiary)] flex items-center gap-1 font-semibold">
+                      {draft.nota_publica ? <><Eye className="w-3.5 h-3.5" /> Visible para clientes</> : <><EyeOff className="w-3.5 h-3.5" /> Solo interna</>}
+                    </span>
+                    <AvailabilityToggle
+                      checked={draft.nota_publica ?? false}
+                      onChange={val => updateField('nota_publica', val)}
+                    />
+                  </div>
+                </div>
+                <textarea
+                  value={draft.nota_interna || ''}
+                  onChange={e => updateField('nota_interna', e.target.value)}
+                  rows={3}
+                  placeholder="Escribe notas internas o políticas especiales (ej: 'No incluye base de vidrio')"
+                  className="w-full px-4 py-3 bg-[var(--color-background-secondary)] border border-[var(--color-border-secondary)] rounded-xl text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all resize-none"
+                  style={{ fontSize: '16px' }}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Footer */}

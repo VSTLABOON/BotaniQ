@@ -51,6 +51,10 @@ import {
   AlertTriangle,
   Loader2,
   CreditCard,
+  Palette,
+  LayoutTemplate,
+  FileText,
+  MapPin,
 } from 'lucide-react';
 
 const OnboardingBot = lazy(() => import('../components/ui/OnboardingBot').then(m => ({ default: m.OnboardingBot })));
@@ -66,7 +70,12 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/admin/reportes',       label: 'Reportes',            desc: 'Ventas y estadísticas',       icon: BarChart2 },
   { to: '/admin/notificaciones', label: 'Notificaciones',      desc: 'Canales y alertas',           icon: Bell },
   { to: '/admin/equipo',         label: 'Mi Equipo',           desc: 'Empleados y permisos',       icon: Users },
-  { to: '/admin/ajustes',        label: 'Personalizar Tienda', desc: 'Colores, logo y secciones',  icon: Settings },
+  { to: '/admin/diseno',         label: 'Diseño',              desc: 'Colores, logo y tipografía', icon: Palette },
+  { to: '/admin/contenido',      label: 'Contenido',           desc: 'Estructura de la tienda',    icon: LayoutTemplate },
+  { to: '/admin/seo',            label: 'Identidad y SEO',     desc: 'Información y metadatos',    icon: FileText },
+  { to: '/admin/cobertura',      label: 'Cobertura',           desc: 'Zonas y dirección de envío', icon: MapPin },
+  { to: '/admin/horarios',       label: 'Horarios',            desc: 'Horarios de servicio',       icon: Clock },
+  { to: '/admin/pagos',          label: 'Métodos de Pago',     desc: 'Stripe y OpenPay',           icon: CreditCard },
 ];
 
 // (MOBILE_NAV removido: migrado a BottomNav.tsx)
@@ -164,7 +173,7 @@ function Sidebar({
 
   const filteredNavItems: NavItem[] = NAV_ITEMS.filter(item => {
     if (item.to === '/admin/equipo' && (!isOwnerOrSuper || level < 2)) return false;
-    if (item.to === '/admin/ajustes' && !isOwnerOrSuper) return false;
+    if (['/admin/diseno', '/admin/contenido', '/admin/seo', '/admin/cobertura', '/admin/horarios', '/admin/pagos'].includes(item.to) && !isOwnerOrSuper) return false;
     if (item.to === '/admin/reportes' && !isOwnerOrSuper) return false;
     if (item.to === '/admin/repartidores' && level < 3) return false;
     return true;
@@ -384,7 +393,12 @@ function Topbar({
     if (q.includes('pedido') || q.includes('orden')) navigate('/admin/pedidos');
     else if (q.includes('product') || q.includes('catálogo') || q.includes('catalogo')) navigate('/admin/catalogo');
     else if (q.includes('equipo') || q.includes('miembro') || q.includes('staff')) navigate('/admin/equipo');
-    else if (q.includes('ajuste') || q.includes('config') || q.includes('tema')) navigate('/admin/ajustes');
+    else if (q.includes('color') || q.includes('tema') || q.includes('diseño') || q.includes('diseno') || q.includes('logo')) navigate('/admin/diseno');
+    else if (q.includes('contenido') || q.includes('sección') || q.includes('banner') || q.includes('estructura')) navigate('/admin/contenido');
+    else if (q.includes('seo') || q.includes('dominio') || q.includes('identidad') || q.includes('google')) navigate('/admin/seo');
+    else if (q.includes('cobertura') || q.includes('zona') || q.includes('dirección') || q.includes('mapa')) navigate('/admin/cobertura');
+    else if (q.includes('horario') || q.includes('calendario')) navigate('/admin/horarios');
+    else if (q.includes('pago') || q.includes('stripe') || q.includes('openpay')) navigate('/admin/pagos');
     else navigate('/admin/pedidos');
     setSearchQuery('');
   };

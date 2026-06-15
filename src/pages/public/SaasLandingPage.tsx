@@ -612,15 +612,15 @@ export default function SaasLandingPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
             {PRICING.map((plan, i) => (
               <GlassCard 
                 key={i} 
-                className={`p-8 bg-white/80 border border-[#526243]/10 flex flex-col justify-between relative shadow-sm hover:shadow-md transition-all ${plan.popular ? 'md:scale-105 z-10 border-[#526243] ring-1 ring-[#526243]/20 shadow-md' : ''}`}
+                className={`p-8 bg-white/80 border border-[#526243]/10 flex flex-col justify-between relative shadow-sm hover:shadow-md transition-all h-full !overflow-visible ${plan.popular ? 'md:scale-105 z-10 border-[#526243] ring-1 ring-[#526243]/20 shadow-md' : ''}`}
               >
                 {plan.popular && (
-                  <div className="absolute top-0 right-8 transform -translate-y-1/2">
-                    <span className="bg-[#526243] text-white text-[9px] font-bold uppercase tracking-widest py-1 px-3 rounded-full shadow-sm">
+                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20">
+                    <span className="bg-[#526243] text-white text-[9px] font-bold uppercase tracking-widest py-1 px-3 rounded-full shadow-sm whitespace-nowrap">
                       Recomendado
                     </span>
                   </div>
@@ -655,19 +655,21 @@ export default function SaasLandingPage() {
                   </div>
                 </div>
 
-                <Link 
-                  to={`/login?mode=register&plan=${plan.key}`} 
-                  className={`w-full py-3 rounded-full text-xs font-bold uppercase tracking-widest text-center transition-all block overflow-hidden whitespace-nowrap text-ellipsis ${
-                    plan.popular 
-                      ? 'bg-gradient-to-r from-[#526243] to-[#ffd7db] text-[#1F241C] hover:scale-[1.02] shadow-md border border-[#526243]/15' 
-                      : 'bg-white hover:bg-[#ffd7db]/20 text-[#526243] border border-[#526243]/20 shadow-sm'
-                  }`}
-                >
-                  Comenzar gratis — 14 días
-                </Link>
-                <p className="text-[10px] text-center text-[#526243]/70 mt-2 font-medium">
-                  Después, desde {isAnnual ? plan.yearPrice : plan.price}/{isAnnual ? 'año' : 'mes'}. Cancela cuando quieras.
-                </p>
+                <div className="mt-auto pt-6">
+                  <Link 
+                    to={`/login?mode=register&plan=${plan.key}`} 
+                    className={`w-full py-3 rounded-full text-xs font-bold uppercase tracking-widest text-center transition-all block overflow-hidden whitespace-nowrap text-ellipsis ${
+                      plan.popular 
+                        ? 'bg-gradient-to-r from-[#526243] to-[#ffd7db] text-[#1F241C] hover:scale-[1.02] shadow-md border border-[#526243]/15' 
+                        : 'bg-white hover:bg-[#ffd7db]/20 text-[#526243] border border-[#526243]/20 shadow-sm'
+                    }`}
+                  >
+                    Comenzar gratis — 14 días
+                  </Link>
+                  <p className="text-[10px] text-center text-[#526243]/70 mt-2 font-medium">
+                    Después, desde {isAnnual ? plan.yearPrice : plan.price}/{isAnnual ? 'año' : 'mes'}. Cancela cuando quieras.
+                  </p>
+                </div>
               </GlassCard>
             ))}
           </div>

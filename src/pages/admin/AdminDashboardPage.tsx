@@ -371,7 +371,7 @@ export default function AdminDashboardPage() {
               <p className="text-xs opacity-95 mt-0.5">Comienza agregando productos y configurando tus métodos de pago.</p>
             </div>
           </div>
-          <Link to="/admin/ajustes" className="px-4 py-2 bg-amber-600 hover:bg-amber-700 active:scale-[0.98] text-white text-xs font-semibold rounded-lg transition-all shadow-sm shrink-0 w-fit text-center">
+          <Link to="/admin/diseno" className="px-4 py-2 bg-amber-600 hover:bg-amber-700 active:scale-[0.98] text-white text-xs font-semibold rounded-lg transition-all shadow-sm shrink-0 w-fit text-center">
             Configurar ajustes
           </Link>
         </div>

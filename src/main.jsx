@@ -173,12 +173,53 @@ createRoot(document.getElementById('root')).render(
                       } 
                     />
 
-                    {/* NIVEL 1: Configuración / Store Builder. */}
+                    {/* NIVEL 1: Configuración / Store Builder refactorizado en secciones directas */}
+                    <Route path="ajustes" element={<Navigate to="diseno" replace />} />
                     <Route 
-                      path="ajustes" 
+                      path="diseno" 
                       element={
                         <RoleGuard allowedRoles={['dueño', 'superadmin']}>
-                          <AdminConfiguracion />
+                          <AdminConfiguracion section="tema" />
+                        </RoleGuard>
+                      } 
+                    />
+                    <Route 
+                      path="contenido" 
+                      element={
+                        <RoleGuard allowedRoles={['dueño', 'superadmin']}>
+                          <AdminConfiguracion section="contenido" />
+                        </RoleGuard>
+                      } 
+                    />
+                    <Route 
+                      path="seo" 
+                      element={
+                        <RoleGuard allowedRoles={['dueño', 'superadmin']}>
+                          <AdminConfiguracion section="general" />
+                        </RoleGuard>
+                      } 
+                    />
+                    <Route 
+                      path="cobertura" 
+                      element={
+                        <RoleGuard allowedRoles={['dueño', 'superadmin']}>
+                          <AdminConfiguracion section="cobertura" />
+                        </RoleGuard>
+                      } 
+                    />
+                    <Route 
+                      path="horarios" 
+                      element={
+                        <RoleGuard allowedRoles={['dueño', 'superadmin']}>
+                          <AdminConfiguracion section="horarios" />
+                        </RoleGuard>
+                      } 
+                    />
+                    <Route 
+                      path="pagos" 
+                      element={
+                        <RoleGuard allowedRoles={['dueño', 'superadmin']}>
+                          <AdminConfiguracion section="pagos" />
                         </RoleGuard>
                       } 
                     />

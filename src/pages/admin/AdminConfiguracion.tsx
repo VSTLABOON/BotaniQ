@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { type DropResult } from '@hello-pangea/dnd';
 import {
@@ -43,21 +43,41 @@ function reorder<T>(list: T[], startIndex: number, endIndex: number): T[] {
   return result;
 }
 
-export default function AdminConfiguracion() {
+export default function AdminConfiguracion({ section }: { section: 'tema' | 'general' | 'contenido' | 'cobertura' | 'horarios' | 'pagos' }) {
   const { tenant, loading, updateTenantConfig } = useTenant();
   const nombre = tenant?.nombre ?? '';
   const navigate = useNavigate();
 
-  const [searchParams, setSearchParams] = useSearchParams();
-  const tabParam = searchParams.get('tab');
+  const activeTab = section || 'tema';
 
-  const activeTab = (tabParam === 'general' || tabParam === 'contenido' || tabParam === 'tema' || tabParam === 'cobertura' || tabParam === 'horarios' || tabParam === 'pagos')
-    ? tabParam
-    : 'tema';
-
-  const setActiveTab = (tab: 'tema' | 'general' | 'contenido' | 'cobertura' | 'horarios' | 'pagos') => {
-    setSearchParams({ tab });
+  const headerMeta = {
+    tema: {
+      title: 'Diseño de la Tienda',
+      desc: 'Elige tus colores de marca, tipografías y logo de la tienda.'
+    },
+    contenido: {
+      title: 'Estructura y Contenido',
+      desc: 'Organiza las secciones de la página de inicio, edita textos y banners.'
+    },
+    general: {
+      title: 'Identidad y SEO',
+      desc: 'Describe tu florería, configura el dominio y optimiza la visibilidad en Google.'
+    },
+    cobertura: {
+      title: 'Cobertura de Envíos',
+      desc: 'Define tu dirección física y las zonas de entrega a domicilio.'
+    },
+    horarios: {
+      title: 'Horarios de Atención',
+      desc: 'Configura tus horarios semanales regulares y cierres especiales.'
+    },
+    pagos: {
+      title: 'Métodos de Pago',
+      desc: 'Configura tus credenciales de Stripe y OpenPay para procesar cobros en línea.'
+    }
   };
+
+  const currentMeta = headerMeta[activeTab] || headerMeta.tema;
 
   // Control de apertura de acordeones para atajos de edición
   const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>({
@@ -79,22 +99,22 @@ export default function AdminConfiguracion() {
       return;
     }
 
-    const tabMap: Record<string, 'tema' | 'general' | 'contenido' | 'cobertura' | 'horarios' | 'pagos'> = {
+    const tabMap: Record<string, string> = {
       Hero: 'contenido',
       Servicios: 'contenido',
       Beneficios: 'contenido',
       Testimonios: 'contenido',
       Flores: 'contenido',
       Galeria: 'contenido',
-      Nosotros: 'general',
+      Nosotros: 'seo',
       Cobertura: 'cobertura',
-      InstagramFeed: 'general',
+      InstagramFeed: 'seo',
     };
 
-    const targetTab = tabMap[sectionKey];
-    if (!targetTab) return;
+    const targetPath = tabMap[sectionKey];
+    if (!targetPath) return;
 
-    setActiveTab(targetTab);
+    navigate(`/admin/${targetPath}`);
 
     if (sectionKey === 'Hero' || sectionKey === 'Nosotros' || sectionKey === 'Cobertura') {
       setOpenAccordions(prev => ({
@@ -113,7 +133,7 @@ export default function AdminConfiguracion() {
           element.classList.remove('ring-4', 'ring-emerald-500/30', 'border-emerald-500');
         }, 2000);
       }
-    }, 150);
+    }, 250);
   }, [navigate]);
 
   // Tema
@@ -375,13 +395,13 @@ export default function AdminConfiguracion() {
   }, [tenant.slug, colorPrimario, colorSecundario, colorAcento]);
 
   const handleNavigateToContent = useCallback((seccionKey: string) => {
-    setActiveTab('contenido');
+    navigate('/admin/contenido');
     // Dar tiempo al tab a renderizarse antes de hacer scroll
     setTimeout(() => {
       const el = document.getElementById(`seccion-${seccionKey}`);
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
-  }, []);
+    }, 250);
+  }, [navigate]);
 
   // Update root CSS vars live
   useTheming({
@@ -605,9 +625,9 @@ export default function AdminConfiguracion() {
       {/* ── Encabezado ── */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--color-text-primary)] mb-1">Store Builder</h1>
+          <h1 className="text-2xl font-bold text-[var(--color-text-primary)] mb-1">{currentMeta.title}</h1>
           <p className="text-sm text-[var(--color-text-tertiary)]">
-            Personaliza la apariencia y el contenido de tu tienda
+            {currentMeta.desc}
           </p>
         </div>
 
@@ -669,31 +689,6 @@ export default function AdminConfiguracion() {
 
       <div className="grid grid-cols-1 xl:grid-cols-[450px_1fr] 2xl:grid-cols-[500px_1fr] gap-8 items-start">
         <div className="min-w-0 w-full max-w-xl mx-auto xl:mx-0">
-          {/* ── Tabs Horizontales ── */}
-        <div className="flex backdrop-blur-xl bg-white/20 dark:bg-black/20 border border-white/30 dark:border-white/10 rounded-2xl p-1.5 mb-6 shadow-sm overflow-x-auto relative z-10">
-          {[
-            { id: 'tema', label: 'Diseño', icon: Palette },
-            { id: 'contenido', label: 'Estructura', icon: LayoutTemplate },
-            { id: 'general', label: 'Identidad y SEO', icon: FileText },
-            { id: 'cobertura', label: 'Cobertura', icon: MapPin },
-            { id: 'horarios', label: 'Horarios', icon: Clock },
-            { id: 'pagos', label: 'Pagos', icon: CreditCard },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 whitespace-nowrap ${
-                activeTab === tab.id
-                  ? 'shadow-sm border border-white/10'
-                  : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] hover:bg-white/10'
-              }`}
-              style={activeTab === tab.id ? { backgroundColor: 'var(--color-primario)', color: 'var(--color-primario-texto)' } : {}}
-            >
-              <tab.icon className="w-4 h-4" style={activeTab === tab.id ? { color: 'var(--color-primario-texto)' } : { color: 'var(--color-text-tertiary)' }} />
-              {tab.label}
-            </button>
-          ))}
-        </div>
 
         {/* ── Contenido ── */}
         <AnimatePresence mode="wait">
