@@ -114,7 +114,7 @@ function AddMemberModal({
   return (
     <>
       <div className="fixed inset-0 bg-black/40 backdrop-blur-[3px] z-[9998]" onClick={onClose} />
-      <div className="fixed inset-4 md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[520px] bg-[var(--color-background-primary)]/90 backdrop-blur-2xl rounded-2xl shadow-2xl z-[9999] flex flex-col overflow-hidden">
+      <div className="fixed inset-0 md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[680px] md:max-h-[85vh] bg-[var(--color-background-primary)] md:bg-[var(--color-background-primary)]/90 md:backdrop-blur-2xl md:rounded-2xl shadow-2xl z-[9999] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border-tertiary)] shrink-0">
           <h3 className="text-lg font-bold text-[var(--color-text-primary)] flex items-center gap-2">
@@ -127,7 +127,7 @@ function AddMemberModal({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
           {error && (
             <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800/40 rounded-xl text-sm text-red-700 dark:text-red-400">
               <X className="w-4 h-4 shrink-0" /> {error}
@@ -198,13 +198,13 @@ function AddMemberModal({
         </form>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--color-border-tertiary)] bg-[var(--color-background-secondary)] shrink-0">
-          <button onClick={onClose} className="px-4 py-2 rounded-xl text-sm font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-background-tertiary)] transition-colors">
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--color-border-tertiary)] bg-[var(--color-background-secondary)] shrink-0 pb-safe md:pb-4">
+          <button onClick={onClose} className="px-4 py-2.5 rounded-xl text-sm font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-background-secondary)] transition-colors">
             Cancelar
           </button>
           <button onClick={(e) => { e.preventDefault(); const form = (e.target as HTMLElement).closest('.flex')?.previousElementSibling as HTMLFormElement; form?.requestSubmit(); }}
             disabled={saving}
-            className="inline-flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-semibold bg-[var(--color-text-primary)] text-[var(--color-background-primary)] hover:opacity-90 disabled:opacity-40 disabled:cursor-wait transition-all active:scale-[0.97]">
+            className="flex-1 md:flex-none inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold bg-[var(--color-text-primary)] text-[var(--color-background-primary)] hover:bg-[var(--color-text-primary)] transition-all active:scale-[0.97] shadow-lg shadow-black/5">
             {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Creando…</> : <><Save className="w-4 h-4" /> Crear miembro</>}
           </button>
         </div>

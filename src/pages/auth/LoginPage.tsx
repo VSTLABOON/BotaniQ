@@ -15,7 +15,7 @@
 //   • 'superadmin'                      → /superadmin (acceso extra)
 // ────────────────────────────────────────────────────────────────
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getSubdomainUrl } from '../../lib/domain';
@@ -87,9 +87,21 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(searchParams.get('reason') === 'inactivity' ? 'Tu sesión cerró por inactividad. Ingresa de nuevo.' : null);
   const [success, setSuccess] = useState<string | null>(null);
+  const hasInitialSessionChecked = useRef(false);
 
   useEffect(() => {
     if (authLoading) return;
+
+    // Si viene en modo registro y ya hay sesión activa al cargar,
+    // cerramos la sesión actual para permitir el registro de otra cuenta.
+    if (session && searchParams.get('mode') === 'register' && !hasInitialSessionChecked.current) {
+      hasInitialSessionChecked.current = true;
+      supabase.auth.signOut();
+      return;
+    }
+
+    hasInitialSessionChecked.current = true;
+
     if (session) {
       const plan = searchParams.get('plan');
 

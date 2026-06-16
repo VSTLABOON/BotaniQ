@@ -100,7 +100,7 @@ export function ManualOrderModal({ onClose, onSave }: ManualOrderModalProps) {
       <div className="fixed inset-0 bg-black/40 backdrop-blur-[3px] z-[9998]" onClick={onClose} />
 
       {/* Modal */}
-      <div className="fixed inset-0 md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[650px] md:max-h-[90vh] bg-[var(--color-background-primary)]/95 backdrop-blur-2xl border border-[var(--color-border-secondary)] shadow-2xl z-[9999] flex flex-col overflow-hidden md:rounded-3xl transition-all">
+      <div className="fixed inset-0 md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[680px] md:max-h-[85vh] bg-[var(--color-background-primary)] md:bg-[var(--color-background-primary)]/90 md:backdrop-blur-2xl md:rounded-2xl shadow-2xl z-[9999] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border-tertiary)] shrink-0">
           <div className="flex items-center gap-2">
@@ -312,12 +312,12 @@ export function ManualOrderModal({ onClose, onSave }: ManualOrderModalProps) {
         </form>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-[var(--color-border-tertiary)] bg-[var(--color-background-secondary)] flex items-center justify-end gap-3 shrink-0">
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--color-border-tertiary)] bg-[var(--color-background-secondary)] shrink-0 pb-safe md:pb-4">
           <button
             type="button"
             onClick={onClose}
             disabled={saving}
-            className="px-4 h-10 rounded-xl text-xs font-bold text-[var(--color-text-secondary)] hover:bg-[var(--color-background-tertiary)] hover:text-[var(--color-text-primary)] transition-all disabled:opacity-50"
+            className="px-4 py-2.5 rounded-xl text-sm font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-background-secondary)] transition-colors"
           >
             Cancelar
           </button>
@@ -325,7 +325,7 @@ export function ManualOrderModal({ onClose, onSave }: ManualOrderModalProps) {
             type="submit"
             onClick={handleSubmit}
             disabled={saving}
-            className="px-5 h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-2 transition-all shadow-sm active:scale-[0.98] disabled:opacity-50"
+            className="flex-1 md:flex-none inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold bg-[var(--color-text-primary)] text-[var(--color-background-primary)] hover:bg-[var(--color-text-primary)] transition-all active:scale-[0.97] shadow-lg shadow-black/5 disabled:opacity-50"
           >
             {saving ? (
               <>

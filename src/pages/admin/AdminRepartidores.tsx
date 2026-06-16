@@ -322,41 +322,43 @@ export default function AdminRepartidores() {
 
       {/* Modal Agregar Repartidor */}
       {showAddModal && (
-        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-[2px]">
-          <div className="w-full max-w-md bg-[var(--color-background-primary)] border border-[var(--color-border-secondary)] rounded-2xl shadow-xl overflow-hidden animate-scale-up">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border-tertiary)]">
-              <h2 className="text-base font-bold text-[var(--color-text-primary)]">Nuevo Repartidor</h2>
+        <>
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-[3px] z-[9998]" onClick={() => setShowAddModal(false)} />
+          <div className="fixed inset-0 md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[680px] md:max-h-[85vh] bg-[var(--color-background-primary)] md:bg-[var(--color-background-primary)]/90 md:backdrop-blur-2xl md:rounded-2xl shadow-2xl z-[9999] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border-tertiary)] shrink-0">
+              <h3 className="text-lg font-bold text-[var(--color-text-primary)]">Nuevo Repartidor</h3>
               <button
                 type="button"
                 onClick={() => setShowAddModal(false)}
-                className="text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]"
+                className="p-1.5 rounded-lg text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-background-secondary)] transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleAddDriver} className="p-6 space-y-4">
+            <form id="repartidor-form" onSubmit={handleAddDriver} className="flex-1 overflow-y-auto p-6 space-y-6">
               <div>
-                <label className="block text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider mb-1">Nombre Completo</label>
+                <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1.5">Nombre Completo</label>
                 <input
                   type="text"
                   required
                   value={newNombre}
                   onChange={(e) => setNewNombre(e.target.value)}
-                  className="w-full px-3 py-2 border border-white/30 dark:border-white/10 rounded-lg text-sm bg-white/50 dark:bg-black/50 text-[var(--color-text-primary)] outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-full h-10 px-4 bg-[var(--color-background-secondary)] border border-[var(--color-border-secondary)] rounded-xl text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all"
                   placeholder="Ej. Juan Perez"
                   style={{ fontSize: '16px' }}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider mb-1">Telefono</label>
+                <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1.5">Teléfono</label>
                 <input
                   type="tel"
                   required
                   value={newTelefono}
                   onChange={(e) => setNewTelefono(e.target.value)}
-                  className="w-full px-3 py-2 border border-white/30 dark:border-white/10 rounded-lg text-sm bg-white/50 dark:bg-black/50 text-[var(--color-text-primary)] outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-full h-10 px-4 bg-[var(--color-background-secondary)] border border-[var(--color-border-secondary)] rounded-xl text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all"
                   placeholder="Ej. +52 81 9999 9999"
                   style={{ fontSize: '16px' }}
                 />
@@ -364,24 +366,24 @@ export default function AdminRepartidores() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider mb-1">Vehiculo</label>
+                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1.5">Vehículo</label>
                   <select
                     value={newVehiculo}
                     onChange={(e) => setNewVehiculo(e.target.value as any)}
-                    className="w-full px-3 py-2 border border-white/30 dark:border-white/10 rounded-lg text-sm bg-white/50 dark:bg-black/50 text-[var(--color-text-primary)] outline-none focus:ring-2 focus:ring-emerald-500/20"
+                    className="w-full h-10 px-4 bg-[var(--color-background-secondary)] border border-[var(--color-border-secondary)] rounded-xl text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all"
                   >
                     <option value="moto">Motocicleta</option>
-                    <option value="auto">Automovil</option>
+                    <option value="auto">Automóvil</option>
                     <option value="bici">Bicicleta</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider mb-1">Estado Inicial</label>
+                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1.5">Estado Inicial</label>
                   <select
                     value={newEstatus}
                     onChange={(e) => setNewEstatus(e.target.value as any)}
-                    className="w-full px-3 py-2 border border-white/30 dark:border-white/10 rounded-lg text-sm bg-white/50 dark:bg-black/50 text-[var(--color-text-primary)] outline-none focus:ring-2 focus:ring-emerald-500/20"
+                    className="w-full h-10 px-4 bg-[var(--color-background-secondary)] border border-[var(--color-border-secondary)] rounded-xl text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all"
                   >
                     <option value="disponible">Disponible</option>
                     <option value="en_entrega">En entrega</option>
@@ -389,28 +391,30 @@ export default function AdminRepartidores() {
                   </select>
                 </div>
               </div>
-
-              <div className="flex gap-3 pt-3">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="flex-1 px-4 py-2 text-xs font-semibold rounded-lg bg-[var(--color-background-tertiary)] text-[var(--color-text-primary)] hover:bg-[var(--color-border-tertiary)] active:scale-97 transition-all focus:outline-none"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  style={{ backgroundColor: tenantColor }}
-                  className="flex-1 px-4 py-2 text-xs font-semibold rounded-lg text-white hover:opacity-90 active:scale-97 transition-all shadow-sm focus:outline-none flex items-center justify-center gap-1.5"
-                >
-                  {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                  Guardar Repartidor
-                </button>
-              </div>
             </form>
+
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--color-border-tertiary)] bg-[var(--color-background-secondary)] shrink-0 pb-safe md:pb-4">
+              <button
+                type="button"
+                onClick={() => setShowAddModal(false)}
+                className="px-4 py-2.5 rounded-xl text-sm font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-background-secondary)] transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                form="repartidor-form"
+                disabled={saving}
+                style={{ backgroundColor: tenantColor }}
+                className="flex-1 md:flex-none inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-white hover:opacity-90 transition-all active:scale-[0.97] shadow-lg shadow-black/5"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                Guardar Repartidor
+              </button>
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

@@ -138,87 +138,93 @@ export default function Catalogo() {
 
       {/* ── MODAL: CATÁLOGO COMPLETO ── */}
       {catalogModalOpen && (
-        <div className="fixed inset-0 z-[9999] flex flex-col bg-[var(--color-background-primary)] text-[var(--color-text-primary)] animate-fade-in">
-          {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border-secondary)] bg-[var(--color-background-secondary)] shrink-0">
-            <div>
-              <h3 className="font-display text-xl md:text-2xl font-bold text-[var(--color-text-primary)]">Catálogo Completo</h3>
-              <p className="text-xs text-[var(--color-text-tertiary)] mt-0.5">{productos.length} arreglos disponibles</p>
+        <>
+          {/* Backdrop */}
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-[3px] z-[9998] animate-in fade-in duration-300" onClick={() => setCatalogModalOpen(false)} />
+          
+          {/* Modal Container */}
+          <div className="fixed inset-0 md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[1000px] md:h-[90vh] md:max-h-[850px] bg-[var(--color-background-primary)] md:bg-[var(--color-background-primary)]/95 md:backdrop-blur-2xl md:rounded-2xl shadow-2xl z-[9999] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border-secondary)] bg-[var(--color-background-secondary)]/50 backdrop-blur-md shrink-0">
+              <div>
+                <h3 className="font-display text-xl md:text-2xl font-bold text-[var(--color-text-primary)]">Catálogo Completo</h3>
+                <p className="text-xs text-[var(--color-text-tertiary)] mt-0.5">{productos.length} arreglos disponibles</p>
+              </div>
+              <button
+                onClick={() => setCatalogModalOpen(false)}
+                className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-[var(--color-background-tertiary)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors cursor-pointer"
+                aria-label="Cerrar catálogo"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="22" height="22">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
             </div>
-            <button
-              onClick={() => setCatalogModalOpen(false)}
-              className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-[var(--color-background-tertiary)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors cursor-pointer"
-              aria-label="Cerrar catálogo"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="22" height="22">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
-          </div>
 
-          {/* Scrollable Body */}
-          <div className="flex-1 overflow-y-auto p-6 bg-[var(--color-background-primary)]">
-            {/* Buscador y Categorías (Solo si hay más de 8 productos) */}
-            {productos.length > 8 && (
-              <div className="max-w-[1180px] mx-auto mb-8 space-y-4">
-                <div className="relative max-w-md">
-                  <input
-                    type="text"
-                    placeholder="Buscar arreglo por nombre o descripción..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full h-11 pl-4 pr-10 rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-background-secondary)] text-[var(--color-text-primary)] text-sm focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] transition-all"
-                  />
-                  <span className="absolute right-3.5 top-3.5 text-[var(--color-text-tertiary)]">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="16" height="16">
-                      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                    </svg>
-                  </span>
+            {/* Scrollable Body */}
+            <div className="flex-1 overflow-y-auto p-6 bg-[var(--color-background-primary)]">
+              {/* Buscador y Categorías (Solo si hay más de 8 productos) */}
+              {productos.length > 8 && (
+                <div className="max-w-[1180px] mx-auto mb-8 space-y-4">
+                  <div className="relative max-w-md">
+                    <input
+                      type="text"
+                      placeholder="Buscar arreglo por nombre o descripción..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full h-11 pl-4 pr-10 rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-background-secondary)] text-[var(--color-text-primary)] text-sm focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] transition-all"
+                    />
+                    <span className="absolute right-3.5 top-3.5 text-[var(--color-text-tertiary)]">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="16" height="16">
+                        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                      </svg>
+                    </span>
+                  </div>
+                  {categories.length > 1 && (
+                    <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar">
+                      {categories.map((cat) => (
+                        <button
+                          key={cat}
+                          onClick={() => setSelectedCategory(cat)}
+                          className={`py-1.5 px-4 rounded-full border text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                            selectedCategory === cat
+                              ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-[var(--color-background-primary)]'
+                              : 'border-[var(--color-border-primary)] text-[var(--color-text-secondary)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
+                          }`}
+                        >
+                          {cat === 'todos' ? 'Ver todo' : cat}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                {categories.length > 1 && (
-                  <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar">
-                    {categories.map((cat) => (
-                      <button
-                        key={cat}
-                        onClick={() => setSelectedCategory(cat)}
-                        className={`py-1.5 px-4 rounded-full border text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                          selectedCategory === cat
-                            ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-[var(--color-background-primary)]'
-                            : 'border-[var(--color-border-primary)] text-[var(--color-text-secondary)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
-                        }`}
+              )}
+
+              {/* Grid de todos los productos (2 cols móvil, 3 cols desktop) */}
+              <div className="max-w-[1180px] mx-auto">
+                {filteredModalProducts.length > 0 ? (
+                  <div className="catalog-grid grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 pb-12">
+                    {filteredModalProducts.map((prod) => (
+                      <Link 
+                        key={prod.id} 
+                        to={`/producto/${prod.slug}`} 
+                        onClick={() => setCatalogModalOpen(false)}
+                        className="block h-full"
                       >
-                        {cat === 'todos' ? 'Ver todo' : cat}
-                      </button>
+                        <ProductoCard producto={prod} />
+                      </Link>
                     ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-20 text-[var(--color-text-tertiary)]">
+                    No se encontraron arreglos para esta búsqueda.
                   </div>
                 )}
               </div>
-            )}
-
-            {/* Grid de todos los productos (2 cols móvil, 3 cols desktop) */}
-            <div className="max-w-[1180px] mx-auto">
-              {filteredModalProducts.length > 0 ? (
-                <div className="catalog-grid grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 pb-12">
-                  {filteredModalProducts.map((prod) => (
-                    <Link 
-                      key={prod.id} 
-                      to={`/producto/${prod.slug}`} 
-                      onClick={() => setCatalogModalOpen(false)}
-                      className="block h-full"
-                    >
-                      <ProductoCard producto={prod} />
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-20 text-[var(--color-text-tertiary)]">
-                  No se encontraron arreglos para esta búsqueda.
-                </div>
-              )}
             </div>
           </div>
-        </div>
+        </>
       )}
     </section>
   );
