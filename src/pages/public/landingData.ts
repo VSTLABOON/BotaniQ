@@ -22,6 +22,11 @@ export const PLAN_FEATURES: Record<string, PlanFeature[]> = {
     { icon: Scissors, title: 'Menos preguntas, más armado de ramos', desc: 'Tus clientes ven los precios de las coronas y arreglos fúnebres al instante. Tú te enfocas en que el diseño de los lirios quede perfecto.' },
     { icon: ClipboardList, title: 'Adiós a los pedidos perdidos en el chat', desc: 'Cada encargo llega con nombre, calle y dedicatoria. No más confusiones de si el cliente quería astromelias o gerberas.' },
   ],
+  aura: [
+    { icon: Flower2, title: 'Catálogo ilimitado de arreglos', desc: 'Sube todos los productos y variantes que tu imaginación dicte. Sin topes de stock ni de arreglos en tu escaparate digital.' },
+    { icon: Scissors, title: 'Diseño libre y sin límites visuales', desc: 'Agrega carruseles de fotos, secciones de banners y testimonios sin restricciones. Tu tienda lucirá premium y a tu gusto.' },
+    { icon: Store, title: '1 colaborador en tu equipo', desc: 'Añade un ayudante para que registre pedidos y organice el inventario contigo, quitándote carga de trabajo.' },
+  ],
   pro: [
     { icon: Wallet, title: 'Cobra el anticipo antes de tocar la tijera', desc: 'Tus clientes pagan con tarjeta o transferencia al momento. Se acabó eso de armar un arreglo de $1,200 para que nunca pasen por él y la flor termine en el bote de basura.' },
     { icon: Clock, title: 'Encargos de última hora bajo control', desc: 'Alguien olvida un aniversario a medianoche. Tu tienda recibe el pago de las rosas y tú solo llegas a armar el bouquet en la mañana.' },
@@ -43,39 +48,53 @@ export const PRICING = [
     desc: 'Ideal para florerías locales que quieren dejar de mandar PDFs por WhatsApp cada que cambia el precio de la docena.',
     roi: 'Asegura que tus clientes vean tus arreglos de temporada actualizados sin que tú tengas que enviar fotos todo el día.',
     features: [
-      { texto: 'Catálogo digital con fotos de tus ramos', proximamente: false },
+      { texto: 'Catálogo y secciones con límites', proximamente: false },
       { texto: 'Pedidos directos a tu WhatsApp', proximamente: false },
-      { texto: 'Libreta de control en el celular', proximamente: false },
-      { texto: 'Sin comisiones ocultas', proximamente: false }
+      { texto: 'Solo para el dueño de la tienda', proximamente: false },
+      { texto: 'Sin comisiones por pasarela', proximamente: false }
     ],
     color: 'from-gray-500/20 to-gray-400/5', accent: 'text-gray-300', border: 'border-white/5',
     glow: 'group-hover:shadow-[0_0_40px_rgba(156,163,175,0.15)]',
   },
   {
-    key: 'pro', level: 'Nivel 2', name: 'BotaniQ Alquimia', price: '$900', period: '/mes',
-    yearPrice: '$9,000', yearSave: '$1,800',
-    desc: 'Perfecto para asegurar tus ventas de graduaciones y XV años cobrando por adelantado con tarjeta o transferencia.',
-    roi: 'Evita que la flor se eche a perder: si el cliente ya pagó su arreglo de $1,500, tu ganancia ya está en el banco.',
+    key: 'aura', level: 'Nivel 2', name: 'BotaniQ Aura', price: '$650', period: '/mes',
+    yearPrice: '$6,500', yearSave: '$1,300',
+    desc: 'Para floristas que quieren crecer sin límites de catálogo y con presencia en redes.',
+    roi: 'Destaca tu marca con un diseño sin restricciones e integra tus redes para atraer más ventas.',
     features: [
-      { texto: 'Todo lo del Básico', proximamente: false },
-      { texto: 'Cobro seguro con tarjeta o transferencia', proximamente: false },
-      { texto: 'Avisos de pago al instante', proximamente: false },
-      { texto: 'Acceso para hasta 3 ayudantes', proximamente: false },
-      { texto: 'Soporte para picos de venta del 10 de Mayo', proximamente: false }
+      { texto: 'Todo lo de Esencia', proximamente: false },
+      { texto: 'Catálogo y variantes ilimitados', proximamente: false },
+      { texto: 'Secciones ilimitadas en tu storefront', proximamente: false },
+      { texto: 'Instagram Feed en tu tienda', proximamente: false },
+      { texto: '1 integrante de equipo adicional', proximamente: false }
+    ],
+    color: 'from-blue-500/20 to-indigo-500/5', accent: 'text-blue-300', border: 'border-white/5',
+    glow: 'group-hover:shadow-[0_0_40px_rgba(59,130,246,0.15)]',
+  },
+  {
+    key: 'pro', level: 'Nivel 3', name: 'BotaniQ Alquimia', price: '$1,000', period: '/mes',
+    yearPrice: '$10,000', yearSave: '$2,000',
+    desc: 'Perfecto para cobrar con tarjeta, transferencias y equipo ilimitado.',
+    roi: 'Asegura tu dinero cobrando por adelantado con tarjeta y SPEI. Olvídate de los ramos colgados.',
+    features: [
+      { texto: 'Todo lo de Aura', proximamente: false },
+      { texto: 'Cobro seguro con tarjeta o SPEI (Stripe/OpenPay)', proximamente: false },
+      { texto: 'Avisos de pago y notificaciones al instante', proximamente: false },
+      { texto: 'Acceso para colaboradores ilimitados', proximamente: false }
     ],
     color: 'from-violet-500/30 to-fuchsia-500/10', accent: 'text-violet-400', border: 'border-violet-500/30',
     glow: 'group-hover:shadow-[0_0_60px_rgba(139,92,246,0.25)]', popular: true,
   },
   {
-    key: 'premium', level: 'Nivel 3', name: 'BotaniQ Edén', price: '$1,300', period: '/mes',
-    yearPrice: '$13,000', yearSave: '$2,600',
-    desc: 'Para florerías con alto volumen de pedidos a domicilio y eventos corporativos de fin de año.',
-    roi: 'Optimiza tus rutas de entrega en San Valentín y ahorra en gasolina y tiempo de tus repartidores.',
+    key: 'premium', level: 'Nivel 4', name: 'BotaniQ Edén', price: '$1,500', period: '/mes',
+    yearPrice: '$15,000', yearSave: '$3,000',
+    desc: 'Para florerías con alto volumen de pedidos a domicilio y logística avanzada.',
+    roi: 'Optimiza tus entregas con repartidores propios y aumenta el ticket promedio con tu dominio propio.',
     features: [
-      { texto: 'Todo lo del Pro', proximamente: false },
-      { texto: 'Pantalla para tus repartidores', proximamente: true },
-      { texto: 'Rutas de entrega en el celular', proximamente: true },
-      { texto: 'Dominio personalizado incluido', proximamente: false },
+      { texto: 'Todo lo de Alquimia', proximamente: false },
+      { texto: 'Módulo de repartidores propio', proximamente: true },
+      { texto: 'Rastreo GPS y rutas en el celular', proximamente: true },
+      { texto: 'Dominio personalizado (.com)', proximamente: false },
       { texto: 'Comisiones bajas preferenciales', proximamente: false }
     ],
     color: 'from-amber-500/30 to-orange-500/10', accent: 'text-amber-400', border: 'border-amber-500/20',

@@ -149,8 +149,8 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     // Feature Gate
-    if (tienda.subscription_level < 2) {
-      return jsonResponse({ error: "Esta tienda no tiene habilitados los cobros en línea." }, 403, origin);
+    if (tienda.subscription_level < 3) {
+      return jsonResponse({ error: "Tu plan no incluye cobro en línea. Actualiza a Alquimia o superior." }, 403, origin);
     }
 
     // Validar credenciales de OpenPay

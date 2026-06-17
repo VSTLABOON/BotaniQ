@@ -13,7 +13,7 @@ import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { CARD } from '../admin/components/config/SharedUI';
 import { updateSubscription } from '../../services/superadminService';
 
-type PlanSaaS = 'basico' | 'pro' | 'premium';
+type PlanSaaS = 'basico' | 'aura' | 'pro' | 'premium';
 type EstadoSuscripcion = 'activo' | 'vencido' | 'prueba' | 'cancelado';
 
 interface TenantInfo {
@@ -36,6 +36,7 @@ interface Suscripcion {
 
 const PLAN_COLORS = {
   basico: 'bg-[var(--color-background-tertiary)] text-[var(--color-text-primary)]',
+  aura: 'bg-purple-100 text-purple-800',
   pro: 'bg-indigo-100 text-indigo-800',
   premium: 'bg-amber-100 text-amber-800'
 };
@@ -216,6 +217,7 @@ export default function SuperadminSuscripciones() {
         >
           <option value="todos">Todos los Planes</option>
           <option value="basico">BotaniQ Esencia</option>
+          <option value="aura">BotaniQ Aura</option>
           <option value="pro">BotaniQ Alquimia</option>
           <option value="premium">BotaniQ Edén</option>
         </select>
@@ -261,7 +263,7 @@ export default function SuperadminSuscripciones() {
                   <td className="px-6 py-4">{tenant.dueño?.email || '-'}</td>
                   <td className="px-6 py-4">
                     <span className={`px-2.5 py-1 rounded-md text-xs font-bold uppercase ${PLAN_COLORS[tenant.suscripcion?.plan || 'basico']}`}>
-                      {tenant.suscripcion?.plan === 'basico' ? 'BotaniQ Esencia' : tenant.suscripcion?.plan === 'pro' ? 'BotaniQ Alquimia' : 'BotaniQ Edén'}
+                      {tenant.suscripcion?.plan === 'basico' ? 'BotaniQ Esencia' : tenant.suscripcion?.plan === 'aura' ? 'BotaniQ Aura' : tenant.suscripcion?.plan === 'pro' ? 'BotaniQ Alquimia' : 'BotaniQ Edén'}
                     </span>
                   </td>
                   <td className="px-6 py-4">
@@ -343,6 +345,7 @@ export default function SuperadminSuscripciones() {
                         onChange={(e) => updateSub(selectedTenant.id, { plan: e.target.value as PlanSaaS })}
                       >
                         <option value="basico">BotaniQ Esencia</option>
+                        <option value="aura">BotaniQ Aura</option>
                         <option value="pro">BotaniQ Alquimia</option>
                         <option value="premium">BotaniQ Edén</option>
                       </select>

@@ -40,12 +40,9 @@ const ROLE_CONFIG: Record<string, { label: string; dot: string; bg: string; text
 };
 
 // ── Roles disponibles en el selector ─────────────────────────────
-const ASSIGNABLE_ROLES: { value: UserRole; label: string; icon: typeof Users; locked: boolean; lockReason: string }[] = [
-  { value: 'empleado',   label: 'Empleado',   icon: Users,  locked: false, lockReason: '' },
-  // SAAS_FLAG: NIVEL 3 - El rol de Repartidor es exclusivo del plan operativo.
-  // En Nivel 1 y 2, este rol aparece deshabilitado visualmente con ícono de candado.
-  // La lógica de gate leerá tenant.subscription_level para decidir si habilitar.
-  { value: 'repartidor', label: 'Repartidor', icon: Truck,  locked: true,  lockReason: 'Exclusivo del Plan Operativo (Nivel 3)' },
+const ASSIGNABLE_ROLES: { value: UserRole; label: string; icon: typeof Users }[] = [
+  { value: 'empleado',   label: 'Empleado',   icon: Users },
+  { value: 'repartidor', label: 'Repartidor', icon: Truck },
 ];
 
 // ── Avatar por iniciales ─────────────────────────────────────────
@@ -72,6 +69,8 @@ function AddMemberModal({
   onCreated: (member: TeamMember) => void;
   tiendaId: string;
 }) {
+  const { tenant } = useTenant();
+  const level = tenant?.subscription_level ?? 1;
   const [nombre, setNombre]   = useState('');
   const [email, setEmail]     = useState('');
   const [password, setPassword] = useState('');
@@ -166,7 +165,7 @@ function AddMemberModal({
             <div className="space-y-2">
               {ASSIGNABLE_ROLES.map(option => {
                 const Icon = option.icon;
-                const isLocked = option.locked;
+                const isLocked = option.value === 'repartidor' && level < 4;
 
                 return (
                   <button
@@ -185,7 +184,7 @@ function AddMemberModal({
                     <span className="flex-1 text-left">{option.label}</span>
                     {isLocked ? (
                       <span className="inline-flex items-center gap-1 text-[0.6rem] font-bold text-amber-600 bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded">
-                        <Lock className="w-3 h-3" /> NIVEL 3
+                        <Lock className="w-3 h-3" /> NIVEL 4
                       </span>
                     ) : rol === option.value ? (
                       <span className="w-2 h-2 rounded-full bg-emerald-500" />
@@ -255,6 +254,10 @@ export default function AdminEquipo() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{isOpen: boolean, member: TeamMember | null}>({ isOpen: false, member: null });
 
+  const maxEmployees = tenant.subscription_level === 2 ? 1 : Infinity;
+  const activeEmployees = members.filter(m => m.rol !== 'dueño' && m.is_active).length;
+  const reachedLimit = activeEmployees >= maxEmployees;
+
   // Fetch inicial del equipo
   useEffect(() => {
     let active = true;
@@ -285,8 +288,9 @@ export default function AdminEquipo() {
    * Manejador para abrir el modal de "Añadir Miembro".
    */
   const handleAddClick = useCallback(() => {
+    if (reachedLimit) return;
     setShowAddModal(true);
-  }, []);
+  }, [reachedLimit]);
 
   const handleMemberCreated = useCallback((member: TeamMember) => {
     setMembers(prev => [...prev, member]);
@@ -313,17 +317,34 @@ export default function AdminEquipo() {
           <h1 className="text-2xl font-bold text-[var(--color-text-primary)] mb-1">Equipo</h1>
           <p className="text-sm text-[var(--color-text-tertiary)]">Gestiona los miembros y roles de tu tienda</p>
         </div>
-        <button onClick={handleAddClick}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-[var(--color-text-primary)] text-[var(--color-background-primary)] hover:opacity-90 transition-all active:scale-[0.97] shadow-sm">
+        <button 
+          onClick={handleAddClick}
+          disabled={reachedLimit}
+          className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-[0.97] shadow-sm select-none ${
+            reachedLimit 
+              ? 'bg-[var(--color-background-secondary)] text-[var(--color-text-tertiary)] border border-[var(--color-border-secondary)] cursor-not-allowed opacity-50' 
+              : 'bg-[var(--color-text-primary)] text-[var(--color-background-primary)] hover:opacity-90'
+          }`}
+        >
           <UserPlus className="w-4 h-4" strokeWidth={2.5} /> Añadir miembro
         </button>
       </div>
 
       {/* ── Contador ── */}
-      <div className="flex items-center gap-3">
-        <span className="inline-flex items-center gap-1.5 bg-[var(--color-background-secondary)] text-[var(--color-text-secondary)] px-3 py-1 rounded-full text-xs font-semibold">
-          <Users className="w-3.5 h-3.5" /> {members.filter(m => m.is_active).length} activos
-        </span>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[var(--color-background-secondary)] p-4 rounded-xl border border-[var(--color-border-tertiary)]">
+        <div className="flex items-center gap-3">
+          <span className="inline-flex items-center gap-1.5 bg-[var(--color-background-primary)] text-[var(--color-text-secondary)] px-3 py-1 rounded-full text-xs font-semibold border border-[var(--color-border-tertiary)]">
+            <Users className="w-3.5 h-3.5" />
+            {tenant.subscription_level === 2 
+              ? `${activeEmployees} de 1 integrantes` 
+              : `${members.filter(m => m.is_active).length} activos`}
+          </span>
+        </div>
+        {tenant.subscription_level === 2 && (
+          <span className="text-xs text-[var(--color-text-tertiary)] font-medium">
+            Tu plan Aura incluye 1 integrante adicional. Actualiza a Alquimia para un equipo ilimitado.
+          </span>
+        )}
       </div>
 
       {/* ═══ TABLA DEL EQUIPO ═══ */}

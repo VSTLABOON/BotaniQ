@@ -143,7 +143,7 @@ const FALLBACK_TENANT: TenantConfig = {
   envio_costo: 50,
   colonias: [],
   // ── SaaS defaults ─────────────────────────────────────────────
-  subscription_level: SubscriptionLevel.BASICO,
+  subscription_level: SubscriptionLevel.ESENCIA,
   custom_domain: null,
   currency: 'MXN',
   created_at: null,

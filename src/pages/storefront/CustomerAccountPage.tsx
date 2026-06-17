@@ -7,6 +7,7 @@ import { logger } from '../../lib/logger';
 import { toast } from '../../store/toastStore';
 import ThemeToggle from '../../components/ui/ThemeToggle';
 import AnimatedBackground from '../../components/ui/AnimatedBackground';
+import BackButton from '../../components/ui/BackButton';
 import { CARD } from '../admin/components/config/SharedUI';
 import { LogOut, Package, ExternalLink, Calendar, MapPin, ChevronRight, Store, ShoppingBag, User, Phone } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -147,14 +148,18 @@ export default function CustomerAccountPage() {
       {/* ── Navbar ── */}
       <header className="bg-white/40 dark:bg-black/40 backdrop-blur-xl border-b border-white/20 dark:border-white/10 sticky top-0 z-30 shadow-sm">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--color-background-primary)] shadow-md" style={{ backgroundColor: tenant.color_primario }}>
-              <Store className="w-4 h-4" strokeWidth={2.2} />
-            </div>
-            <span className="font-bold text-lg text-[var(--color-text-primary)] tracking-tight hidden sm:block drop-shadow-sm">
-              {tenant.nombre}
-            </span>
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link to="/" className="flex items-center gap-2 flex-shrink-0">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--color-background-primary)] shadow-md" style={{ backgroundColor: tenant.color_primario }}>
+                <Store className="w-4 h-4" strokeWidth={2.2} />
+              </div>
+              <span className="font-bold text-lg text-[var(--color-text-primary)] tracking-tight hidden sm:block drop-shadow-sm">
+                {tenant.nombre}
+              </span>
+            </Link>
+            <div className="w-px h-5 bg-black/10 dark:bg-white/10 hidden sm:block" />
+            <BackButton to="/" label="Volver a la tienda" variant="link" tenantColor={tenant.color_primario} />
+          </div>
           
           <div className="flex items-center gap-4">
             <ThemeToggle />

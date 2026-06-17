@@ -42,9 +42,11 @@ const CARD = `${BASE_CARD} p-5`;
 
 // ── Configuración de niveles ─────────────────────────────────────
 const LEVEL_CONFIG: Record<number, { label: string; icon: any; color: string; bg: string; border: string }> = {
-  1: { label: 'Base',       icon: Store,  color: 'text-[var(--color-text-tertiary)]',   bg: 'bg-gray-500/10',   border: 'border-gray-500/20' },
-  2: { label: 'E-commerce', icon: Crown,  color: 'text-amber-400',  bg: 'bg-amber-500/10',  border: 'border-amber-500/20' },
-  3: { label: 'Logística',  icon: Rocket, color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/20' },
+  0: { label: 'Bloqueado', icon: X,      color: 'text-red-400',                        bg: 'bg-red-500/10',    border: 'border-red-500/20' },
+  1: { label: 'Esencia',   icon: Store,  color: 'text-[var(--color-text-tertiary)]',   bg: 'bg-gray-500/10',   border: 'border-gray-500/20' },
+  2: { label: 'Aura',      icon: Zap,    color: 'text-purple-400',                     bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
+  3: { label: 'Alquimia',  icon: Crown,  color: 'text-amber-400',                      bg: 'bg-amber-500/10',  border: 'border-amber-500/20' },
+  4: { label: 'Edén',      icon: Rocket, color: 'text-violet-400',                     bg: 'bg-violet-500/10', border: 'border-violet-500/20' },
 };
 
 // ── Tipos ────────────────────────────────────────────────────────
@@ -113,8 +115,8 @@ function LevelChangeModal({
           </div>
 
           {/* Opciones */}
-          <div className="p-6 space-y-3">
-            {[1, 2, 3].map((level) => {
+          <div className="p-6 space-y-3 max-h-[60vh] overflow-y-auto">
+            {[1, 2, 3, 4].map((level) => {
               const conf = LEVEL_CONFIG[level];
               const Icon = conf.icon;
               const isSelected = selectedLevel === level;
@@ -137,9 +139,10 @@ function LevelChangeModal({
                       Nivel {level} — {conf.label}
                     </span>
                     <p className="text-xs text-[var(--color-background-primary)]/30 mt-0.5">
-                      {level === 1 && 'Catálogo + WhatsApp'}
-                      {level === 2 && 'E-commerce + Stripe + Notificaciones'}
-                      {level === 3 && 'Logística + GPS + Repartidores'}
+                      {level === 1 && 'Esencia (WhatsApp, límites en catálogo)'}
+                      {level === 2 && 'Aura (Instagram Feed, catálogo ilimitado, 1 empleado)'}
+                      {level === 3 && 'Alquimia (Cobro en línea Stripe/OpenPay, equipo ilimitado)'}
+                      {level === 4 && 'Edén (Logística, Repartidores)'}
                     </p>
                   </div>
                   {isCurrent && (
@@ -244,7 +247,7 @@ export default function SuperadminDashboard() {
   // ── KPIs globales ──────────────────────────────────────────────
   const stats = useMemo(() => {
     const totalTenants = tenants.length;
-    const byLevel = [1, 2, 3].map((l) => tenants.filter((t) => t.subscription_level === l).length);
+    const byLevel = [1, 2, 3, 4].map((l) => tenants.filter((t) => t.subscription_level === l).length);
     return { totalTenants, byLevel };
   }, [tenants]);
 
@@ -262,7 +265,7 @@ export default function SuperadminDashboard() {
       </div>
 
       {/* ═══ KPIs ═══ */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Total Tiendas */}
         <div className={`${CARD} flex items-start gap-4`}>
           <div className="w-11 h-11 rounded-xl bg-violet-500/10 flex items-center justify-center">
@@ -280,30 +283,41 @@ export default function SuperadminDashboard() {
             <Store className="w-5 h-5 text-[var(--color-text-tertiary)]" strokeWidth={1.8} />
           </div>
           <div>
-            <span className="text-xs text-[var(--color-background-primary)]/40 font-medium">Nivel 1 (Base)</span>
+            <span className="text-xs text-[var(--color-background-primary)]/40 font-medium">Nivel 1 (Esencia)</span>
             <span className="text-2xl font-bold text-[var(--color-background-primary)] block leading-tight mt-0.5">{byLevel[0]}</span>
           </div>
         </div>
 
         {/* Nivel 2 */}
         <div className={`${CARD} flex items-start gap-4`}>
-          <div className="w-11 h-11 rounded-xl bg-amber-500/10 flex items-center justify-center">
-            <Crown className="w-5 h-5 text-amber-400" strokeWidth={1.8} />
+          <div className="w-11 h-11 rounded-xl bg-purple-500/10 flex items-center justify-center">
+            <Zap className="w-5 h-5 text-purple-400" strokeWidth={1.8} />
           </div>
           <div>
-            <span className="text-xs text-[var(--color-background-primary)]/40 font-medium">Nivel 2 (E-commerce)</span>
+            <span className="text-xs text-[var(--color-background-primary)]/40 font-medium">Nivel 2 (Aura)</span>
             <span className="text-2xl font-bold text-[var(--color-background-primary)] block leading-tight mt-0.5">{byLevel[1]}</span>
           </div>
         </div>
 
         {/* Nivel 3 */}
         <div className={`${CARD} flex items-start gap-4`}>
+          <div className="w-11 h-11 rounded-xl bg-amber-500/10 flex items-center justify-center">
+            <Crown className="w-5 h-5 text-amber-400" strokeWidth={1.8} />
+          </div>
+          <div>
+            <span className="text-xs text-[var(--color-background-primary)]/40 font-medium">Nivel 3 (Alquimia)</span>
+            <span className="text-2xl font-bold text-[var(--color-background-primary)] block leading-tight mt-0.5">{byLevel[2]}</span>
+          </div>
+        </div>
+
+        {/* Nivel 4 */}
+        <div className={`${CARD} flex items-start gap-4`}>
           <div className="w-11 h-11 rounded-xl bg-violet-500/10 flex items-center justify-center">
             <Rocket className="w-5 h-5 text-violet-400" strokeWidth={1.8} />
           </div>
           <div>
-            <span className="text-xs text-[var(--color-background-primary)]/40 font-medium">Nivel 3 (Logística)</span>
-            <span className="text-2xl font-bold text-[var(--color-background-primary)] block leading-tight mt-0.5">{byLevel[2]}</span>
+            <span className="text-xs text-[var(--color-background-primary)]/40 font-medium">Nivel 4 (Edén)</span>
+            <span className="text-2xl font-bold text-[var(--color-background-primary)] block leading-tight mt-0.5">{byLevel[3]}</span>
           </div>
         </div>
       </div>

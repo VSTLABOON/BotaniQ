@@ -257,9 +257,9 @@ serve(async (req: Request): Promise<Response> => {
     // ═════════════════════════════════════════════════════════════
     // PASO 4: FEATURE GATE & STRIPE CREDENTIALS VERIFICATION (P4)
     // ═════════════════════════════════════════════════════════════
-    if (tienda.subscription_level < 2) {
+    if (tienda.subscription_level < 3) {
       return jsonResponse(
-        { error: "Esta tienda no tiene habilitados los cobros en línea (requiere Nivel 2+)." },
+        { error: "Tu plan no incluye cobro en línea. Actualiza a Alquimia o superior." },
         403,
         origin
       );

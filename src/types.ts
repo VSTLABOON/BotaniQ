@@ -209,9 +209,10 @@ export interface UserProfile {
 }
 
 export enum SubscriptionLevel {
-  BLOCKED  = 0,
-  BASICO   = 1,
-  PRO      = 2,
-  PREMIUM  = 3
+  NONE     = 0,
+  ESENCIA  = 1,
+  AURA     = 2,
+  ALQUIMIA = 3,
+  EDEN     = 4
 }
 

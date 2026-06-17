@@ -823,10 +823,17 @@ export default function AdminPedidos() {
                 {/* ── Móvil Header (Número + Estado) ── */}
                 <div className="flex md:hidden items-center justify-between w-full border-b border-[var(--color-border-tertiary)] pb-3">
                   <span className="text-sm font-bold text-[var(--color-text-primary)] font-mono">{order.numero}</span>
-                  <span className={`${getStatusBadgeClasses(order.estado)} gap-1.5 text-[0.65rem] uppercase tracking-wider`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${statusConf.dot}`} />
-                    {statusConf.label}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {order.datos_envio.tipo_pago === 'anticipo' && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20 uppercase tracking-wide">
+                        Anticipo
+                      </span>
+                    )}
+                    <span className={`${getStatusBadgeClasses(order.estado)} gap-1.5 text-[0.65rem] uppercase tracking-wider`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${statusConf.dot}`} />
+                      {statusConf.label}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Número (Desktop) */}
@@ -863,11 +870,16 @@ export default function AdminPedidos() {
                 </div>
                 
                 {/* Estado (Desktop) */}
-                <div className="hidden md:flex justify-center">
+                <div className="hidden md:flex flex-col items-center gap-1 justify-center">
                   <span className={`${getStatusBadgeClasses(order.estado)} gap-1.5`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${statusConf.dot}`} />
                     {statusConf.label}
                   </span>
+                  {order.datos_envio.tipo_pago === 'anticipo' && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20 uppercase tracking-wide">
+                      Anticipo / Parcial
+                    </span>
+                  )}
                 </div>
                 
                 {/* Chevron */}

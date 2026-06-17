@@ -10,6 +10,7 @@ import type { Product } from '../../types';
 import { toast } from '../../store/toastStore';
 import { UI_COLORS } from '../../lib/constants.ts';
 import { logger } from '../../lib/logger';
+import BackButton from '../../components/ui/BackButton';
 
 export default function ProductDetailPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -121,7 +122,7 @@ export default function ProductDetailPage() {
 
   const selectedVariant = product?.variants.find(v => v.id === selectedVariantId);
   const finalPrice = product ? (selectedVariant?.price ?? product.basePrice) : 0;
-  const isEcommerce = (tenant.subscription_level ?? 1) >= 2;
+  const isEcommerce = (tenant.subscription_level ?? 1) >= 3;
   const activeDescription = selectedVariant?.description || product?.description || '';
 
   const getDisponibleHastaText = () => {
@@ -218,6 +219,9 @@ export default function ProductDetailPage() {
         <meta property="og:type" content="product" />
       </Helmet>
       
+      {/* Botón flotante móvil de regreso */}
+      <BackButton to="/" variant="floating" label="Volver al catálogo" tenantColor={tenant.color_primario} className="sm:hidden" />
+
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6 pt-24 pb-12">
         
         {/* Breadcrumb */}

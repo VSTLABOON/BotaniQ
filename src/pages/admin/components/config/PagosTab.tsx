@@ -42,7 +42,7 @@ export function PagosTab({
   const inputClass = "w-full px-4 py-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all";
 
   // Determinar si los pagos en línea con Stripe están activos según el nivel del plan de suscripción
-  const hasStripeEnabled = tenant.subscription_level >= 2;
+  const hasStripeEnabled = tenant.subscription_level >= 3;
 
   return (
     <div className="space-y-6">

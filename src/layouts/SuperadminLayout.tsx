@@ -11,10 +11,11 @@
 // ────────────────────────────────────────────────────────────────
 
 import { useState, useCallback } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import { useInactivityLogout } from '../hooks/useInactivityLogout';
+import BackButton from '../components/ui/BackButton';
 import {
   LayoutDashboard,
   Store,
@@ -39,6 +40,7 @@ const NAV_ITEMS = [
 export default function SuperadminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { profile } = useAuth();
   useInactivityLogout();
 
@@ -151,6 +153,9 @@ export default function SuperadminLayout() {
           className="sticky top-0 z-30 h-14 bg-[var(--color-background-primary)]/80 dark:bg-[#0a0a0c]/80 backdrop-blur-xl border-b border-[var(--color-border-secondary)] dark:border-white/5 flex items-center justify-between gap-4 px-4 lg:px-8 shrink-0"
         >
           <div className="flex items-center gap-4">
+            {location.pathname !== '/superadmin' && (
+              <BackButton to="/superadmin" label="Volver" />
+            )}
             <button
               onClick={() => setSidebarOpen(true)}
               className="lg:hidden p-2 -ml-2 rounded-lg text-[var(--color-text-tertiary)] dark:text-[var(--color-background-primary)]/40 hover:text-[var(--color-text-primary)] dark:hover:text-[var(--color-background-primary)]"

@@ -6,6 +6,7 @@
 import { useState, useCallback, useEffect, Suspense, lazy } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import BottomNav from '../components/ui/BottomNav';
+import BackButton from '../components/ui/BackButton';
 import { TIENDA_SHEET_ITEMS, MAS_SHEET_ITEMS, type BottomSheetItem } from '../components/ui/BottomSheetConfig';
 import { toast } from '../store/toastStore';
 
@@ -81,7 +82,7 @@ const NAV_ITEMS: NavItem[] = [
 // (MOBILE_NAV removido: migrado a BottomNav.tsx)
 
 interface PlanCard {
-  id: 'basico' | 'pro' | 'premium';
+  id: 'basico' | 'aura' | 'pro' | 'premium';
   levelLabel: string;
   name: string;
   desc: string;
@@ -98,26 +99,42 @@ const PLANS: PlanCard[] = [
     name: 'BotaniQ Esencia',
     desc: 'Para florerías locales que desean recibir pedidos vía WhatsApp.',
     prices: { mxn: '$400 MXN', usd: '$20 USD', eur: '20 €', gbp: '£18' },
-    features: ['Catálogo de flores', 'Pedidos directos a WhatsApp', 'Panel de control básico'],
+    features: ['Catálogo y secciones con límites', 'Ventas por WhatsApp', 'Solo para el dueño de la tienda'],
     buttonText: 'Activar Esencia'
   },
   {
-    id: 'pro',
+    id: 'aura',
     levelLabel: 'Nivel 2',
+    name: 'BotaniQ Aura',
+    desc: 'Para floristas que quieren crecer sin límites de catálogo y con presencia en redes.',
+    prices: { mxn: '$650 MXN', usd: '$32 USD', eur: '32 €', gbp: '£28' },
+    features: [
+      'Todo lo de Esencia',
+      'Catálogo y variantes ilimitados',
+      'Secciones ilimitadas en tu storefront',
+      'Instagram Feed en tu tienda',
+      '1 integrante de equipo adicional',
+      'Ventas por WhatsApp'
+    ],
+    buttonText: 'Activar Aura'
+  },
+  {
+    id: 'pro',
+    levelLabel: 'Nivel 3',
     name: 'BotaniQ Alquimia',
-    desc: 'Perfecto para cobrar anticipos con tarjeta y transferencias.',
-    prices: { mxn: '$900 MXN', usd: '$45 USD', eur: '45 €', gbp: '£40' },
-    features: ['Cobros con Tarjeta y SPEI', 'Notificaciones automáticas', 'Gestión de hasta 3 ayudantes'],
+    desc: 'Perfecto para cobrar con tarjeta, transferencias y equipo ilimitado.',
+    prices: { mxn: '$1,000 MXN', usd: '$50 USD', eur: '50 €', gbp: '£45' },
+    features: ['Todo lo de Aura', 'Cobros con Tarjeta (Stripe/OpenPay)', 'Notificaciones automáticas', 'Equipo de colaboradores ilimitado'],
     buttonText: 'Reactivar Alquimia',
     isPopular: true
   },
   {
     id: 'premium',
-    levelLabel: 'Nivel 3',
+    levelLabel: 'Nivel 4',
     name: 'BotaniQ Edén',
     desc: 'Para florerías con alta demanda de envíos y logística.',
-    prices: { mxn: '$1,300 MXN', usd: '$65 USD', eur: '65 €', gbp: '£58' },
-    features: ['App propia de repartidores', 'Rastreo GPS de entregas', 'Dominio propio (.com)'],
+    prices: { mxn: '$1,500 MXN', usd: '$75 USD', eur: '75 €', gbp: '£68' },
+    features: ['Todo lo de Alquimia', 'App propia de repartidores (Próximamente)', 'Rastreo GPS de entregas (Próximamente)', 'Dominio propio (.com) (Próximamente)'],
     buttonText: 'Activar Edén'
   }
 ];
@@ -175,7 +192,7 @@ function Sidebar({
     if (item.to === '/admin/equipo' && (!isOwnerOrSuper || level < 2)) return false;
     if (['/admin/diseno', '/admin/contenido', '/admin/seo', '/admin/cobertura', '/admin/horarios', '/admin/pagos'].includes(item.to) && !isOwnerOrSuper) return false;
     if (item.to === '/admin/reportes' && !isOwnerOrSuper) return false;
-    if (item.to === '/admin/repartidores' && level < 3) return false;
+    if (item.to === '/admin/repartidores' && level < 4) return false;
     return true;
   });
 
@@ -372,6 +389,7 @@ function Topbar({
   onMarkAsRead: (id: string) => void;
 }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -428,6 +446,10 @@ function Topbar({
 
   return (
     <header className="sticky top-0 z-30 h-16 bg-[var(--color-background-primary)]/80 backdrop-blur-xl border-b border-[var(--color-border-secondary)] flex items-center gap-4 px-4 lg:px-8 shrink-0">
+      {location.pathname !== '/admin' && (
+        <BackButton tenantColor={tenant?.color_primario} />
+      )}
+
       {/* Hamburguesa (siempre visible para toggle) */}
       <button
         onClick={onMenuToggle}
@@ -688,7 +710,7 @@ export default function AdminLayout() {
   const { isBlocked, isTrialExpired, diasRestantes, subscriptionEstado, loading } = useSubscriptionStatus();
 
   const [showPlansModal, setShowPlansModal] = useState(false);
-  const [loadingPlan, setLoadingPlan] = useState<'basico' | 'pro' | 'premium' | null>(null);
+  const [loadingPlan, setLoadingPlan] = useState<'basico' | 'aura' | 'pro' | 'premium' | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   const isOwner = profile?.rol === 'dueño' || profile?.rol === 'superadmin';
@@ -697,7 +719,7 @@ export default function AdminLayout() {
   // Detección de locale y moneda basado en el helper centralizado
   const { locale, currency } = getLocaleAndCurrency();
 
-  const handleReactivate = async (plan: 'basico' | 'pro' | 'premium') => {
+  const handleReactivate = async (plan: 'basico' | 'aura' | 'pro' | 'premium') => {
     if (!tenant?.id) return;
     setLoadingPlan(plan);
     setCheckoutError(null);
@@ -983,7 +1005,7 @@ export default function AdminLayout() {
               )}
 
               {/* Plans Grid */}
-              <div className="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
+              <div className="p-6 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 flex-1">
                 {PLANS.map((plan) => {
                   const price = plan.prices[currency] || plan.prices.usd;
                   const isCurrentLoading = loadingPlan === plan.id;

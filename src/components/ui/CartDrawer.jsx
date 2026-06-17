@@ -69,7 +69,7 @@ export default function CartDrawer() {
 
   useEffect(() => {
     const isPreferredOpenpay = tenant.preferred_gateway === 'openpay' || !tenant.preferred_gateway;
-    if (tenant.subscription_level >= 2 && isPreferredOpenpay) {
+    if (tenant.subscription_level >= 3 && isPreferredOpenpay) {
       if (window.OpenPay) {
         setOpenpayLoaded(true);
         return;
@@ -419,7 +419,7 @@ export default function CartDrawer() {
 
   // Feature flags derived from subscription_level (DB source of truth)
   // Nivel 1: WhatsApp only | Nivel 2+: Stripe Checkout + WhatsApp
-  const hasSubscriptionForCheckout = tenant.subscription_level >= 2; // Nivel 2 = PRO
+  const hasSubscriptionForCheckout = tenant.subscription_level >= 3; // Nivel 3 = ALQUIMIA
   const isPreferredStripe = tenant.preferred_gateway === 'stripe';
   const isPreferredOpenpay = tenant.preferred_gateway === 'openpay' || !tenant.preferred_gateway;
 

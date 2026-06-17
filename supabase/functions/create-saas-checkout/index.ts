@@ -10,7 +10,7 @@ import { getCorsHeaders, forbiddenOriginResponse, isOriginAllowed } from "../_sh
 import { checkRateLimit } from "../_shared/rateLimit.ts";
 
 interface SaasCheckoutPayload {
-  plan: 'basico' | 'pro' | 'premium';
+  plan: 'basico' | 'aura' | 'pro' | 'premium';
   tenant_id: string;
   currency: string;  // 'mxn', 'usd', 'eur', 'gbp'
   locale: string;    // e.g. 'es-MX', 'en-US'
@@ -162,8 +162,8 @@ serve(async (req: Request): Promise<Response> => {
       return jsonResponse({ error: "Faltan campos requeridos en el payload." }, 400, origin);
     }
 
-    if (plan !== 'basico' && plan !== 'pro' && plan !== 'premium') {
-      return jsonResponse({ error: "Plan inválido. Debe ser 'basico', 'pro' o 'premium'." }, 400, origin);
+    if (plan !== 'basico' && plan !== 'aura' && plan !== 'pro' && plan !== 'premium') {
+      return jsonResponse({ error: "Plan inválido. Debe ser 'basico', 'aura', 'pro' o 'premium'." }, 400, origin);
     }
 
     const allowedCurrencies = ['mxn', 'usd', 'eur', 'gbp'];
@@ -213,6 +213,7 @@ serve(async (req: Request): Promise<Response> => {
     // 3. Resolución de Price ID según Plan (Stripe resuelve la divisa de forma nativa)
     const PRICE_IDS: Record<string, string | undefined> = {
       basico: Deno.env.get('STRIPE_BASICO_PRICE_ID'),
+      aura: Deno.env.get('STRIPE_AURA_PRICE_ID'),
       pro: Deno.env.get('STRIPE_PRO_PRICE_ID'),
       premium: Deno.env.get('STRIPE_PREMIUM_PRICE_ID'),
     };

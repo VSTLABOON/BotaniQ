@@ -327,7 +327,7 @@ function ServicesSection() {
 export default function SaasLandingPage() {
   const [scrolled, setScrolled] = useState(false);
   const [isAnnual, setIsAnnual] = useState(false);
-  const [activeFeatureTab, setActiveFeatureTab] = useState<'basico' | 'pro' | 'premium'>('pro');
+  const [activeFeatureTab, setActiveFeatureTab] = useState<'basico' | 'aura' | 'pro' | 'premium'>('pro');
   const [emailInput, setEmailInput] = useState('');
 
   useEffect(() => {
@@ -504,6 +504,12 @@ export default function SaasLandingPage() {
                 Esencia
               </button>
               <button 
+                onClick={() => setActiveFeatureTab('aura')} 
+                className={`px-6 py-2.5 rounded-full text-xs font-semibold uppercase tracking-widest transition-all cursor-pointer ${activeFeatureTab === 'aura' ? 'bg-[#526243] text-white shadow-sm' : 'text-[#526243]/85 hover:text-[#526243]'}`}
+              >
+                Aura
+              </button>
+              <button 
                 onClick={() => setActiveFeatureTab('pro')} 
                 className={`px-6 py-2.5 rounded-full text-xs font-semibold uppercase tracking-widest transition-all cursor-pointer ${activeFeatureTab === 'pro' ? 'bg-[#526243] text-white shadow-sm' : 'text-[#526243]/85 hover:text-[#526243]'}`}
               >
@@ -612,7 +618,7 @@ export default function SaasLandingPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 items-stretch">
             {PRICING.map((plan, i) => (
               <GlassCard 
                 key={i} 

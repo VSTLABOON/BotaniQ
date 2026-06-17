@@ -241,7 +241,7 @@ createRoot(document.getElementById('root')).render(
                     <Route 
                       path="repartidores" 
                       element={
-                        <FeatureGate requiredLevel={3} fallback={<Navigate to="/admin" replace />}>
+                        <FeatureGate requiredLevel={4} fallback={<Navigate to="/admin" replace />}>
                           <AdminRepartidores />
                         </FeatureGate>
                       } 

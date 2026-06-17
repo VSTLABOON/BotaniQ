@@ -125,7 +125,7 @@ const ProductoCard = memo(function ProductoCard({ producto, priority = false }) 
               </>
             ) : (
               <>
-                {(tenant?.preferred_gateway === 'whatsapp' || (tenant?.subscription_level ?? 0) < 2) ? (
+                {(tenant?.preferred_gateway === 'whatsapp' || (tenant?.subscription_level ?? 0) < 3) ? (
                   /* EXCEPCIÓN: Se mantiene ti-brand-whatsapp por no contar con equivalente adecuado en Lucide */
                   <i className="ti ti-brand-whatsapp text-sm shrink-0" />
                 ) : (

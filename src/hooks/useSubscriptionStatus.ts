@@ -49,7 +49,7 @@ export function useSubscriptionStatus() {
   }, [tenant?.id]);
 
   const isBlocked =
-    tenant?.subscription_level === SubscriptionLevel.BLOCKED || isTrialExpired;
+    tenant?.subscription_level === SubscriptionLevel.NONE || isTrialExpired;
 
   return {
     isBlocked,
@@ -57,7 +57,7 @@ export function useSubscriptionStatus() {
     diasRestantes,
     subscriptionEstado,
     loading,
-    subscriptionLevel: tenant?.subscription_level ?? SubscriptionLevel.BASICO,
+    subscriptionLevel: tenant?.subscription_level ?? SubscriptionLevel.ESENCIA,
     hasActiveSubscription: tenant?.has_active_subscription ?? false,
   };
 }

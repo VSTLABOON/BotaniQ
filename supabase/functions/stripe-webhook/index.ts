@@ -344,6 +344,13 @@ serve(async (req: Request): Promise<Response> => {
 // HANDLERS PARA SUSCRIPCIÓN SAAS GLOBAL
 // ═══════════════════════════════════════════════════════════════════
 
+const PLAN_LEVELS: Record<string, number> = {
+  basico: 1,
+  aura: 2,
+  pro: 3,
+  premium: 4,
+};
+
 async function handleSaaSSubscriptionCompleted(session: Stripe.Checkout.Session) {
   const tenantId = session.metadata?.tenant_id;
   const plan = session.metadata?.plan;
@@ -392,8 +399,8 @@ async function handleSaaSSubscriptionCompleted(session: Stripe.Checkout.Session)
       return jsonResponse({ error: "Database error registering subscription." }, 500);
     }
 
-    // 3. Actualizar el nivel de suscripción de la tienda (Básico = 1, Pro = 2, Premium = 3)
-    const subLevel = plan === 'premium' ? 3 : (plan === 'pro' ? 2 : 1);
+    // 3. Actualizar el nivel de suscripción de la tienda
+    const subLevel = PLAN_LEVELS[plan] ?? 1;
     const { error: tenantError } = await supabaseAdmin
       .from("tiendas")
       .update({ subscription_level: subLevel })
@@ -464,7 +471,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
 
     // Si vuelve a estar activa, aseguramos que el nivel de la tienda esté restaurado
     if (mappedEstado === 'activo') {
-      const subLevel = existingSub.plan === 'premium' ? 3 : (existingSub.plan === 'pro' ? 2 : 1);
+      const subLevel = PLAN_LEVELS[existingSub.plan] ?? 1;
       await supabaseAdmin
         .from("tiendas")
         .update({ subscription_level: subLevel })
