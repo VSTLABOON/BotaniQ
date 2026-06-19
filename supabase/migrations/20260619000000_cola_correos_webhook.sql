@@ -20,9 +20,24 @@ BEGIN
     NULL;
   END;
 
-  -- Fallback a credenciales del proyecto si no se encuentran en vault
+  -- Fallback a firma dinámica si no se encuentra en vault (Evita hardcodear secretos)
   IF v_service_role_key IS NULL THEN
-    v_service_role_key := 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlnbnhqZ3lpaGR0bnlidmhoeG1pIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjY2NDYzNiwiZXhwIjoyMDkyMjQwNjM2fQ.tLJR7jXwVWAzSRwLc2-y2iC7GdBOYYvijsgsqZtGudQ';
+    BEGIN
+      v_service_role_key := extensions.sign(
+        json_build_object(
+          'role', 'service_role',
+          'iss', 'supabase',
+          'exp', extract(epoch from (now() + interval '1 hour'))::integer
+        ),
+        current_setting('app.settings.jwt_secret')
+      );
+    EXCEPTION WHEN OTHERS THEN
+      v_service_role_key := NULL;
+    END;
+  END IF;
+
+  IF v_service_role_key IS NULL THEN
+    RAISE EXCEPTION 'Supabase service_role_key no configurada en vault y la firma dinamica fallo.';
   END IF;
 
   v_supabase_url := 'https://ygnxjgyihdtnybvhhxmi.supabase.co';
