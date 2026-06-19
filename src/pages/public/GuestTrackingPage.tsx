@@ -62,36 +62,22 @@ export default function GuestTrackingPage() {
 
       const escapedOrderNumber = escapeSqlWildcards(cleanOrderNumber);
 
-      // Buscamos el pedido usando LIKE para el ID (ya que el número es el inicio del UUID)
+      // Buscamos el pedido usando el RPC seguro get_guest_order
       const { data, error: fetchError } = await supabase
-        .from('pedidos')
-        .select(`
-          *,
-          pedido_items (
-            *,
-            productos (imagenes)
-          )
-        `)
-        .eq('tienda_id', tenant.id)
-        .ilike('id', `${escapedOrderNumber}%`);
+        .rpc('get_guest_order', {
+          p_order_id_prefix: escapedOrderNumber,
+          p_phone_number: cleanPhone
+        });
 
       if (fetchError) throw fetchError;
 
-      if (!data || data.length === 0) {
-        throw new Error('No encontramos ningún pedido con ese número.');
-      }
-
-      const foundOrder = data[0];
-      const orderPhone = foundOrder.datos_envio?.recipientPhone?.replace(/\D/g, '') || '';
-      
-      // Validación de seguridad (Teléfono debe coincidir parcialmente)
-      if (!orderPhone.includes(cleanPhone) && !cleanPhone.includes(orderPhone)) {
-        throw new Error('El teléfono no coincide con el registrado en el pedido.');
+      if (!data) {
+        throw new Error('No encontramos ningún pedido con ese número o el teléfono no coincide.');
       }
 
       setOrder({
-        ...foundOrder,
-        numero: `#${foundOrder.id.slice(0, 8).toUpperCase()}`
+        ...data,
+        numero: `#${data.id.slice(0, 8).toUpperCase()}`
       });
 
     } catch (err: any) {

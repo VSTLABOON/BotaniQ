@@ -167,6 +167,28 @@ serve(async (req: Request): Promise<Response> => {
         metadata: { pedido_id: existingOrder.id, stripe_session_id: stripeSessionId },
       });
 
+      // Enviar correo transaccional de recibo de pedido
+      if (session.customer_details?.email) {
+        try {
+          await supabaseAdmin.functions.invoke("send-email", {
+            body: {
+              toEmail: session.customer_details.email,
+              toName: session.customer_details.name || "Cliente",
+              templateId: 4, // ID de recibo de pedido en Brevo
+              params: {
+                nombre: session.customer_details.name || "Cliente",
+                pedido_numero: `#${existingOrder.id.slice(0, 8).toUpperCase()}`,
+                total: amountTotal,
+                items: "Pedido pagado y confirmado",
+              }
+            }
+          });
+          console.log(`✉️ Correo de recibo enviado para pago asíncrono ${existingOrder.id}`);
+        } catch (emailErr: any) {
+          console.error("⚠️ Error al enviar correo de recibo de pago asíncrono:", emailErr.message);
+        }
+      }
+
       return jsonResponse({ received: true, async_succeeded: true, order_id: existingOrder.id }, 200);
     }
 
@@ -332,6 +354,29 @@ serve(async (req: Request): Promise<Response> => {
       console.warn("⚠️ Error inesperado en notificaciones:", notiErr);
     }
 
+    // Enviar correo transaccional de recibo de pedido
+    if (customerEmail) {
+      try {
+        const lineItemsText = parsedItems.map(it => `${it.nombre} x${it.cantidad}`).join(", ");
+        await supabaseAdmin.functions.invoke("send-email", {
+          body: {
+            toEmail: customerEmail,
+            toName: session.customer_details?.name || "Cliente",
+            templateId: 4, // ID de recibo de pedido en Brevo
+            params: {
+              nombre: session.customer_details?.name || "Cliente",
+              pedido_numero: `#${pedidoId.slice(0, 8).toUpperCase()}`,
+              total: amountTotal,
+              items: lineItemsText || "Detalle de compra",
+            }
+          }
+        });
+        console.log(`✉️ Correo de recibo enviado para pedido ${pedidoId}`);
+      } catch (emailErr: any) {
+        console.error("⚠️ Error al enviar correo de recibo de pedido:", emailErr.message);
+      }
+    }
+
     return jsonResponse({ received: true, order_id: pedidoId }, 200);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Internal error";
@@ -423,6 +468,34 @@ async function handleSaaSSubscriptionCompleted(session: Stripe.Checkout.Session)
         currency
       }
     });
+
+    // Obtener datos del dueño de la tienda para enviar correo de bienvenida al plan de pago
+    const { data: ownerProfile } = await supabaseAdmin
+      .from("perfiles")
+      .select("email, nombre_completo")
+      .eq("tienda_id", tenantId)
+      .eq("rol", "dueño")
+      .maybeSingle();
+
+    if (ownerProfile && ownerProfile.email) {
+      try {
+        await supabaseAdmin.functions.invoke("send-email", {
+          body: {
+            toEmail: ownerProfile.email,
+            toName: ownerProfile.nombre_completo || "Comerciante",
+            templateId: 3, // ID de suscripción de pago
+            params: {
+              nombre: ownerProfile.nombre_completo || "Comerciante",
+              plan: plan.toUpperCase(),
+              monto: montoMensual,
+            }
+          }
+        });
+        console.log(`✉️ Correo de suscripción enviado a ${ownerProfile.email}`);
+      } catch (emailErr: any) {
+        console.error("⚠️ Error al enviar correo de suscripción SaaS:", emailErr.message);
+      }
+    }
 
     console.log(`✅ Suscripción SaaS completada con éxito: tienda=${tenantId}, plan=${plan}`);
     return jsonResponse({ received: true, subscription_active: true }, 200);

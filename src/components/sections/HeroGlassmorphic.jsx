@@ -198,6 +198,9 @@ export default function HeroGlassmorphic() {
           src={hero.video_url || ''}
           fallbackImage={hero.imagen_fondo || ''}
         />
+        {/* Dark overlays to protect text contrast on bright videos */}
+        <div className="absolute inset-0 bg-black/45 z-[1] pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80 z-[2] pointer-events-none" />
       </div>
 
       {/* ── Title (Centrado arriba) ────────────────────────────── */}

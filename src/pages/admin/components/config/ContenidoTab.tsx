@@ -112,6 +112,40 @@ export function ContenidoTab({
     });
   };
 
+  const serviciosData = seccionesData?.servicios || {};
+  const testimoniosData = seccionesData?.testimonios || {};
+  const galeriaData = seccionesData?.galeria || {};
+
+  const handleServiciosChange = (field: string, value: string) => {
+    setSeccionesData({
+      ...seccionesData,
+      servicios: {
+        ...serviciosData,
+        [field]: value
+      }
+    });
+  };
+
+  const handleTestimoniosChange = (field: string, value: string) => {
+    setSeccionesData({
+      ...seccionesData,
+      testimonios: {
+        ...testimoniosData,
+        [field]: value
+      }
+    });
+  };
+
+  const handleGaleriaChange = (field: string, value: string) => {
+    setSeccionesData({
+      ...seccionesData,
+      galeria: {
+        ...galeriaData,
+        [field]: value
+      }
+    });
+  };
+
   const handleBeneficiosImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -493,7 +527,42 @@ export function ContenidoTab({
         </div>
       </Accordion>
 
-      <div id="seccion-Servicios" className="transition-all duration-300 rounded-3xl border border-transparent">
+      <div id="seccion-Servicios" className="transition-all duration-300 rounded-3xl border border-transparent space-y-4">
+        <div className="bg-white/30 dark:bg-black/30 backdrop-blur-md border border-white/20 dark:border-white/10 rounded-3xl p-6 space-y-4">
+          <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">Configuración General de Servicios</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Etiqueta de sección</label>
+              <input
+                type="text"
+                value={serviciosData.etiqueta || ''}
+                onChange={(e) => handleServiciosChange('etiqueta', e.target.value)}
+                className="w-full px-4 py-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                placeholder="Ej. Ocasiones especiales"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Título</label>
+              <input
+                type="text"
+                value={serviciosData.titulo || ''}
+                onChange={(e) => handleServiciosChange('titulo', e.target.value)}
+                className="w-full px-4 py-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                placeholder="Ej. Flores para"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Título destacado (cursiva)</label>
+              <input
+                type="text"
+                value={serviciosData.titulo_italic || ''}
+                onChange={(e) => handleServiciosChange('titulo_italic', e.target.value)}
+                className="w-full px-4 py-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                placeholder="Ej. cada momento"
+              />
+            </div>
+          </div>
+        </div>
         <SectionListEditor
           title="Servicios / Ocasiones"
           description="Listado de eventos y ocasiones que cubren (Bodas, Cumpleaños, etc.)"
@@ -512,6 +581,38 @@ export function ContenidoTab({
       <div id="seccion-Beneficios" className="transition-all duration-300 rounded-3xl border border-transparent space-y-4">
         <div className="bg-white/30 dark:bg-black/30 backdrop-blur-md border border-white/20 dark:border-white/10 rounded-3xl p-6 space-y-4">
           <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">Configuración General de Beneficios</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Etiqueta de sección</label>
+              <input
+                type="text"
+                value={beneficiosData.etiqueta || ''}
+                onChange={(e) => handleBeneficiosChange('etiqueta', e.target.value)}
+                className="w-full px-4 py-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                placeholder="Ej. Por qué elegirnos"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Título</label>
+              <input
+                type="text"
+                value={beneficiosData.titulo || ''}
+                onChange={(e) => handleBeneficiosChange('titulo', e.target.value)}
+                className="w-full px-4 py-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                placeholder="Ej. Lo que nos hace"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Título destacado (cursiva)</label>
+              <input
+                type="text"
+                value={beneficiosData.titulo_italic || ''}
+                onChange={(e) => handleBeneficiosChange('titulo_italic', e.target.value)}
+                className="w-full px-4 py-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                placeholder="Ej. diferentes"
+              />
+            </div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Valor de métrica</label>
@@ -578,10 +679,45 @@ export function ContenidoTab({
         />
       </div>
 
-      <div id="seccion-Testimonios" className="transition-all duration-300 rounded-3xl border border-transparent">
+      <div id="seccion-Testimonios" className="transition-all duration-300 rounded-3xl border border-transparent space-y-4">
+        <div className="bg-white/30 dark:bg-black/30 backdrop-blur-md border border-white/20 dark:border-white/10 rounded-3xl p-6 space-y-4">
+          <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">Configuración General de Testimonios</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Etiqueta de sección</label>
+              <input
+                type="text"
+                value={testimoniosData.etiqueta || ''}
+                onChange={(e) => handleTestimoniosChange('etiqueta', e.target.value)}
+                className="w-full px-4 py-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                placeholder="Ej. Testimonios"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Título</label>
+              <input
+                type="text"
+                value={testimoniosData.titulo || ''}
+                onChange={(e) => handleTestimoniosChange('titulo', e.target.value)}
+                className="w-full px-4 py-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                placeholder="Ej. Flores que"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Título destacado (cursiva)</label>
+              <input
+                type="text"
+                value={testimoniosData.titulo_italic || ''}
+                onChange={(e) => handleTestimoniosChange('titulo_italic', e.target.value)}
+                className="w-full px-4 py-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                placeholder="Ej. dejan huella"
+              />
+            </div>
+          </div>
+        </div>
         <SectionListEditor
           title="Testimonios"
-          description="Gestiona las reseñas y testimonios de tus clientes."
+          description="Reseñas y comentarios de tus clientes."
           items={testimoniosList}
           onChange={setTestimoniosList}
           fields={[
@@ -655,7 +791,54 @@ export function ContenidoTab({
         />
       </div>
 
-      <div id="seccion-Galeria" className="transition-all duration-300 rounded-3xl border border-transparent">
+      <div id="seccion-Galeria" className="transition-all duration-300 rounded-3xl border border-transparent space-y-4">
+        <div className="bg-white/30 dark:bg-black/30 backdrop-blur-md border border-white/20 dark:border-white/10 rounded-3xl p-6 space-y-4">
+          <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">Configuración General de Galería</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Etiqueta de sección</label>
+              <input
+                type="text"
+                value={galeriaData.etiqueta || ''}
+                onChange={(e) => handleGaleriaChange('etiqueta', e.target.value)}
+                className="w-full px-4 py-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                placeholder="Ej. Entregas reales"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Título</label>
+              <input
+                type="text"
+                value={galeriaData.titulo || ''}
+                onChange={(e) => handleGaleriaChange('titulo', e.target.value)}
+                className="w-full px-4 py-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                placeholder="Ej. Así llegan"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Título destacado (cursiva)</label>
+              <input
+                type="text"
+                value={galeriaData.titulo_italic || ''}
+                onChange={(e) => handleGaleriaChange('titulo_italic', e.target.value)}
+                className="w-full px-4 py-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                placeholder="Ej. nuestros arreglos"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Subtítulo</label>
+              <input
+                type="text"
+                value={galeriaData.subtitulo || ''}
+                onChange={(e) => handleGaleriaChange('subtitulo', e.target.value)}
+                className="w-full px-4 py-2 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                placeholder="Ej. Fotos de clientes satisfechos — sin filtros, sin edición"
+              />
+            </div>
+          </div>
+        </div>
         <SectionListEditor
           title="Galería"
           description="Fotos de los mejores arreglos que has entregado."

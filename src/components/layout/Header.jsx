@@ -68,7 +68,7 @@ export default function Header() {
               <a 
                 key={link.label}
                 href={href}
-                className="text-[0.8rem] tracking-[0.12em] uppercase text-[var(--color-background-primary)]/[.55] hover:text-blanco transition-colors duration-200"
+                className="text-[0.8rem] tracking-[0.12em] uppercase text-blanco/60 hover:text-blanco transition-colors duration-200"
               >
                 {link.label}
               </a>
@@ -80,8 +80,8 @@ export default function Header() {
             id="header-auth-cta"
             href={cta.href}
             className="ml-2 px-5 py-[0.45rem] rounded-full text-[0.75rem] font-semibold tracking-[0.08em] uppercase
-              border border-white/[.2] text-blanco bg-[var(--color-background-primary)]/[.08]
-              hover:bg-rosa hover:border-rosa hover:text-[var(--color-background-primary)]
+              border border-white/[.2] text-blanco bg-white/[.08]
+              hover:bg-rosa hover:border-rosa hover:text-blanco
               backdrop-blur-[6px] transition-all duration-300 ease-out
               hover:shadow-[0_0_20px_rgba(217,79,110,0.25)]"
           >
@@ -115,7 +115,7 @@ export default function Header() {
               key={link.label}
               href={href}
               onClick={() => setIsMenuOpen(false)}
-              className="py-[0.85rem] px-6 text-[0.9rem] tracking-[0.06em] text-[var(--color-background-primary)]/[.65] hover:text-[var(--color-background-primary)] hover:bg-[var(--color-background-primary)]/[.04] transition-colors duration-200"
+              className="py-[0.85rem] px-6 text-[0.9rem] tracking-[0.06em] text-blanco/70 hover:text-blanco hover:bg-white/[.04] transition-colors duration-200"
             >
               {link.label}
             </a>
@@ -129,7 +129,7 @@ export default function Header() {
             href={cta.href}
             onClick={() => setIsMenuOpen(false)}
             className="block w-full text-center py-[0.7rem] rounded-xl text-[0.85rem] font-semibold tracking-[0.06em]
-              bg-rosa text-[var(--color-background-primary)]
+              bg-rosa text-blanco
               hover:brightness-110 transition-all duration-300
               shadow-[0_0_16px_rgba(217,79,110,0.2)]"
           >

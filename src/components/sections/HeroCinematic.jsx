@@ -141,8 +141,9 @@ export default function HeroCinematic() {
           src={hero.video_url || ''}
           fallbackImage={hero.imagen_fondo || ''}
         />
-        {/* Gradient overlays */}
-        <div className="absolute inset-0 bg-gradient-to-b from-white via-transparent to-white pointer-events-none" />
+        {/* Gradient overlays + wash-out overlay to protect text contrast */}
+        <div className="absolute inset-0 bg-white/40 pointer-events-none z-[1]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-white via-white/10 to-white pointer-events-none z-[2]" />
       </div>
 
       {/* ── Hero Content ───────────────────────────────────────── */}

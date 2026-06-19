@@ -224,10 +224,7 @@ export function TemaTab({
   const { colorPrimario, colorSecundario, colorAcento, fontFamily, logoPreview, logoError, sections } = state;
   const { setColorPrimario, setColorSecundario, setColorAcento, setFontFamily, handleLogoChange, handleDragEnd } = actions;
 
-  const visibleSections = (sections || []).filter((key: string) => {
-    if (key === 'InstagramFeed' && tenant.subscription_level === 1) return false;
-    return true;
-  });
+  const visibleSections = sections || [];
 
   return (
     <div className="space-y-6">

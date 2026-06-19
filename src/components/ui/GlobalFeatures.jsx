@@ -46,12 +46,12 @@ export function Cursor() {
     <>
       <div 
         ref={curRef} 
-        className="fixed top-0 left-0 w-[6px] h-[6px] bg-rosa rounded-full pointer-events-none z-[9999] -ml-[3px] -mt-[3px] hidden md:block" 
+        className="fixed top-0 left-0 w-[6px] h-[6px] bg-[var(--color-primary)] rounded-full pointer-events-none z-[9999] -ml-[3px] -mt-[3px] hidden md:block" 
         aria-hidden="true" 
       />
       <div 
         ref={ringRef} 
-        className="fixed top-0 left-0 w-8 h-8 border border-rosa/60 rounded-full pointer-events-none z-[9998] -ml-4 -mt-4 transition-opacity duration-150 hidden md:block mix-blend-screen" 
+        className="fixed top-0 left-0 w-8 h-8 border border-[var(--color-primary)]/60 rounded-full pointer-events-none z-[9998] -ml-4 -mt-4 transition-opacity duration-150 hidden md:block mix-blend-screen" 
         aria-hidden="true" 
       />
     </>

@@ -79,4 +79,33 @@ export async function createTrialSubscription(tiendaId: string, plan: string): P
     });
 
   if (error) throw new Error(`Error al registrar prueba gratuita: ${error.message}`);
+
+  // Disparar correo de bienvenida e inicio de prueba
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
+    if (user?.email) {
+      const [tiendaRes, perfilRes] = await Promise.all([
+        supabase.from('tiendas').select('nombre').eq('id', tiendaId).maybeSingle(),
+        supabase.from('perfiles').select('nombre_completo').eq('id', user.id).maybeSingle()
+      ]);
+
+      const tiendaNombre = tiendaRes.data?.nombre || 'Tu Tienda';
+      const nombreCompleto = perfilRes.data?.nombre_completo || user.user_metadata?.nombre_completo || 'Comerciante';
+
+      await supabase.functions.invoke('send-email', {
+        body: {
+          toEmail: user.email,
+          toName: nombreCompleto,
+          templateId: 1, // Plantilla de bienvenida/trial iniciado
+          params: {
+            nombre: nombreCompleto,
+            tienda_nombre: tiendaNombre,
+          }
+        }
+      });
+    }
+  } catch (emailErr: any) {
+    console.error('No se pudo enviar el correo de bienvenida/trial:', emailErr.message);
+  }
 }

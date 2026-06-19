@@ -103,6 +103,14 @@ export async function updateOrderStatus(orderId: string, newStatus: string): Pro
  * Registra la liquidación (pago completo) actualizando el estado y la metadata de envío.
  */
 export async function liquidateOrder(orderId: string, updatedEnvio: any): Promise<void> {
+  const { data: orderData, error: fetchError } = await supabase
+    .from('pedidos')
+    .select('email_cliente, total, pedido_items(nombre_producto, cantidad)')
+    .eq('id', orderId)
+    .single();
+
+  if (fetchError) throw fetchError;
+
   const { error } = await supabase
     .from('pedidos')
     .update({
@@ -112,6 +120,31 @@ export async function liquidateOrder(orderId: string, updatedEnvio: any): Promis
     .eq('id', orderId);
 
   if (error) throw error;
+
+  // Si tiene un correo electrónico del cliente, enviar el recibo de compra
+  if (orderData?.email_cliente) {
+    try {
+      const itemsText = orderData.pedido_items
+        ? (orderData.pedido_items as any[]).map((it) => `${it.nombre_producto} x${it.cantidad}`).join(', ')
+        : 'Pedido liquidado';
+
+      await supabase.functions.invoke('send-email', {
+        body: {
+          toEmail: orderData.email_cliente,
+          toName: updatedEnvio?.nombre_cliente || updatedEnvio?.nombre || 'Cliente',
+          templateId: 4, // ID de recibo de pedido en Brevo
+          params: {
+            nombre: updatedEnvio?.nombre_cliente || updatedEnvio?.nombre || 'Cliente',
+            pedido_numero: `#${orderId.slice(0, 8).toUpperCase()}`,
+            total: orderData.total,
+            items: itemsText,
+          }
+        }
+      });
+    } catch (emailErr: any) {
+      console.error('No se pudo enviar el correo de liquidación del pedido:', emailErr.message);
+    }
+  }
 }
 
 /**
@@ -157,5 +190,26 @@ export async function createManualOrder(
     // Si falla la inserción de items, intentamos remover el pedido huérfano
     await supabase.from('pedidos').delete().eq('id', orderRow.id);
     throw itemError;
+  }
+
+  // Si se crea ya pagado y tiene un correo del cliente, enviar el recibo de compra
+  if (payload.estado === 'pagado' && payload.emailCliente) {
+    try {
+      await supabase.functions.invoke('send-email', {
+        body: {
+          toEmail: payload.emailCliente,
+          toName: payload.datos_envio?.nombre_cliente || payload.datos_envio?.nombre || 'Cliente',
+          templateId: 4, // ID de recibo de pedido en Brevo
+          params: {
+            nombre: payload.datos_envio?.nombre_cliente || payload.datos_envio?.nombre || 'Cliente',
+            pedido_numero: `#${orderRow.id.slice(0, 8).toUpperCase()}`,
+            total: payload.total,
+            items: payload.detalleVenta || 'Venta Express',
+          }
+        }
+      });
+    } catch (emailErr: any) {
+      console.error('No se pudo enviar el correo de recibo para pedido manual creado pagado:', emailErr.message);
+    }
   }
 }
