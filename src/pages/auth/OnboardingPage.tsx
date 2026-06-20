@@ -168,6 +168,7 @@ export default function OnboardingPage() {
   // validation state
   const [triedStep1, setTriedStep1] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   // UI / Guard
   const [loading, setLoading] = useState(false);
@@ -784,6 +785,20 @@ export default function OnboardingPage() {
                     <div className="onb-summary__row"><span>Plan</span><span className={planInfo.accent}>{planInfo.name}</span></div>
                   </div>
 
+                  {/* Aceptación de Términos y Aviso de Privacidad */}
+                  <div className="onb-consent">
+                    <input
+                      type="checkbox"
+                      id="accept-terms"
+                      checked={acceptedTerms}
+                      onChange={e => setAcceptedTerms(e.target.checked)}
+                      className="onb-checkbox"
+                    />
+                    <label htmlFor="accept-terms" className="onb-consent-label">
+                      Acepto los <a href="/terminos.html" target="_blank" rel="noopener noreferrer" className="onb-link">Términos y Condiciones</a>, la <a href="/devoluciones.html" target="_blank" rel="noopener noreferrer" className="onb-link">Política de Cancelación</a> y he leído el <a href="/privacidad.html" target="_blank" rel="noopener noreferrer" className="onb-link">Aviso de Privacidad</a>.
+                    </label>
+                  </div>
+
                   <div className="onb-actions">
                     <button
                       type="button"
@@ -794,7 +809,7 @@ export default function OnboardingPage() {
                     </button>
                     <button
                       type="button"
-                      disabled={!isStep2Valid || loading}
+                      disabled={!isStep2Valid || !acceptedTerms || loading}
                       onClick={() => handleFinish(currentPlan === 'gratis')}
                       className="onb-btn onb-btn--primary"
                     >
@@ -812,7 +827,7 @@ export default function OnboardingPage() {
                     <>
                       <button
                         type="button"
-                        disabled={!isStep2Valid || loading}
+                        disabled={!isStep2Valid || !acceptedTerms || loading}
                         onClick={() => handleFinish(true)}
                         className="onb-btn-secondary w-full py-3 px-4 border border-[var(--color-border-secondary)] hover:border-[var(--color-text-secondary)] text-[var(--color-text-secondary)] hover:text-white rounded-xl text-sm font-semibold transition-all mt-4"
                       >
@@ -1005,6 +1020,53 @@ export default function OnboardingPage() {
         .onb-summary__row span:first-child { color: rgba(255,255,255,0.4); }
         .onb-summary__row span:last-child { color: white; font-weight: 600; }
         .onb-summary__row:last-child { border: none; }
+
+        .onb-consent {
+          display: flex;
+          align-items: flex-start;
+          gap: 0.65rem;
+          margin-top: 1rem;
+          margin-bottom: 0.5rem;
+          padding: 0.5rem 0.25rem;
+        }
+
+        .onb-checkbox {
+          width: 16px;
+          height: 16px;
+          border-radius: 4px;
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          background: rgba(255, 255, 255, 0.04);
+          cursor: pointer;
+          accent-color: #D94F6E;
+          margin-top: 0.15rem;
+          outline: none;
+          flex-shrink: 0;
+        }
+
+        .onb-checkbox:checked {
+          background: #D94F6E;
+          border-color: #D94F6E;
+        }
+
+        .onb-consent-label {
+          font-size: 0.725rem;
+          color: rgba(255, 255, 255, 0.6);
+          line-height: 1.45;
+          cursor: pointer;
+          user-select: none;
+        }
+
+        .onb-link {
+          color: #D94F6E;
+          text-decoration: none;
+          font-weight: 600;
+          transition: color 0.2s;
+        }
+
+        .onb-link:hover {
+          color: #e6627f;
+          text-decoration: underline;
+        }
 
         .onb-actions { display: flex; gap: 0.75rem; margin-top: 0.5rem; }
 
