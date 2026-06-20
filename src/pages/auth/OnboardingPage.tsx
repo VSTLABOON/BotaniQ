@@ -665,6 +665,7 @@ export default function OnboardingPage() {
                         placeholder="8112345678"
                         maxLength={10}
                         className="onb-input"
+                        style={{ paddingLeft: '3.2rem' }}
                       />
                     </div>
                     {triedStep1 && whatsapp.trim().length < 10 && (

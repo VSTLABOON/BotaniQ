@@ -310,7 +310,7 @@ export default function ProductDetailPage() {
             </div>
 
             {/* Selector de Variantes (Carrusel) */}
-            {product.variants.length > 0 && (
+            {product.variants.some(v => v.isAvailable) && (
               <div className="mb-8">
                 <label className="block text-xs font-bold text-texto-muted uppercase tracking-widest mb-3">
                   Selecciona una opción:
@@ -412,7 +412,10 @@ export default function ProductDetailPage() {
       </div>
 
       {/* Mobile Sticky Bottom CTA */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-[var(--color-background-primary)]/90 backdrop-blur-md border-t border-[var(--color-border-tertiary)] z-40 shadow-[0_-10px_40px_rgba(0,0,0,0.08)]">
+      <div 
+        className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-[var(--color-background-primary)]/90 backdrop-blur-md border-t border-[var(--color-border-tertiary)] z-40 shadow-[0_-10px_40px_rgba(0,0,0,0.08)]"
+        style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}
+      >
         <div className="max-w-md mx-auto">
           {isEcommerce ? (
             <button

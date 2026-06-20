@@ -24,25 +24,28 @@ serve(async (req: Request): Promise<Response> => {
     return jsonResponse({ error: "Method not allowed." }, 405);
   }
 
-  // 1. Opcional: Basic Auth de seguridad para OpenPay Webhook
+  // 1. Basic Auth Obligatorio de seguridad para OpenPay Webhook (Zero-Trust Security)
   const webhookUser = Deno.env.get("OPENPAY_WEBHOOK_USERNAME");
   const webhookPass = Deno.env.get("OPENPAY_WEBHOOK_PASSWORD");
 
-  if (webhookUser && webhookPass) {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader || !authHeader.startsWith("Basic ")) {
-      console.warn("⛔ Webhook de OpenPay rechazado: Credenciales ausentes.");
-      return jsonResponse({ error: "Unauthorized" }, 401);
+  if (!webhookUser || !webhookPass) {
+    console.error("⛔ ERROR CRÍTICO DE CONFIGURACIÓN: Las variables OPENPAY_WEBHOOK_USERNAME o OPENPAY_WEBHOOK_PASSWORD no están configuradas en las variables de entorno de Supabase. El procesamiento del webhook ha sido bloqueado para prevenir vulneraciones/saltos de pago.");
+    return jsonResponse({ error: "Server authentication configuration error." }, 500);
+  }
+
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader || !authHeader.startsWith("Basic ")) {
+    console.warn("⛔ Webhook de OpenPay rechazado: Credenciales ausentes.");
+    return jsonResponse({ error: "Unauthorized" }, 401);
+  }
+  try {
+    const credentials = atob(authHeader.replace("Basic ", "")).split(":");
+    if (credentials[0] !== webhookUser || credentials[1] !== webhookPass) {
+      console.warn("⛔ Webhook de OpenPay rechazado: Credenciales incorrectas.");
+      return jsonResponse({ error: "Unauthorized credentials" }, 401);
     }
-    try {
-      const credentials = atob(authHeader.replace("Basic ", "")).split(":");
-      if (credentials[0] !== webhookUser || credentials[1] !== webhookPass) {
-        console.warn("⛔ Webhook de OpenPay rechazado: Credenciales incorrectas.");
-        return jsonResponse({ error: "Unauthorized credentials" }, 401);
-      }
-    } catch {
-      return jsonResponse({ error: "Unauthorized credentials parse error" }, 401);
-    }
+  } catch {
+    return jsonResponse({ error: "Unauthorized credentials parse error" }, 401);
   }
 
   try {
