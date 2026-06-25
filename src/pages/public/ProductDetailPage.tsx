@@ -202,10 +202,7 @@ export default function ProductDetailPage() {
     if (!isWhatsAppConfigured || !product) {
       return toast.error('Esta tienda aún no ha configurado su WhatsApp.');
     }
-    const cleanNumber = tenant.whatsapp.replace(/\D/g, '');
-    const variantText = selectedVariant ? ` (${selectedVariant.name})` : '';
-    const text = encodeURIComponent(`Hola, me interesa el arreglo "${product.name}"${variantText} con un precio de $${new Intl.NumberFormat('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(finalPrice)}. ¿Tienen disponibilidad?`);
-    window.open(`https://wa.me/${cleanNumber}?text=${text}`, '_blank', 'noopener');
+    handlePedir();
   };
 
   return (
@@ -385,8 +382,8 @@ export default function ProductDetailPage() {
                 >
                   <ShoppingBag className="w-5 h-5" />
                   {product.variants.length > 0 && selectedVariant
-                    ? `Agregar ${selectedVariant.name} al carrito — $${new Intl.NumberFormat('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(finalPrice)}`
-                    : `Agregar al Carrito — $${new Intl.NumberFormat('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(finalPrice)}`}
+                    ? `Agregar ${selectedVariant.name} al carrito • $${new Intl.NumberFormat('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(finalPrice)}`
+                    : `Agregar al Carrito • $${new Intl.NumberFormat('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(finalPrice)}`}
                 </motion.button>
               ) : (
                 <motion.button
@@ -402,8 +399,8 @@ export default function ProductDetailPage() {
                     <path d="M9 10a.5 .5 0 0 0 1 0v-1a.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a.5 .5 0 0 0 0 -1h-1a.5 .5 0 0 0 0 1" />
                   </svg>
                   {product.variants.length > 0 && selectedVariant
-                    ? `Pedir ${selectedVariant.name} por WhatsApp — $${new Intl.NumberFormat('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(finalPrice)}`
-                    : `Pedir por WhatsApp — $${new Intl.NumberFormat('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(finalPrice)}`}
+                    ? `Pedir ${selectedVariant.name} por WhatsApp • $${new Intl.NumberFormat('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(finalPrice)}`
+                    : `Pedir por WhatsApp • $${new Intl.NumberFormat('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(finalPrice)}`}
                 </motion.button>
               )}
             </div>
@@ -426,8 +423,8 @@ export default function ProductDetailPage() {
             >
               <ShoppingBag className="w-5 h-5" />
               {product.variants.length > 0 && selectedVariant 
-                ? `Agregar ${selectedVariant.name} — $${new Intl.NumberFormat('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(finalPrice)}`
-                : `Agregar al Carrito — $${new Intl.NumberFormat('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(finalPrice)}`}
+                ? `Agregar ${selectedVariant.name} • $${new Intl.NumberFormat('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(finalPrice)}`
+                : `Agregar al Carrito • $${new Intl.NumberFormat('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(finalPrice)}`}
             </button>
           ) : (
             <button
@@ -441,8 +438,8 @@ export default function ProductDetailPage() {
                 <path d="M9 10a.5 .5 0 0 0 1 0v-1a.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a.5 .5 0 0 0 0 -1h-1a.5 .5 0 0 0 0 1" />
               </svg>
               {product.variants.length > 0 && selectedVariant 
-                ? `Pedir ${selectedVariant.name} por WhatsApp — $${new Intl.NumberFormat('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(finalPrice)}`
-                : `Pedir por WhatsApp — $${new Intl.NumberFormat('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(finalPrice)}`}
+                ? `Pedir ${selectedVariant.name} por WhatsApp • $${new Intl.NumberFormat('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(finalPrice)}`
+                : `Pedir por WhatsApp • $${new Intl.NumberFormat('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(finalPrice)}`}
             </button>
           )}
         </div>

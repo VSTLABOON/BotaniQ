@@ -431,15 +431,15 @@ export default function CartDrawer() {
   const enableCheckout = hasSubscriptionForCheckout && isGatewayConfigured;
   const enableWhatsApp = true; // WhatsApp is always available
   const isCheckoutMode = enableCheckout;
-  const FabIcon = isCheckoutMode ? ShoppingCart : MessageCircle;
-  const fabAriaLabel = isCheckoutMode ? "Ir al checkout" : "Contactar por WhatsApp";
+  const FabIcon = ShoppingCart;
+  const fabAriaLabel = "Ver mi pedido / Carrito de compras";
 
   return (
     <>
       {/* FAB */}
       <button onClick={openCart} aria-label={fabAriaLabel}
         aria-expanded={isOpen} aria-controls="cart-drawer"
-        className={`fixed bottom-6 right-6 z-[8900] w-[60px] h-[60px] rounded-full bg-verde text-[var(--color-background-primary)] shadow-lg-custom flex items-center justify-center transition-transform duration-300 hover:scale-110 ${itemCount > 0 ? 'animate-bounce' : ''}`}>
+        className={`fixed bottom-24 lg:bottom-6 left-6 lg:left-8 z-[8900] w-[60px] h-[60px] rounded-full bg-verde text-[var(--color-background-primary)] shadow-lg-custom flex items-center justify-center transition-transform duration-300 hover:scale-110 ${itemCount > 0 ? 'animate-bounce' : ''}`}>
         <FabIcon className="w-6 h-6" strokeWidth={2} />
         {itemCount > 0 && (
           <div className="absolute -top-1 -right-1 bg-rosa text-[var(--color-background-primary)] text-[0.7rem] font-bold w-6 h-6 rounded-full flex items-center justify-center border-2 border-negro">

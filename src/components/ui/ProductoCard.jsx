@@ -26,7 +26,7 @@ const ProductoCard = memo(function ProductoCard({ producto, priority = false }) 
       productId: producto.id,
       variantId: producto.id,           // Variante default
       name: producto.name,
-      variantName: typeof producto.precio === 'number' ? `$${producto.precio}` : producto.precio,     // Ej: "$450"
+      variantName: 'Estándar',
       unitPrice: producto.precioNum,
       quantity: 1,
       image: producto.imgUrl,
