@@ -132,7 +132,7 @@ export default function Catalogo() {
         </div>
       ) : (
         <p className="text-center py-12 px-6 text-[0.9rem] text-texto-muted max-w-[500px] mx-auto">
-          No hay arreglos disponibles en este momento. <a href="#" className="text-verde underline">Consúltanos por WhatsApp</a> y encontramos algo para ti.
+          No hay arreglos disponibles en este momento. <a href={tenant.whatsapp ? `https://wa.me/${tenant.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent('Hola, me gustaría consultar por arreglos florales.')}` : '#'} target="_blank" rel="noopener noreferrer" className="text-verde underline">Consúltanos por WhatsApp</a> y encontramos algo para ti.
         </p>
       )}
 

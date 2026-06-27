@@ -121,6 +121,11 @@ export default function AdminConfiguracion({ section }: { section: 'tema' | 'gen
         ...prev,
         [sectionKey]: true
       }));
+    } else if (sectionKey === 'InstagramFeed') {
+      setOpenAccordions(prev => ({
+        ...prev,
+        Contacto: true
+      }));
     }
 
     // Desplazamiento suave y efecto destello (glow)

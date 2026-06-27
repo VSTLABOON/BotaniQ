@@ -172,7 +172,7 @@ export function GeneralTab({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
+            <div id="seccion-InstagramFeed" className="transition-all duration-300 rounded-xl border border-transparent p-1">
               <label htmlFor="instagram" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1 flex items-center gap-1.5">
                 <Instagram className="w-4 h-4 text-pink-500" /> Usuario o Enlace de Instagram
               </label>
