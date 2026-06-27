@@ -138,14 +138,16 @@ export const ProductoItemSchema = z.object({
 });
 
 export const PedidoEnvioSchema = z.object({
-  recipientName: z.string().trim().min(2, "El nombre del destinatario debe tener al menos 2 caracteres").max(100),
+  deliveryType: z.enum(['domicilio', 'pickup']).default('domicilio'),
+  recipientName: z.string().trim().max(100).optional().or(z.literal('')),
   recipientPhone: z.string().trim().refine((val) => {
+    if (!val) return true;
     const clean = val.replace(/\D/g, '');
-    return clean.length === 10 || (clean.length === 12 && clean.startsWith('52'));
+    return clean.length === 0 || clean.length === 10 || (clean.length === 12 && clean.startsWith('52'));
   }, {
     message: "El teléfono debe ser un número de 10 dígitos (ej. 8112345678) o 12 con prefijo 52"
-  }),
-  deliveryAddress: z.string().trim().min(10, "Proporciona una dirección de entrega completa (mínimo 10 caracteres)").max(300),
+  }).optional().or(z.literal('')),
+  deliveryAddress: z.string().trim().max(300).optional().or(z.literal('')),
   deliveryDate: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, "Formato de fecha inválido (debe ser YYYY-MM-DD)").refine((val) => {
     const todayStr = new Date().toLocaleDateString('en-CA');
     return val >= todayStr;
@@ -154,6 +156,28 @@ export const PedidoEnvioSchema = z.object({
   }),
   customMessage: z.string().trim().max(160, "El mensaje de la tarjeta no puede exceder 160 caracteres").optional().or(z.literal('')),
   zonaEnvio: z.string().trim().optional(),
+  postalCode: z.string().trim().optional().or(z.literal('')),
+  customOccasion: z.string().optional(),
+  selectedFlowers: z.array(z.string()).optional(),
+  referenceImage: z.string().optional(),
+  customBudget: z.number().optional(),
+}).superRefine((data, ctx) => {
+  if (data.deliveryType === 'domicilio') {
+    if (!data.deliveryAddress || data.deliveryAddress.trim().length < 10) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Proporciona una dirección de entrega completa (mínimo 10 caracteres)",
+        path: ["deliveryAddress"]
+      });
+    }
+    if (!data.postalCode || !/^\d{5}$/.test(data.postalCode)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "El Código Postal es obligatorio y debe tener 5 dígitos",
+        path: ["postalCode"]
+      });
+    }
+  }
 });
 
 export const PedidoCheckoutSchema = z.object({

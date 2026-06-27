@@ -28,7 +28,15 @@ export async function fetchRepartidores(tiendaId: string): Promise<RepartidorDat
     .eq('tienda_id', tiendaId);
 
   if (error) throw error;
-  return data || [];
+  return (data || []).map((r: any) => ({
+    id: r.id,
+    nombre: r.nombre,
+    activo: r.activo,
+    perfil_id: r.perfil_id,
+    perfiles: Array.isArray(r.perfiles) 
+      ? (r.perfiles[0] || null) 
+      : (r.perfiles || null)
+  }));
 }
 
 /**

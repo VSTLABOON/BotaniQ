@@ -29,8 +29,8 @@ function EmptyStateIllustration() {
 export interface FieldConfig {
   key: string;
   label: string;
-  type: 'text' | 'textarea' | 'icon' | 'number' | 'color' | 'image' | 'catalog';
-  options?: string[]; // Para iconos
+  type: 'text' | 'textarea' | 'icon' | 'number' | 'color' | 'image' | 'catalog' | 'select';
+  options?: string[]; // Para iconos o selects
 }
 
 function ImageUploadField({ value, onChange }: { value: string, onChange: (url: string) => void }) {
@@ -471,7 +471,7 @@ export function SectionListEditor({ title, description, items, fields, onChange,
       id: crypto.randomUUID ? crypto.randomUUID() : 'serv_' + Date.now()
     };
     fields.forEach(f => {
-      newItem[f.key] = f.type === 'number' ? '' : f.type === 'color' ? '#D94F6E' : '';
+      newItem[f.key] = f.type === 'number' ? '' : f.type === 'color' ? '#D94F6E' : f.type === 'select' ? (f.options?.[0] || '') : '';
     });
     
     const newItems = [...items, newItem];
@@ -484,6 +484,21 @@ export function SectionListEditor({ title, description, items, fields, onChange,
     const val = tempItem[field.key] || '';
     
     switch (field.type) {
+      case 'select':
+        return (
+          <select
+            value={val}
+            onChange={(e) => setTempItem({ ...tempItem, [field.key]: e.target.value })}
+            className="w-full h-10 px-4 bg-[var(--color-background-secondary)] border border-[var(--color-border-secondary)] rounded-xl text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all"
+            style={{ fontSize: '16px' }}
+          >
+            {(field.options || []).map((opt) => (
+              <option key={opt} value={opt}>
+                {opt}
+              </option>
+            ))}
+          </select>
+        );
       case 'textarea':
         return (
           <textarea

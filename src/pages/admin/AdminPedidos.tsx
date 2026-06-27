@@ -17,7 +17,7 @@ import {
   Package, Search, ChevronRight, X,
   MapPin, Heart, Clock, User, Phone,
   Calendar, CreditCard, MessageSquare, ShoppingBag,
-  Plus, CheckCircle, Loader2, Save, RefreshCw
+  Plus, CheckCircle, Loader2, Save, RefreshCw, Sparkles
 } from 'lucide-react';
 import { toast } from '../../store/toastStore';
 import { supabase } from '../../lib/supabaseClient';
@@ -55,6 +55,10 @@ interface ShippingInfo {
   monto_anticipo?: number;
   monto_pendiente?: number;
   metodo_pago_manual?: string;
+  customOccasion?: string;
+  selectedFlowers?: string[];
+  referenceImage?: string;
+  customBudget?: number;
 }
 
 interface Order {
@@ -263,6 +267,42 @@ function OrderDetailPanel({
               </div>
             )}
           </div>
+          
+          {/* ── Diseño a Medida (Condicional) ── */}
+          {order.datos_envio?.customBudget && (
+            <div className="bg-[var(--color-background-secondary)] rounded-xl p-4 space-y-3">
+              <h4 className="text-[0.7rem] font-semibold text-[var(--color-text-tertiary)] uppercase tracking-wider flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                Diseño a Medida
+              </h4>
+              <div className="space-y-2.5">
+                <div>
+                  <span className="text-[0.65rem] text-[var(--color-text-tertiary)] uppercase tracking-wider block">Presupuesto</span>
+                  <span className="text-sm font-bold text-emerald-500">${order.datos_envio.customBudget} MXN</span>
+                </div>
+                {order.datos_envio.customOccasion && (
+                  <div>
+                    <span className="text-[0.65rem] text-[var(--color-text-tertiary)] uppercase tracking-wider block">Ocasión</span>
+                    <span className="text-sm font-medium text-[var(--color-text-primary)]">{order.datos_envio.customOccasion}</span>
+                  </div>
+                )}
+                {order.datos_envio.selectedFlowers && order.datos_envio.selectedFlowers.length > 0 && (
+                  <div>
+                    <span className="text-[0.65rem] text-[var(--color-text-tertiary)] uppercase tracking-wider block">Flores preferidas</span>
+                    <span className="text-sm text-[var(--color-text-secondary)]">{order.datos_envio.selectedFlowers.join(', ')}</span>
+                  </div>
+                )}
+                {order.datos_envio.referenceImage && (
+                  <div>
+                    <span className="text-[0.65rem] text-[var(--color-text-tertiary)] uppercase tracking-wider block">Foto de referencia</span>
+                    <a href={order.datos_envio.referenceImage} target="_blank" rel="noopener noreferrer" className="block mt-1 max-w-[120px] rounded-lg overflow-hidden border border-[var(--color-border-secondary)] bg-black/40">
+                      <img src={order.datos_envio.referenceImage} alt="Referencia" className="w-full h-auto object-contain hover:scale-105 transition-transform" />
+                    </a>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* ── Artículos del Pedido (pedido_items) ── */}
           <div>
@@ -376,6 +416,10 @@ export default function AdminPedidos() {
               monto_anticipo: rawEnvio.monto_anticipo,
               monto_pendiente: rawEnvio.monto_pendiente,
               metodo_pago_manual: rawEnvio.metodo_pago_manual,
+              customOccasion: rawEnvio.customOccasion,
+              selectedFlowers: rawEnvio.selectedFlowers,
+              referenceImage: rawEnvio.referenceImage,
+              customBudget: rawEnvio.customBudget,
             };
 
             const items: OrderItem[] = (row.pedido_items || []).map((item: any) => {
@@ -496,6 +540,10 @@ export default function AdminPedidos() {
                     monto_anticipo: rawEnvio.monto_anticipo,
                     monto_pendiente: rawEnvio.monto_pendiente,
                     metodo_pago_manual: rawEnvio.metodo_pago_manual,
+                    customOccasion: rawEnvio.customOccasion,
+                    selectedFlowers: rawEnvio.selectedFlowers,
+                    referenceImage: rawEnvio.referenceImage,
+                    customBudget: rawEnvio.customBudget,
                   };
 
                   const items: OrderItem[] = (row.pedido_items || []).map((item: any) => {
@@ -543,11 +591,12 @@ export default function AdminPedidos() {
                     : o
                 )
               );
-              setSelectedOrder((prev) =>
-                prev?.id === updatedRow.id
-                  ? { ...prev, estado: updatedRow.estado as OrderStatus }
-                  : prev
-              );
+              setSelectedOrder((prev) => {
+                if (prev && prev.id === updatedRow.id) {
+                  return { ...prev, estado: updatedRow.estado as OrderStatus };
+                }
+                return prev;
+              });
             }
           }
         )
@@ -841,7 +890,15 @@ export default function AdminPedidos() {
                 
                 {/* Cliente */}
                 <div className="min-w-0 w-full md:w-auto">
-                  <p className="text-sm font-bold md:font-medium text-[var(--color-text-primary)] truncate">{order.cliente_nombre}</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-bold md:font-medium text-[var(--color-text-primary)] truncate">{order.cliente_nombre}</p>
+                    {order.datos_envio.customBudget && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20 uppercase tracking-wide shrink-0">
+                        <Sparkles className="w-2.5 h-2.5" />
+                        A Medida
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-[var(--color-text-tertiary)] truncate flex items-center gap-1 mt-0.5">
                     <MapPin className="w-3 h-3 shrink-0" />
                     Para: {order.datos_envio.recipientName}

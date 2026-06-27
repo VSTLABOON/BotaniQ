@@ -265,7 +265,7 @@ export function ProductModal({
   const validateForm = () => {
     const schema = z.object({
       name: z.string().trim().min(1, 'El nombre es obligatorio'),
-      basePrice: z.number({ invalid_type_error: 'El precio debe ser un número' }).min(0, 'El precio debe ser mayor o igual a 0'),
+      basePrice: z.number({ message: 'El precio debe ser un número' }).min(0, 'El precio debe ser mayor o igual a 0'),
       images: z.array(z.string()).min(1, 'La imagen principal es obligatoria'),
     });
 
@@ -732,7 +732,7 @@ export function ProductModal({
                   value={draft.disponible_hasta ? draft.disponible_hasta.split('T')[0] : ''}
                   onChange={e => {
                     const val = e.target.value;
-                    updateField('disponible_hasta', val ? new Date(val).toISOString() : null);
+                    updateField('disponible_hasta', val ? new Date(val).toISOString() : undefined);
                   }}
                   className="w-full h-10 px-4 bg-[var(--color-background-secondary)] border border-[var(--color-border-secondary)] rounded-xl text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all"
                 />

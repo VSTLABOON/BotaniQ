@@ -777,6 +777,19 @@ export function ContenidoTab({
               />
             </div>
           </div>
+          <div className="flex flex-col">
+            <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Aviso aclaratorio para pedidos a medida (protección contra expectativas irreales)</label>
+            <textarea
+              value={floresData.disclaimer_medida || ''}
+              onChange={(e) => handleFloresChange('disclaimer_medida', e.target.value)}
+              rows={3}
+              className="w-full px-4 py-3 bg-white/50 dark:bg-black/50 backdrop-blur-sm border border-white/30 dark:border-white/10 rounded-lg text-[var(--color-text-primary)] text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none resize-none"
+              placeholder='Ej: "Nota de diseño a medida: Para garantizar la calidad y volumen de tu arreglo..."'
+            />
+            <p className="text-[11px] text-[var(--color-text-secondary)]/50 mt-1">
+              Este mensaje se mostrará arriba en el formulario de Diseño a Medida para educar al cliente sobre presupuestos, tallos y volumen.
+            </p>
+          </div>
         </div>
         <SectionListEditor
           title="Catálogo Rápido (Variedad de Flores)"
@@ -785,6 +798,8 @@ export function ContenidoTab({
           onChange={setFloresList}
           fields={[
             { key: 'nombre', label: 'Nombre de flor', type: 'text' },
+            { key: 'precio_promedio', label: 'Precio Promedio por Tallo ($)', type: 'number' },
+            { key: 'stock', label: 'Disponibilidad (Stock)', type: 'select', options: ['Disponible', 'Agotado'] },
             { key: 'color_hex', label: 'Color Prominente', type: 'color' },
             { key: 'imagen_url', label: 'Imagen', type: 'image' },
           ]}

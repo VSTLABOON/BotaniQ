@@ -16,7 +16,7 @@ export default function Flores() {
     );
   }
 
-  const flores = tenant.flores || [];
+  const flores = (tenant.flores || []).filter(f => f.stock !== 'Agotado');
 
   return (
     <section id="flores" className="bg-negro pt-28 px-6 pb-28">

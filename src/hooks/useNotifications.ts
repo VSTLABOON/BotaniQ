@@ -50,15 +50,15 @@ export function useNotifications(tenantId?: string) {
         },
         (payload) => {
           const newNoti = payload.new as Notification;
-          logger.info('🔔 [Realtime] Nueva notificación:', newNoti);
+          logger.info('🔔 [Realtime] Nueva notificación:', newNoti as unknown as Record<string, unknown>);
           
           if (active) {
             setUnreadCount((prev) => prev + 1);
             setNotifications((prev) => [newNoti, ...prev].slice(0, 30));
 
             // Mostrar un Toast temporal (se oculta tras 6s)
-            const toastId = Date.now();
-            setToasts((prev) => [...prev, { id: toastId, ...newNoti }]);
+            const toastId = newNoti.id || Date.now().toString();
+            setToasts((prev) => [...prev, { ...newNoti, id: toastId }]);
 
             // Reproducir sonido de campanilla ligero
             try {

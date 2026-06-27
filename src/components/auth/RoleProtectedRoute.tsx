@@ -40,12 +40,14 @@ export default function RoleProtectedRoute({ allowedRoles, children }: RoleProte
     const isAdminRole = ['dueño', 'empleado'].includes(profile.rol);
     if (isAdminRole && profile.tienda_id) {
       setIsRedirecting(true);
-      supabase
-        .from('tiendas')
-        .select('slug')
-        .eq('id', profile.tienda_id)
-        .single()
-        .then(({ data }) => {
+      const fetchSlug = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('tiendas')
+            .select('slug')
+            .eq('id', profile.tienda_id)
+            .single();
+          if (error) throw error;
           if (active && data?.slug) {
             // Mantener el path relativo (ej. /admin/pedidos) y query params
             const path = window.location.pathname.startsWith('/admin')
@@ -58,11 +60,12 @@ export default function RoleProtectedRoute({ allowedRoles, children }: RoleProte
           } else {
             setIsRedirecting(false);
           }
-        })
-        .catch((err) => {
+        } catch (err) {
           console.error('Error fetching tenant slug for redirection:', err);
           if (active) setIsRedirecting(false);
-        });
+        }
+      };
+      fetchSlug();
     }
 
     return () => {
