@@ -223,8 +223,7 @@ export default function GuestTrackingPage() {
                     </h3>
                     <div className="space-y-3">
                       {order.pedido_items?.map((item: any) => {
-                        const productImages = item.productos?.imagenes || [];
-                        const imageUrl = productImages.length > 0 ? productImages[0] : 'https://placehold.co/100x100/f3f4f6/9ca3af?text=Sin+Imagen';
+                        const imageUrl = item.productos?.imagen_url || 'https://placehold.co/100x100/f3f4f6/9ca3af?text=Sin+Imagen';
                         
                         return (
                           <div key={item.id} className="flex items-center gap-4 bg-[var(--color-background-secondary)]/50 p-3 rounded-2xl border border-[var(--color-border-tertiary)]">

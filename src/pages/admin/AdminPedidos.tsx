@@ -423,8 +423,7 @@ export default function AdminPedidos() {
             };
 
             const items: OrderItem[] = (row.pedido_items || []).map((item: any) => {
-              const productImages = item.productos?.imagenes || [];
-              const imageUrl = productImages.length > 0 ? productImages[0] : 'https://placehold.co/150x150/f3f4f6/9ca3af?text=Sin+Imagen';
+              const imageUrl = item.productos?.imagen_url || 'https://placehold.co/150x150/f3f4f6/9ca3af?text=Sin+Imagen';
               
               return {
                 id: item.id,
@@ -519,7 +518,7 @@ export default function AdminPedidos() {
                       cantidad,
                       precio_unitario,
                       productos (
-                        imagenes
+                        imagen_url
                       )
                     )
                   `)
@@ -547,8 +546,7 @@ export default function AdminPedidos() {
                   };
 
                   const items: OrderItem[] = (row.pedido_items || []).map((item: any) => {
-                    const productImages = item.productos?.imagenes || [];
-                    const imageUrl = productImages.length > 0 ? productImages[0] : 'https://placehold.co/150x150/f3f4f6/9ca3af?text=Sin+Imagen';
+                    const imageUrl = item.productos?.imagen_url || 'https://placehold.co/150x150/f3f4f6/9ca3af?text=Sin+Imagen';
                     
                     return {
                       id: item.id,

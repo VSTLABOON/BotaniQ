@@ -75,7 +75,7 @@ export async function fetchAdminOrders(tiendaId: string, limit: number): Promise
         cantidad,
         precio_unitario,
         productos (
-          imagenes
+          imagen_url
         )
       )
     `)
