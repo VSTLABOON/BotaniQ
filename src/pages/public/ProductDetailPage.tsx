@@ -101,10 +101,7 @@ export default function ProductDetailPage() {
           setProduct(mappedProduct);
           setSelectedImage(images[0] || '');
           
-          // Seleccionar primera variante por defecto si existe
-          if (variants.length > 0) {
-            setSelectedVariantId(variants[0].id);
-          }
+          // No auto-seleccionar variante por defecto para mostrar el arreglo base primero
         }
       } catch (err) {
         logger.error('Error fetching product:', err as Error);
@@ -208,22 +205,22 @@ export default function ProductDetailPage() {
   return (
     <div className="min-h-[100svh] bg-crema pb-24 lg:pb-0">
       <Helmet>
-        <title>{`${product.name} | ${tenant.nombre}`}</title>
+        <title>{`${selectedVariant ? `${product.name} - ${selectedVariant.name}` : product.name} | ${tenant.nombre}`}</title>
         <meta name="description" content={product.description} />
-        <meta property="og:title" content={product.name} />
+        <meta property="og:title" content={selectedVariant ? `${product.name} - ${selectedVariant.name}` : product.name} />
         <meta property="og:description" content={product.description} />
         <meta property="og:image" content={product.images[0]} />
         <meta property="og:type" content="product" />
       </Helmet>
       
       {/* Botón flotante móvil de regreso */}
-      <BackButton to="/" variant="floating" label="Volver al catálogo" tenantColor={tenant.color_primario} className="sm:hidden" />
+      <BackButton to="/#catalogo" variant="floating" label="Volver al catálogo" tenantColor={tenant.color_primario} className="sm:hidden" />
 
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6 pt-24 pb-12">
         
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-sm text-texto-muted mb-8 overflow-x-auto whitespace-nowrap hide-scrollbar">
-          <button onClick={() => navigate('/')} className="hover:text-verde transition-colors flex items-center gap-1">
+          <button onClick={() => navigate('/#catalogo')} className="hover:text-verde transition-colors flex items-center gap-1">
             <ArrowLeft className="w-4 h-4" /> Inicio
           </button>
           <ChevronRight className="w-4 h-4 opacity-50" />
@@ -273,7 +270,7 @@ export default function ProductDetailPage() {
           <div className="flex flex-col">
             <div className="mb-6">
               <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-texto leading-[1.1] mb-4">
-                {product.name}
+                {selectedVariant ? `${product.name} - ${selectedVariant.name}` : product.name}
               </h1>
 
               {/* Descripción visible en detalle */}
@@ -323,8 +320,13 @@ export default function ProductDetailPage() {
                       <button
                         key={v.id}
                         onClick={() => {
-                          setSelectedVariantId(v.id);
-                          if (variantImg) setSelectedImage(variantImg);
+                          if (selectedVariantId === v.id) {
+                            setSelectedVariantId(null);
+                            if (product.images[0]) setSelectedImage(product.images[0]);
+                          } else {
+                            setSelectedVariantId(v.id);
+                            if (variantImg) setSelectedImage(variantImg);
+                          }
                         }}
                         className={`flex-none w-[220px] sm:w-[260px] p-3 sm:p-4 rounded-2xl border-2 text-left transition-all snap-start scroll-mx-4 ${
                           isSelected

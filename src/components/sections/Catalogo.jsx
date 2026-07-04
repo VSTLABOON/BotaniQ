@@ -39,6 +39,34 @@ export default function Catalogo() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Guardar posición de scroll al hacer clic en un producto
+  const handleProductClick = () => {
+    sessionStorage.setItem('botaniq_scroll_pos', window.scrollY.toString());
+  };
+
+  // Restaurar scroll o navegar al catálogo si viene con hash
+  useEffect(() => {
+    if (!loading) {
+      const saved = sessionStorage.getItem('botaniq_scroll_pos');
+      if (saved) {
+        const y = parseInt(saved, 10);
+        const timer = setTimeout(() => {
+          window.scrollTo(0, y);
+          sessionStorage.removeItem('botaniq_scroll_pos');
+        }, 100);
+        return () => clearTimeout(timer);
+      } else if (window.location.hash === '#catalogo') {
+        const el = document.getElementById('catalogo');
+        if (el) {
+          const timer = setTimeout(() => {
+            el.scrollIntoView({ behavior: 'smooth' });
+          }, 100);
+          return () => clearTimeout(timer);
+        }
+      }
+    }
+  }, [loading]);
+
   // Productos destacados en la landing: primeros 3 según campo `orden` (que ya viene ordenado del hook)
   const productosDestacados = useMemo(() => {
     return productos.slice(0, 3);
@@ -110,7 +138,7 @@ export default function Catalogo() {
                 key={prod.id} 
                 variants={getMotionVariants(fadeUp, shouldReduceMotion)}
               >
-                <Link to={`/producto/${prod.slug}`} className="block h-full">
+                <Link to={`/producto/${prod.slug}`} onClick={handleProductClick} className="block h-full">
                   <ProductoCard producto={prod} priority={i < 3} />
                 </Link>
               </motion.div>
@@ -209,7 +237,10 @@ export default function Catalogo() {
                       <Link 
                         key={prod.id} 
                         to={`/producto/${prod.slug}`} 
-                        onClick={() => setCatalogModalOpen(false)}
+                        onClick={() => {
+                          setCatalogModalOpen(false);
+                          handleProductClick();
+                        }}
                         className="block h-full"
                       >
                         <ProductoCard producto={prod} />

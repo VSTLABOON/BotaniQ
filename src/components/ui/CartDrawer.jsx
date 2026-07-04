@@ -128,10 +128,7 @@ export default function CartDrawer() {
         if (!active) return;
 
         if (data && data[0] && data[0].error === true) {
-          setCpError(data[0].error_message || "Código Postal no encontrado");
-          setColoniasList([]);
-          setSelectedColonia('');
-          return;
+          throw new Error(data[0].error_message || "Código Postal no encontrado");
         }
 
         if (Array.isArray(data) && data.length > 0) {
@@ -159,7 +156,7 @@ export default function CartDrawer() {
             matchZonaEnvio(colonias[0], ciudad, estado);
           }
         } else {
-          setCpError("Código Postal no encontrado");
+          throw new Error("Código Postal no encontrado");
         }
       } catch (err) {
         if (active) {

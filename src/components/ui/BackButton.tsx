@@ -21,7 +21,11 @@ export default function BackButton({
 
   const handleBack = () => {
     if (to) {
-      navigate(to);
+      if ((to === '/' || to === '/#catalogo') && window.history.state && window.history.state.idx > 0) {
+        navigate(-1);
+      } else {
+        navigate(to);
+      }
     } else {
       // Si hay historial previo dentro de la aplicación, retroceder.
       // De lo contrario, redirigir a la raíz correspondiente para evitar salir del dominio.
@@ -33,7 +37,7 @@ export default function BackButton({
         } else if (location.pathname.startsWith('/superadmin')) {
           navigate('/superadmin');
         } else {
-          navigate('/');
+          navigate('/#catalogo');
         }
       }
     }
