@@ -164,6 +164,43 @@ export default function CartDrawer() {
       } catch (err) {
         if (active) {
           logger.error("Error al consultar Copomex CP:", err);
+          
+          try {
+            const fallbackRes = await fetch(`https://api.zippopotam.us/mx/${cp}`);
+            if (fallbackRes.ok) {
+              const fallbackData = await fallbackRes.json();
+              const places = fallbackData.places || [];
+              
+              if (places.length > 0) {
+                const estado = places[0]?.state || '';
+                const municipio = places[0]?.['place name'] || '';
+                const colonias = places.map(p => p['place name']).filter(Boolean);
+                
+                setCpInfo({ municipio, estado });
+                setColoniasList(colonias);
+                
+                if (colonias.length > 0) {
+                  setSelectedColonia(colonias[0]);
+                  setFormData(prev => ({
+                    ...prev,
+                    direccion: `${colonias[0]}, ${municipio}, ${estado}`
+                  }));
+                  
+                  if (validationErrors.direccion) {
+                    setValidationErrors(p => { const copy = { ...p }; delete copy.direccion; return copy; });
+                  }
+                  
+                  matchZonaEnvio(colonias[0], municipio, estado);
+                }
+                
+                setCpError(null);
+                return; // éxito — no mostrar error
+              }
+            }
+          } catch (fallbackErr) {
+            logger.error("Error en fallback Zippopotam:", fallbackErr);
+          }
+
           setCpError("Error al consultar el Código Postal. Intente ingresarlo manualmente.");
         }
       } finally {

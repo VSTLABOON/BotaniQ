@@ -66,7 +66,6 @@ export async function fetchAdminOrders(tiendaId: string, limit: number): Promise
       metodo_pago,
       datos_envio,
       email_cliente,
-      cliente_nombre,
       created_at,
       pedido_items (
         id,

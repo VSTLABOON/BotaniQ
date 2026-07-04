@@ -407,7 +407,7 @@ export default function AdminPedidos() {
           const mappedOrders: Order[] = data.map((row) => {
             const rawEnvio = row.datos_envio || {};
             const datos_envio: ShippingInfo = {
-              recipientName: rawEnvio.recipientName || row.cliente_nombre || 'Sin nombre',
+              recipientName: rawEnvio.recipientName || 'Sin nombre',
               recipientPhone: rawEnvio.recipientPhone || 'Sin teléfono',
               deliveryAddress: rawEnvio.deliveryAddress || 'Recoger en tienda',
               deliveryDate: rawEnvio.deliveryDate || new Date(row.created_at).toLocaleDateString(),
@@ -439,7 +439,7 @@ export default function AdminPedidos() {
               id: row.id,
               numero: `#${row.id.slice(0, 8).toUpperCase()}`,
               fecha: row.created_at,
-              cliente_nombre: row.cliente_nombre || rawEnvio.recipientName || 'Cliente anónimo',
+              cliente_nombre: rawEnvio.recipientName || 'Cliente anónimo',
               cliente_email: row.email_cliente || 'Sin email',
               total: row.total,
               estado: row.estado as OrderStatus,
@@ -509,7 +509,6 @@ export default function AdminPedidos() {
                     metodo_pago,
                     datos_envio,
                     email_cliente,
-                    cliente_nombre,
                     created_at,
                     pedido_items (
                       id,
@@ -530,7 +529,7 @@ export default function AdminPedidos() {
                 if (row && active) {
                   const rawEnvio = row.datos_envio || {};
                   const datos_envio: ShippingInfo = {
-                    recipientName: rawEnvio.recipientName || row.cliente_nombre || 'Sin nombre',
+                    recipientName: rawEnvio.recipientName || 'Sin nombre',
                     recipientPhone: rawEnvio.recipientPhone || 'Sin teléfono',
                     deliveryAddress: rawEnvio.deliveryAddress || 'Recoger en tienda',
                     deliveryDate: rawEnvio.deliveryDate || new Date(row.created_at).toLocaleDateString(),
@@ -562,7 +561,7 @@ export default function AdminPedidos() {
                     id: row.id,
                     numero: `#${row.id.slice(0, 8).toUpperCase()}`,
                     fecha: row.created_at,
-                    cliente_nombre: row.cliente_nombre || rawEnvio.recipientName || 'Cliente anónimo',
+                    cliente_nombre: rawEnvio.recipientName || 'Cliente anónimo',
                     cliente_email: row.email_cliente || 'Sin email',
                     total: row.total,
                     estado: row.estado as OrderStatus,

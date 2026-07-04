@@ -20,6 +20,7 @@ const ProductoCard = memo(function ProductoCard({ producto, priority = false }) 
       return;
     }
 
+    e.preventDefault();
     e.stopPropagation(); 
     
     addItem({
