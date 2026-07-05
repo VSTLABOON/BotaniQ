@@ -205,9 +205,9 @@ export default function ProductDetailPage() {
   return (
     <div className="min-h-[100svh] bg-crema pb-24 lg:pb-0">
       <Helmet>
-        <title>{`${selectedVariant ? `${product.name} - ${selectedVariant.name}` : product.name} | ${tenant.nombre}`}</title>
+        <title>{`${selectedVariant ? selectedVariant.name : product.name} | ${tenant.nombre}`}</title>
         <meta name="description" content={product.description} />
-        <meta property="og:title" content={selectedVariant ? `${product.name} - ${selectedVariant.name}` : product.name} />
+        <meta property="og:title" content={selectedVariant ? selectedVariant.name : product.name} />
         <meta property="og:description" content={product.description} />
         <meta property="og:image" content={product.images[0]} />
         <meta property="og:type" content="product" />
@@ -270,7 +270,7 @@ export default function ProductDetailPage() {
           <div className="flex flex-col">
             <div className="mb-6">
               <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-texto leading-[1.1] mb-4">
-                {selectedVariant ? `${product.name} - ${selectedVariant.name}` : product.name}
+                {selectedVariant ? selectedVariant.name : product.name}
               </h1>
 
               {/* Descripción visible en detalle */}
@@ -310,6 +310,38 @@ export default function ProductDetailPage() {
                   Selecciona una opción:
                 </label>
                 <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar snap-x snap-mandatory">
+                  {/* Tarjeta estática del Arreglo Base */}
+                  <button
+                    onClick={() => {
+                      setSelectedVariantId(null);
+                      if (product.images[0]) setSelectedImage(product.images[0]);
+                    }}
+                    className={`flex-none w-[220px] sm:w-[260px] p-3 sm:p-4 rounded-2xl border-2 text-left transition-all snap-start scroll-mx-4 ${
+                      selectedVariantId === null
+                        ? 'border-verde bg-verde/5 shadow-sm'
+                        : 'border-[var(--color-border-secondary)] bg-[var(--color-background-primary)] hover:border-verde/30'
+                    }`}
+                  >
+                    <div className="aspect-[4/3] rounded-xl overflow-hidden mb-3 bg-crema-dark relative">
+                      <img 
+                        src={product.images[0]} 
+                        alt={product.name} 
+                        className="w-full h-full object-cover" 
+                      />
+                    </div>
+                    <h4 className="font-display font-bold text-sm sm:text-base text-texto mb-1">
+                      {product.name}
+                    </h4>
+                    <p className="text-xs sm:text-sm font-semibold text-[var(--color-primary)] mb-2">
+                      ${new Intl.NumberFormat('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(product.basePrice)}
+                    </p>
+                    {product.description && (
+                      <p className="text-[0.7rem] sm:text-xs text-texto-muted line-clamp-2 leading-relaxed">
+                        {product.description}
+                      </p>
+                    )}
+                  </button>
+
                   {product.variants.filter(v => v.isAvailable).map((v) => {
                     const isSelected = selectedVariantId === v.id;
                     const variantPrice = v.price !== null && v.price !== undefined ? v.price : product.basePrice;
