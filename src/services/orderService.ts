@@ -27,7 +27,7 @@ export async function createGuestOrder(
   // Mapear los items del carrito al formato que espera la función RPC
   const itemsPayload = checkout.items.map((item) => ({
     producto_id: item.productId,
-    variante_id: item.variantId,
+    variante_id: (item.variantId && item.variantId !== item.productId) ? item.variantId : null,
     nombre: item.name,
     cantidad: item.quantity,
     precio_unitario: item.unitPrice,

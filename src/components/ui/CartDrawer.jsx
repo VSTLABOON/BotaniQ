@@ -120,84 +120,80 @@ export default function CartDrawer() {
       setCpLoading(true);
       setCpError(null);
       try {
-        const token = import.meta.env.VITE_COPOMEX_TOKEN || 'pruebas';
-        const res = await fetch(`https://api.copomex.com/query/info_cp/${cp}?token=${token}`);
-        if (!res.ok) throw new Error("Error en la conexión con la API de códigos postales");
-        const data = await res.json();
-        
-        if (!active) return;
+        const token = import.meta.env.VITE_COPOMEX_TOKEN || '';
+        const hasRealToken = token && token !== 'pruebas';
 
-        if (data && data[0] && data[0].error === true) {
-          throw new Error(data[0].error_message || "Código Postal no encontrado");
-        }
-
-        if (Array.isArray(data) && data.length > 0) {
-          const first = data[0].response;
-          const estado = first.estado || '';
-          const municipio = first.municipio || '';
-          const ciudad = first.ciudad || municipio || '';
-
-          const colonias = data.map(item => item.response.asentamiento).filter(Boolean);
+        const runZippopotam = async () => {
+          const fallbackRes = await fetch(`https://api.zippopotam.us/mx/${cp}`);
+          if (!fallbackRes.ok) throw new Error("Error consultando Zippopotam");
+          const fallbackData = await fallbackRes.json();
+          const places = fallbackData.places || [];
+          if (places.length === 0) throw new Error("Código Postal no encontrado en Zippopotam");
           
-          setCpInfo({ municipio: ciudad, estado });
-          setColoniasList(colonias);
+          const estado = places[0]?.state || '';
+          const municipio = places[0]?.['place name'] || '';
+          const colonias = places.map(p => p['place name']).filter(Boolean);
           
-          if (colonias.length > 0) {
-            setSelectedColonia(colonias[0]);
-            setFormData(prev => ({
-              ...prev,
-              direccion: `${colonias[0]}, ${ciudad}, ${estado}`
-            }));
-            
-            if (validationErrors.direccion) {
-              setValidationErrors(p => { const copy = { ...p }; delete copy.direccion; return copy; });
-            }
-            
-            matchZonaEnvio(colonias[0], ciudad, estado);
+          return { estado, municipio, ciudad: municipio, colonias };
+        };
+
+        const runCopomex = async () => {
+          const res = await fetch(`https://api.copomex.com/query/info_cp/${cp}?token=${token || 'pruebas'}`);
+          if (!res.ok) throw new Error("Error en la conexión con la API de códigos postales");
+          const data = await res.json();
+          if (data && data[0] && data[0].error === true) {
+            throw new Error(data[0].error_message || "Código Postal no encontrado");
+          }
+          if (Array.isArray(data) && data.length > 0) {
+            const first = data[0].response;
+            const estado = first.estado || '';
+            const municipio = first.municipio || '';
+            const ciudad = first.ciudad || municipio || '';
+            const colonias = data.map(item => item.response.asentamiento).filter(Boolean);
+            return { estado, municipio, ciudad, colonias };
+          }
+          throw new Error("Código Postal no encontrado");
+        };
+
+        let result;
+        if (hasRealToken) {
+          try {
+            result = await runCopomex();
+          } catch (copomexErr) {
+            logger.error("Error en Copomex, intentando fallback Zippopotam:", copomexErr);
+            result = await runZippopotam();
           }
         } else {
-          throw new Error("Código Postal no encontrado");
+          try {
+            result = await runZippopotam();
+          } catch (zipErr) {
+            logger.error("Error en Zippopotam, intentando fallback Copomex:", zipErr);
+            result = await runCopomex();
+          }
+        }
+
+        if (!active) return;
+
+        const { estado, municipio, ciudad, colonias } = result;
+        setCpInfo({ municipio: ciudad, estado });
+        setColoniasList(colonias);
+        
+        if (colonias.length > 0) {
+          setSelectedColonia(colonias[0]);
+          setFormData(prev => ({
+            ...prev,
+            direccion: `${colonias[0]}, ${ciudad}, ${estado}`
+          }));
+          
+          if (validationErrors.direccion) {
+            setValidationErrors(p => { const copy = { ...p }; delete copy.direccion; return copy; });
+          }
+          
+          matchZonaEnvio(colonias[0], ciudad, estado);
         }
       } catch (err) {
         if (active) {
-          logger.error("Error al consultar Copomex CP:", err);
-          
-          try {
-            const fallbackRes = await fetch(`https://api.zippopotam.us/mx/${cp}`);
-            if (fallbackRes.ok) {
-              const fallbackData = await fallbackRes.json();
-              const places = fallbackData.places || [];
-              
-              if (places.length > 0) {
-                const estado = places[0]?.state || '';
-                const municipio = places[0]?.['place name'] || '';
-                const colonias = places.map(p => p['place name']).filter(Boolean);
-                
-                setCpInfo({ municipio, estado });
-                setColoniasList(colonias);
-                
-                if (colonias.length > 0) {
-                  setSelectedColonia(colonias[0]);
-                  setFormData(prev => ({
-                    ...prev,
-                    direccion: `${colonias[0]}, ${municipio}, ${estado}`
-                  }));
-                  
-                  if (validationErrors.direccion) {
-                    setValidationErrors(p => { const copy = { ...p }; delete copy.direccion; return copy; });
-                  }
-                  
-                  matchZonaEnvio(colonias[0], municipio, estado);
-                }
-                
-                setCpError(null);
-                return; // éxito — no mostrar error
-              }
-            }
-          } catch (fallbackErr) {
-            logger.error("Error en fallback Zippopotam:", fallbackErr);
-          }
-
+          logger.error("Error al consultar el CP:", err);
           setCpError("Error al consultar el Código Postal. Intente ingresarlo manualmente.");
         }
       } finally {
