@@ -20,25 +20,21 @@ import { Helmet } from 'react-helmet-async';
 import { useTenant } from '../../context/TenantContext';
 
 // ── Importación de secciones ─────────────────────────────────────
-import { lazy, Suspense } from 'react';
-
-// Eager imports para elementos "above the fold" (Mejora LCP)
 import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
 import HeroRouter from '../../components/sections/HeroRouter';
 import CheckoutReturnHandler from '../../components/ui/CheckoutReturnHandler';
 import GlobalFeatures from '../../components/ui/GlobalFeatures';
 
-// Lazy imports para todo lo que está "below the fold" (Code Splitting)
-const Catalogo = lazy(() => import('../../components/sections/Catalogo'));
-const Servicios = lazy(() => import('../../components/sections/Servicios'));
-const Testimonios = lazy(() => import('../../components/sections/Testimonios'));
-const Beneficios = lazy(() => import('../../components/sections/Beneficios'));
-const Flores = lazy(() => import('../../components/sections/Flores'));
-const Cobertura = lazy(() => import('../../components/sections/Cobertura'));
-const Nosotros = lazy(() => import('../../components/sections/Nosotros'));
-const Galeria = lazy(() => import('../../components/sections/Galeria'));
-const InstagramFeed = lazy(() => import('../../components/sections/InstagramFeed'));
+import Catalogo from '../../components/sections/Catalogo';
+import Servicios from '../../components/sections/Servicios';
+import Testimonios from '../../components/sections/Testimonios';
+import Beneficios from '../../components/sections/Beneficios';
+import Flores from '../../components/sections/Flores';
+import Cobertura from '../../components/sections/Cobertura';
+import Nosotros from '../../components/sections/Nosotros';
+import Galeria from '../../components/sections/Galeria';
+import InstagramFeed from '../../components/sections/InstagramFeed';
 import { logger } from '../../lib/logger';
 
 // ═══════════════════════════════════════════════════════════════════
@@ -130,16 +126,7 @@ export default function StorefrontPage() {
             extraProps.slug = tenant.slug;
           }
 
-          // Si es el Hero, renderiza directo (LCP), si no, usa Suspense
-          if (sectionKey === 'Hero') {
-            return <SectionComponent key={sectionKey} {...extraProps} />;
-          }
-
-          return (
-            <Suspense key={sectionKey} fallback={<div className="min-h-[400px] bg-[var(--color-background-primary)] animate-pulse" />}>
-              <SectionComponent {...extraProps} />
-            </Suspense>
-          );
+          return <SectionComponent key={sectionKey} {...extraProps} />;
         })}
       </main>
 

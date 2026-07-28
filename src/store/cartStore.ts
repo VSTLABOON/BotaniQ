@@ -12,6 +12,7 @@
 // ────────────────────────────────────────────────────────────────
 
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import type { CartItem } from '../types';
 
 // ── Interfaz del Store ───────────────────────────────────────────
@@ -35,79 +36,88 @@ interface CartStore {
 
 // ── Implementación ───────────────────────────────────────────────
 
-export const useCartStore = create<CartStore>((set, get) => ({
-  items: [],
-  isOpen: false,
+export const useCartStore = create<CartStore>()(
+  persist(
+    (set, get) => ({
+      items: [],
+      isOpen: false,
 
-  addItem: (item) => {
-    set((state) => {
-      // Buscar si ya existe un item con el mismo producto + variante
-      const existingIndex = state.items.findIndex(
-        (i) => i.productId === item.productId && i.variantId === item.variantId
-      );
+      addItem: (item) => {
+        set((state) => {
+          // Buscar si ya existe un item con el mismo producto + variante
+          const existingIndex = state.items.findIndex(
+            (i) => i.productId === item.productId && i.variantId === item.variantId
+          );
 
-      if (existingIndex !== -1) {
-        // Incrementar cantidad del item existente
-        const updatedItems = [...state.items];
-        updatedItems[existingIndex] = {
-          ...updatedItems[existingIndex],
-          quantity: updatedItems[existingIndex].quantity + item.quantity,
-        };
-        return { items: updatedItems };
-      }
+          if (existingIndex !== -1) {
+            // Incrementar cantidad del item existente
+            const updatedItems = [...state.items];
+            updatedItems[existingIndex] = {
+              ...updatedItems[existingIndex],
+              quantity: updatedItems[existingIndex].quantity + item.quantity,
+            };
+            return { items: updatedItems };
+          }
 
-      // Crear nueva línea con ID único
-      const newItem: CartItem = {
-        ...item,
-        cartItemId: crypto.randomUUID(),
-      };
-      return { items: [...state.items, newItem] };
-    });
-  },
+          // Crear nueva línea con ID único
+          const newItem: CartItem = {
+            ...item,
+            cartItemId: crypto.randomUUID(),
+          };
+          return { items: [...state.items, newItem] };
+        });
+      },
 
-  removeItem: (cartItemId) => {
-    set((state) => ({
-      items: state.items.filter((i) => i.cartItemId !== cartItemId),
-    }));
-  },
+      removeItem: (cartItemId) => {
+        set((state) => ({
+          items: state.items.filter((i) => i.cartItemId !== cartItemId),
+        }));
+      },
 
-  updateQuantity: (cartItemId, qty) => {
-    set((state) => {
-      // Si la cantidad es 0 o negativa, eliminar el item
-      if (qty <= 0) {
-        return { items: state.items.filter((i) => i.cartItemId !== cartItemId) };
-      }
+      updateQuantity: (cartItemId, qty) => {
+        set((state) => {
+          // Si la cantidad es 0 o negativa, eliminar el item
+          if (qty <= 0) {
+            return { items: state.items.filter((i) => i.cartItemId !== cartItemId) };
+          }
 
-      return {
-        items: state.items.map((i) =>
-          i.cartItemId === cartItemId ? { ...i, quantity: qty } : i
-        ),
-      };
-    });
-  },
+          return {
+            items: state.items.map((i) =>
+              i.cartItemId === cartItemId ? { ...i, quantity: qty } : i
+            ),
+          };
+        });
+      },
 
-  clearCart: () => {
-    set({ items: [] });
-  },
+      clearCart: () => {
+        set({ items: [] });
+      },
 
-  openCart: () => {
-    set({ isOpen: true });
-    document.body.style.overflow = 'hidden';
-  },
+      openCart: () => {
+        set({ isOpen: true });
+        document.body.style.overflow = 'hidden';
+      },
 
-  closeCart: () => {
-    set({ isOpen: false });
-    document.body.style.overflow = '';
-  },
+      closeCart: () => {
+        set({ isOpen: false });
+        document.body.style.overflow = '';
+      },
 
-  getSubtotal: () => {
-    return get().items.reduce(
-      (sum, item) => sum + item.unitPrice * item.quantity,
-      0
-    );
-  },
+      getSubtotal: () => {
+        return get().items.reduce(
+          (sum, item) => sum + item.unitPrice * item.quantity,
+          0
+        );
+      },
 
-  getItemCount: () => {
-    return get().items.reduce((sum, item) => sum + item.quantity, 0);
-  },
-}));
+      getItemCount: () => {
+        return get().items.reduce((sum, item) => sum + item.quantity, 0);
+      },
+    }),
+    {
+      name: 'botaniq-cart-storage',
+      // Solo persistimos la lista de items, no el estado isOpen del cajón
+      partialize: (state) => ({ items: state.items }),
+    }
+  )
+);
