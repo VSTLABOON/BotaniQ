@@ -440,26 +440,27 @@ serve(async (req: Request): Promise<Response> => {
       }
 
       // ═════════════════════════════════════════════════════════════════ // [BLINDADO]
-      // PREVENIR "BAIT AND SWITCH" DE ITEMS (FUGA 7)                      // [BLINDADO]
+      // PREVENIR "BAIT AND SWITCH" DE ITEMS — RPC TRANSACCIONAL          // [BLINDADO]
       // ═════════════════════════════════════════════════════════════════ // [BLINDADO]
-      // La función RPC `create_guest_order` inserta los items tal cual    // [BLINDADO]
-      // como los manda el cliente (cantidades y precios). Para evitar     // [BLINDADO]
-      // que un atacante pague el total correcto pero manipule los items   // [BLINDADO]
-      // (ej. pagar $10 por un Rolex en vez de $10 por un sticker),        // [BLINDADO]
-      // SOBREESCRIBIMOS los items del pedido con los validados en servidor. // [BLINDADO]
+      // La función RPC `sync_pedido_items` ejecuta en una sola transacción // [BLINDADO]
+      // atómica el DELETE + INSERT recalculando los precios en el servidor. // [BLINDADO]
       // ═════════════════════════════════════════════════════════════════ // [BLINDADO]
-      await supabaseAdmin.from("pedido_items").delete().eq("pedido_id", order_id);
-      
-      const insertPayload = validatedItems.map(vi => ({
-        pedido_id: order_id,
-        producto_id: vi.producto_id || null,
-        variante_id: vi.variante_id || null,
-        nombre_producto: vi.nombre,
-        cantidad: vi.cantidad,
-        precio_unitario: vi.precio_unitario
+      const syncItemsPayload = items.map(i => ({
+        producto_id: i.product_id,
+        variante_id: i.variant_id || null,
+        cantidad: i.quantity
       }));
-      await supabaseAdmin.from("pedido_items").insert(insertPayload);
-      console.log(`🛡️ Items sincronizados para pedido ${order_id} (Prevención Bait & Switch)`);
+
+      const { error: syncErr } = await supabaseAdmin.rpc("sync_pedido_items", {
+        p_order_id: order_id,
+        p_items: syncItemsPayload
+      });
+
+      if (syncErr) {
+        console.error("❌ Error en RPC sync_pedido_items:", syncErr.message);
+        return jsonResponse({ error: "Error de sincronización transaccional del pedido." }, 500, origin);
+      }
+      console.log(`🛡️ Items sincronizados atómicamente para pedido ${order_id} (Prevención Bait & Switch)`);
     }
 
     // ═════════════════════════════════════════════════════════════

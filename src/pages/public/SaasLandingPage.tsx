@@ -526,7 +526,7 @@ export default function SaasLandingPage() {
 
           {/* Features cards layout */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {PLAN_FEATURES[activeFeatureTab].map((feat, i) => (
+            {(PLAN_FEATURES[activeFeatureTab] || PLAN_FEATURES.basico).map((feat, i) => (
               <GlassCard key={i} className="p-8 bg-white/80 border border-[#526243]/10 shadow-sm flex flex-col gap-4 min-h-[220px]">
                 <div className="flex items-center gap-3 flex-shrink-0">
                   <div className="w-10 h-10 rounded-full bg-[#ffd7db] border border-[#526243]/10 flex items-center justify-center flex-shrink-0">

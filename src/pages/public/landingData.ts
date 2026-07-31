@@ -16,6 +16,9 @@ export const HERO = {
 // ── FEATURES PER PLAN (carousel inside each plan) ──
 export type PlanFeature = { icon: LucideIcon; title: string; desc: string };
 
+// ── FEATURES PER PLAN (carousel inside each plan) ──
+export type PlanFeature = { icon: LucideIcon; title: string; desc: string };
+
 export const PLAN_FEATURES: Record<string, PlanFeature[]> = {
   basico: [
     { icon: Flower2, title: 'Tu catálogo para fechas especiales', desc: 'Sube tus bouquets de 12 o 24 rosas y comparte el link por WhatsApp. Deja de mandar fotos una por una en plena temporada.' },
@@ -25,7 +28,7 @@ export const PLAN_FEATURES: Record<string, PlanFeature[]> = {
   aura: [
     { icon: Flower2, title: 'Catálogo ilimitado de arreglos', desc: 'Sube todos los productos y variantes que tu imaginación dicte. Sin topes de stock ni de arreglos en tu escaparate digital.' },
     { icon: Scissors, title: 'Diseño libre y sin límites visuales', desc: 'Agrega carruseles de fotos, secciones de banners y testimonios sin restricciones. Tu tienda lucirá premium y a tu gusto.' },
-    { icon: Store, title: '1 colaborador en tu equipo', desc: 'Añade un ayudante para que registre pedidos y organice el inventario contigo, quitándote carga de trabajo.' },
+    { icon: Store, title: 'Feed de Instagram integrado', desc: 'Conecta tus fotos de Instagram directamente a tu tienda para actualizar tu portafolio automáticamente.' },
   ],
   pro: [
     { icon: Wallet, title: 'Cobra el anticipo antes de tocar la tijera', desc: 'Tus clientes pagan con tarjeta o transferencia al momento. Se acabó eso de armar un arreglo de $1,200 para que nunca pasen por él y la flor termine en el bote de basura.' },
@@ -34,10 +37,6 @@ export const PLAN_FEATURES: Record<string, PlanFeature[]> = {
     { icon: Store, title: 'Tu equipo sabe qué flores comprar', desc: 'Tus ayudantes ven desde su celular cuántas docenas de rosas se necesitan para los compromisos del fin de semana. Menos vueltas a la Central.' },
     { icon: Sprout, title: 'Invierte en la flor que sí se vende', desc: '¿Se venden más los girasoles o los arreglos mixtos? Mira tus ventas reales y deja de tirar dinero comprando flor que nadie pide.' },
   ],
-  premium: [
-    { icon: Truck, title: 'Reparto ordenado para el Día de Muertos', desc: 'Asigna las rutas de tus repartidores. Tus clientes ven por dónde va su corona de flores en tiempo real. Menos llamadas de "¿ya mero llega?".' },
-    { icon: Globe, title: 'Tu marca propia: www.tufloreria.com', desc: 'Eleva el ticket promedio de tus arreglos de Navidad y Bodas con un dominio personalizado que dé confianza absoluta a clientes de ticket alto.' },
-  ],
 };
 
 // ── PRICING ──
@@ -45,13 +44,13 @@ export const PRICING = [
   {
     key: 'basico', level: 'Nivel 1', name: 'BotaniQ Esencia', price: '$400', period: '/mes',
     yearPrice: '$4,000', yearSave: '$800',
-    desc: 'Ideal para florerías locales que quieren dejar de mandar PDFs por WhatsApp cada que cambia el precio de la docena.',
+    desc: 'Ideal para florerías locales que quieren un catálogo profesional y recibir pedidos ordenados por WhatsApp.',
     roi: 'Asegura que tus clientes vean tus arreglos de temporada actualizados sin que tú tengas que enviar fotos todo el día.',
     features: [
-      { texto: 'Catálogo y secciones con límites', proximamente: false },
-      { texto: 'Pedidos directos a tu WhatsApp', proximamente: false },
-      { texto: 'Solo para el dueño de la tienda', proximamente: false },
-      { texto: 'Sin comisiones por pasarela', proximamente: false }
+      { texto: 'Catálogo de productos y variantes (hasta 40)', proximamente: false },
+      { texto: 'Pedidos directos y limpios a tu WhatsApp', proximamente: false },
+      { texto: 'Prueba gratuita de 14 días sin tarjeta', proximamente: false },
+      { texto: 'Cero comisiones por venta', proximamente: false }
     ],
     color: 'from-gray-500/20 to-gray-400/5', accent: 'text-gray-300', border: 'border-white/5',
     glow: 'group-hover:shadow-[0_0_40px_rgba(156,163,175,0.15)]',
@@ -59,46 +58,32 @@ export const PRICING = [
   {
     key: 'aura', level: 'Nivel 2', name: 'BotaniQ Aura', price: '$650', period: '/mes',
     yearPrice: '$6,500', yearSave: '$1,300',
-    desc: 'Para floristas que quieren crecer sin límites de catálogo y con presencia en redes.',
+    desc: 'Para floristas que quieren crecer con catálogo ilimitado, diseño libre e integración con Instagram.',
     roi: 'Destaca tu marca con un diseño sin restricciones e integra tus redes para atraer más ventas.',
     features: [
       { texto: 'Todo lo de Esencia', proximamente: false },
       { texto: 'Catálogo y variantes ilimitados', proximamente: false },
       { texto: 'Secciones ilimitadas en tu storefront', proximamente: false },
-      { texto: 'Instagram Feed en tu tienda', proximamente: false },
-      { texto: '1 integrante de equipo adicional', proximamente: false }
+      { texto: 'Feed de Instagram en tu tienda', proximamente: false },
+      { texto: 'Prueba gratuita de 14 días sin tarjeta', proximamente: false }
     ],
     color: 'from-blue-500/20 to-indigo-500/5', accent: 'text-blue-300', border: 'border-white/5',
     glow: 'group-hover:shadow-[0_0_40px_rgba(59,130,246,0.15)]',
   },
   {
-    key: 'pro', level: 'Nivel 3', name: 'BotaniQ Alquimia', price: '$1,000', period: '/mes',
-    yearPrice: '$10,000', yearSave: '$2,000',
-    desc: 'Perfecto para cobrar con tarjeta, transferencias y equipo ilimitado.',
+    key: 'pro', level: 'Nivel 3', name: 'BotaniQ Alquimia', price: '$900', period: '/mes',
+    yearPrice: '$9,000', yearSave: '$1,800',
+    desc: 'Perfecto para cobrar con tarjeta, transferencias SPEI (OpenPay/Stripe) y colaborar con tu equipo.',
     roi: 'Asegura tu dinero cobrando por adelantado con tarjeta y SPEI. Olvídate de los ramos colgados.',
     features: [
       { texto: 'Todo lo de Aura', proximamente: false },
       { texto: 'Cobro seguro con tarjeta o SPEI (Stripe/OpenPay)', proximamente: false },
-      { texto: 'Avisos de pago y notificaciones al instante', proximamente: false },
-      { texto: 'Acceso para colaboradores ilimitados', proximamente: false }
+      { texto: 'Avisos de pago y notificaciones en tiempo real', proximamente: false },
+      { texto: 'Gestión de equipo hasta 3 colaboradores', proximamente: false },
+      { texto: 'Prueba gratuita de 14 días sin tarjeta', proximamente: false }
     ],
     color: 'from-violet-500/30 to-fuchsia-500/10', accent: 'text-violet-400', border: 'border-violet-500/30',
     glow: 'group-hover:shadow-[0_0_60px_rgba(139,92,246,0.25)]', popular: true,
-  },
-  {
-    key: 'premium', level: 'Nivel 4', name: 'BotaniQ Edén', price: '$1,500', period: '/mes',
-    yearPrice: '$15,000', yearSave: '$3,000',
-    desc: 'Para florerías con alto volumen de pedidos a domicilio y logística avanzada.',
-    roi: 'Optimiza tus entregas con repartidores propios y aumenta el ticket promedio con tu dominio propio.',
-    features: [
-      { texto: 'Todo lo de Alquimia', proximamente: false },
-      { texto: 'Módulo de repartidores propio', proximamente: true },
-      { texto: 'Rastreo GPS y rutas en el celular', proximamente: true },
-      { texto: 'Dominio personalizado (.com)', proximamente: false },
-      { texto: 'Comisiones bajas preferenciales', proximamente: false }
-    ],
-    color: 'from-amber-500/30 to-orange-500/10', accent: 'text-amber-400', border: 'border-amber-500/20',
-    glow: 'group-hover:shadow-[0_0_60px_rgba(245,158,11,0.2)]',
   },
 ];
 
@@ -131,17 +116,17 @@ export const SAFETY = {
   items: [
     { q: '¿Qué pasa si mi cliente dice que sí pagó pero no aparece en mi panel?', a: 'Revisamos la transferencia o el cargo de inmediato. Si el banco del cliente rechazó la tarjeta por falta de fondos, te avisamos de inmediato para que no gastes flor ni tiempo en un pedido que no está firme.' },
     { q: '¿Y si se cae la página justo el 10 de Mayo?', a: 'Nuestros servidores están preparados para recibir miles de visitas simultáneas. Tu tienda va a aguantar el tráfico pesado de las fechas fuertes mejor que cualquier grupo de WhatsApp.' },
-    { q: '¿Cómo sé que el pago por tarjeta es seguro?', a: 'Usamos Stripe, el sistema de cobros más seguro del mundo. El dinero de tus arreglos va directo de la tarjeta de tu cliente a tu cuenta bancaria en 48 horas sin trucos.' },
+    { q: '¿Cómo sé que el pago por tarjeta es seguro?', a: 'Usamos Stripe y OpenPay (BBVA), los sistemas de cobros más seguros del mercado. El dinero de tus arreglos va directo a tu cuenta bancaria.' },
     { q: '¿Qué hago si un cliente me reclama una devolución?', a: 'Tú tienes el control total. Desde tu panel puedes hacer devoluciones parciales o totales si, por ejemplo, no hubo la flor específica que el cliente quería y acordaron un cambio.' },
   ],
 };
 
 // ── FAQS ──
 export const FAQS = [
-  { q: '¿Cuánto me cobran por cada venta con tarjeta?', a: 'En el plan Pro y Premium, la comisión es de [3.6% + $3 MXN] más IVA por cada venta cobrada. No hay cargos por pedidos rechazados o cancelados. El dinero llega a tu banco automáticamente.' },
+  { q: '¿Cobran comisiones por cada venta que realizo?', a: 'No. BotaniQ opera con una tarifa mensual transparente según el plan que elijas. No cobramos ninguna comisión por transacción sobre tus ventas.' },
   { q: '¿Puedo aceptar pedidos personalizados o solo productos fijos?', a: 'Ambos. Puedes subir ramos con opciones (ej: 12, 24 o 36 rosas) o dejar un botón de "Pedido Especial" donde tú acuerdas el precio final con el cliente por WhatsApp antes de que él pague en la página.' },
   { q: '¿Aguanta el tráfico del 10 de mayo?', a: 'Totalmente. Está diseñada para que entren 200 pedidos en una mañana sin que tú tengas que anotar nada. Los pedidos se organizan solitos por hora de entrega y zona.' },
   { q: '¿Mis clientes que prefieren pagar en efectivo al recibir pueden seguir haciéndolo?', a: 'Sí. Puedes dejar activa la opción de "Pedido por WhatsApp" para esos clientes de toda la vida que prefieren pagarte en el local o al momento de la entrega.' },
   { q: '¿Qué pasa si subo mal el precio de un arreglo?', a: 'Lo corriges desde tu celular en 5 segundos. Si el precio de la nube o el follaje subió hoy en la Central, entras a tu panel y actualizas tus precios al instante para no perder margen.' },
-  { q: '¿Qué pasa si mi cliente quiere pagar por transferencia?', a: 'El sistema le da tus datos de transferencia automáticamente. En cuanto el dinero cae, el pedido se marca como "Pagado" en tu panel para que empieces a armar el arreglo con confianza.' },
+  { q: '¿Cómo inicio mi prueba gratuita?', a: 'Crea tu cuenta sin ingresar tarjeta de crédito. Obtienes 14 días de prueba completa en el plan Esencia para personalizar tu tienda y comenzar a vender.' },
 ];

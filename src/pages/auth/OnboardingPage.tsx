@@ -34,10 +34,9 @@ function slugify(text: string): string {
 }
 
 const PLAN_LABELS: Record<string, { name: string; color: string; accent: string }> = {
-  gratis:  { name: 'BotaniQ Inicio (Prueba Gratis)', color: 'from-emerald-500/30 to-teal-500/10', accent: 'text-emerald-300 font-bold' },
-  basico:  { name: 'BotaniQ Esencia',  color: 'from-gray-500/30 to-gray-400/10',   accent: 'text-rose-300' },
-  pro:     { name: 'BotaniQ Alquimia',  color: 'from-violet-500/30 to-fuchsia-500/10', accent: 'text-[#D94F6E] font-bold' },
-  premium: { name: 'BotaniQ Edén', color: 'from-amber-500/30 to-orange-500/10',  accent: 'text-purple-400 font-bold' },
+  basico:  { name: 'BotaniQ Esencia (Prueba Gratis 14 días)', color: 'from-emerald-500/30 to-teal-500/10', accent: 'text-emerald-300 font-bold' },
+  aura:    { name: 'BotaniQ Aura ($650 MXN/mes)',  color: 'from-blue-500/30 to-indigo-500/10', accent: 'text-blue-300 font-bold' },
+  pro:     { name: 'BotaniQ Alquimia ($900 MXN/mes)', color: 'from-violet-500/30 to-fuchsia-500/10', accent: 'text-[#D94F6E] font-bold' },
 };
 
 const CIUDADES = [
@@ -145,9 +144,9 @@ export default function OnboardingPage() {
   const { session, user, profile } = useAuth();
 
   const [currentPlan, setCurrentPlan] = useState<string>(() => {
-    return searchParams.get('plan') || 'gratis';
+    return searchParams.get('plan') || 'basico';
   });
-  const planInfo = useMemo(() => PLAN_LABELS[currentPlan] || PLAN_LABELS.gratis, [currentPlan]);
+  const planInfo = useMemo(() => PLAN_LABELS[currentPlan] || PLAN_LABELS.basico, [currentPlan]);
 
   // Steps
   const [step, setStep] = useState(1);
@@ -706,10 +705,9 @@ export default function OnboardingPage() {
                         className="onb-input onb-select"
                         style={{ paddingLeft: '2.5rem' }}
                       >
-                        <option value="gratis">BotaniQ Inicio (Prueba Gratis 14 días)</option>
-                        <option value="basico">BotaniQ Esencia (Básico — $400/mes)</option>
-                        <option value="pro">BotaniQ Alquimia (Pro — $900/mes — Recomendado)</option>
-                        <option value="premium">BotaniQ Edén (Premium — $1,300/mes)</option>
+                        <option value="basico">BotaniQ Esencia (Nivel 1 — $400/mes)</option>
+                        <option value="aura">BotaniQ Aura (Nivel 2 — $650/mes)</option>
+                        <option value="pro">BotaniQ Alquimia (Nivel 3 — $900/mes)</option>
                       </select>
                     </div>
                   </div>
@@ -811,34 +809,19 @@ export default function OnboardingPage() {
                     <button
                       type="button"
                       disabled={!isStep2Valid || !acceptedTerms || loading}
-                      onClick={() => handleFinish(currentPlan === 'gratis')}
+                      onClick={() => handleFinish(true)}
                       className="onb-btn onb-btn--primary"
                     >
                       {loading ? (
                         <Loader2 style={{ width: 18, height: 18 }} className="animate-spin" />
-                      ) : currentPlan === 'gratis' ? (
-                        <>Crear mi tienda <ArrowRight style={{ width: 16, height: 16 }} /></>
                       ) : (
-                        <>Proceder al pago <ArrowRight style={{ width: 16, height: 16 }} /></>
+                        <>Crear mi tienda (Prueba Gratis 14 Días) <ArrowRight style={{ width: 16, height: 16 }} /></>
                       )}
                     </button>
                   </div>
-
-                  {currentPlan !== 'gratis' && (
-                    <>
-                      <button
-                        type="button"
-                        disabled={!isStep2Valid || !acceptedTerms || loading}
-                        onClick={() => handleFinish(true)}
-                        className="onb-btn-secondary w-full py-3 px-4 border border-[var(--color-border-secondary)] hover:border-[var(--color-text-secondary)] text-[var(--color-text-secondary)] hover:text-white rounded-xl text-sm font-semibold transition-all mt-4"
-                      >
-                        Comenzar prueba gratuita de 14 días
-                      </button>
-                      <p className="text-[10px] text-center text-white/40 mt-1.5">
-                        Sin tarjeta de crédito. Cancela cuando quieras.
-                      </p>
-                    </>
-                  )}
+                  <p className="text-[11px] text-center text-white/40 mt-2">
+                    Sin tarjeta de crédito. Tu tienda queda lista al instante.
+                  </p>
                 </motion.div>
               )}
             </AnimatePresence>

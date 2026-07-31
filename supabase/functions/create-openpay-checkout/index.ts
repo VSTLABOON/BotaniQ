@@ -247,17 +247,22 @@ serve(async (req: Request): Promise<Response> => {
       return jsonResponse({ error: "El total no coincide con el pedido original." }, 409, origin);
     }
 
-    // Sincronizar items validados contra la DB para evitar Bait and Switch
-    await supabaseAdmin.from("pedido_items").delete().eq("pedido_id", order_id);
-    const insertPayload = validatedItems.map(vi => ({
-      pedido_id: order_id,
-      producto_id: vi.producto_id || null,
-      variante_id: vi.variante_id || null,
-      nombre_producto: vi.nombre,
-      cantidad: vi.cantidad,
-      precio_unitario: vi.precio_unitario
+    // Sincronización atómica de items mediante RPC transaccional (Price Hardening)
+    const syncItemsPayload = items.map(i => ({
+      producto_id: i.product_id,
+      variante_id: i.variant_id || null,
+      cantidad: i.quantity
     }));
-    await supabaseAdmin.from("pedido_items").insert(insertPayload);
+
+    const { error: syncErr } = await supabaseAdmin.rpc("sync_pedido_items", {
+      p_order_id: order_id,
+      p_items: syncItemsPayload
+    });
+
+    if (syncErr) {
+      console.error("❌ Error en RPC sync_pedido_items:", syncErr.message);
+      return jsonResponse({ error: "Error de sincronización transaccional del pedido." }, 500, origin);
+    }
 
     // Dividir nombre del cliente para OpenPay
     const nameParts = customer.name.trim().split(" ");
@@ -311,6 +316,11 @@ serve(async (req: Request): Promise<Response> => {
 
     if (!openpayRes.ok) {
       console.error("❌ Error de API OpenPay:", JSON.stringify(openpayData));
+      await supabaseAdmin
+        .from("pedidos")
+        .update({ estado: "cancelado" })
+        .eq("id", order_id);
+
       return jsonResponse({
         error: openpayData.description || "Error de comunicación con la pasarela de pagos."
       }, openpayRes.status, origin);

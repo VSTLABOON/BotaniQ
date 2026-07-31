@@ -104,17 +104,23 @@ serve(async (req: Request): Promise<Response> => {
     if (type === "charge.succeeded") {
       console.log(`💳 Pago exitoso recibido para pedido: ${pedido.id}`);
 
-      // Actualizar pedido a pagado
+      // Actualizar pedido a pagado atómicamente si no estaba pagado previamente
       const { data: updated, error: updateErr } = await supabaseAdmin
         .from("pedidos")
         .update({ estado: "pagado" })
         .eq("id", pedido.id)
+        .neq("estado", "pagado")
         .select("id, total")
-        .single();
+        .maybeSingle();
 
       if (updateErr) {
         console.error("❌ Error al actualizar el estado del pedido:", updateErr.message);
         return jsonResponse({ error: "Error al actualizar estado del pedido." }, 500);
+      }
+
+      if (!updated) {
+        console.log(`⚡ Idempotencia atómica: El pedido ${pedido.id} ya fue procesado por otra petición.`);
+        return jsonResponse({ received: true, already_processed: true }, 200);
       }
 
       // Generar notificación en el dashboard del florista
